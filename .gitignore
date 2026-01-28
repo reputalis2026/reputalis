@@ -21,3 +21,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+adminer.php
+*.save
+public/css/
+public/js/
+app/Providers/Filament/
+database/migrations/*[!php]
