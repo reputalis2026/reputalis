@@ -1,49 +1,52 @@
-<?php
 
+<?php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
+return new class extends Migration {
+    public function up(): void {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->rememberToken();
+            $table->string('fullname');
+            $table->enum('role', ['superadmin', 'admin', 'pharmacy_owner', 'employee'])->default('employee');
+            $table->uuid('pharmacy_id')->nullable()->index();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password_reset_token')->nullable();
+            $table->timestamp('last_login_at')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->foreign('pharmacy_id')->references('id')->on('pharmacies');
         });
-
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
-
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
+        // SUPERADMIN AUTOMÁTICO
+        $superadminId = DB::raw('gen_random_uuid()');
+        DB::table('users')->insert([
+            'id' => $superadminId,
+            'email' => 'reputalis2026@gmail.com',
+            'password' => Hash::make('Gironda2026'),
+            'fullname' => 'Super Administrador REPUTALIS',
+            'role' => 'superadmin',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        // Pharmacy demo para superadmin
+        $pharmacyId = DB::raw('gen_random_uuid()');
+        DB::table('pharmacies')->insert([
+            'id' => $pharmacyId,
+            'code' => 'DEMO001',
+            'namecommercial' => 'Farmacia Demo',
+            'fiscalname' => 'Farmacia Demo SL',
+            'fiscalnif' => 'B12345678',
+            'fiscaladdress' => 'Calle Demo 1',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('users')->where('email', 'admin@reputalis.com')->update(['pharmacy_id' => $pharmacyId]);
     }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
-    }
+    public function down(): void { Schema::dropIfExists('users'); }
 };

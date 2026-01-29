@@ -1,0 +1,16 @@
+[0;1;31mUnit apache2.service could not be found.[0m
+[0;1;31m×[0m nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (]8;;file://srv1268490/usr/lib/systemd/system/nginx.service/usr/lib/systemd/system/nginx.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;31mfailed[0m (Result: signal) since Thu 2026-01-22 11:54:42 UTC; 17s ago
+   Duration: 23h 37min 40.268s
+       Docs: ]8;;man:nginx(8)man:nginx(8)]8;;
+   Main PID: 37347 (code=killed, signal=KILL)
+        CPU: 246ms
+
+Jan 21 12:17:01 srv1268490 systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Jan 21 12:17:01 srv1268490 nginx[37344]: 2026/01/21 12:17:01 [warn] 37344#37344: conflicting server name "reputalis.org" on 0.0.0.0:80, ignored
+Jan 21 12:17:01 srv1268490 nginx[37346]: 2026/01/21 12:17:01 [warn] 37346#37346: conflicting server name "reputalis.org" on 0.0.0.0:80, ignored
+Jan 21 12:17:01 srv1268490 systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+Jan 22 11:54:42 srv1268490 systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mnginx.service: Main process exited, code=killed, status=9/KILL[0m
+Jan 22 11:54:42 srv1268490 systemd[1]: [0;1;39m[0;1;31m[0;1;39mnginx.service: Killing process 37349 (nginx) with signal SIGKILL.[0m
+Jan 22 11:54:42 srv1268490 systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mnginx.service: Failed with result 'signal'.[0m
