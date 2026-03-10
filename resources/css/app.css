@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ocultar la opción "Modo del sistema" del selector de tema en Filament */
+.fi-theme-switcher-menu-item[data-theme="system"],
+button[data-theme="system"],
+[data-theme="system"] {
+    display: none !important;
+}

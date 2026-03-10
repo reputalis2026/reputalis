@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use Filament\Pages\Auth\EditProfile as BaseEditProfile;
+use Filament\Forms\Components\Section;
+
+class EditProfile extends BaseEditProfile
+{
+    public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
+    {
+        return $form
+            ->schema([
+                Section::make('Información del Perfil')
+                    ->schema([
+                        $this->getNameFormComponent(),
+                        $this->getEmailFormComponent(),
+                        $this->getPasswordFormComponent(),
+                        $this->getPasswordConfirmationFormComponent(),
+                    ]),
+            ])
+            ->model($this->getUser())
+            ->statePath('data');
+    }
+}

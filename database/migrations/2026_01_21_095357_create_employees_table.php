@@ -8,6 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Nota: La tabla employees se crea en 2026_01_30_120412 (después de pharmacies).
      */
     public function up(): void
     {

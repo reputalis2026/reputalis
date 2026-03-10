@@ -1,0 +1,13 @@
+# Ejemplo de configuración nginx para que Livewire funcione correctamente.
+# Si usas nginx y /livewire/livewire.js devuelve 404, incluye este bloque
+# DENTRO del server {} que sirve la aplicación Laravel, ANTES de las reglas
+# de archivos estáticos.
+#
+# Opción 1: Reenviar /livewire/* a Laravel (para cuando no uses assets publicados)
+# location ~ ^/livewire/ {
+#     try_files $uri $uri/ /index.php?$query_string;
+# }
+#
+# Opción 2 (recomendada): Publicar assets y usar la URL forzada en AppServiceProvider.
+# En el servidor ejecuta: php artisan livewire:publish --assets
+# Así el navegador cargará /vendor/livewire/livewire.js (archivo estático) y no hará falta esta location.

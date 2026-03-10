@@ -1,7 +1,71 @@
 <?php
 
+use App\Http\Controllers\PulseController;
+use App\Http\Controllers\SurveyController;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/pulse', [PulseController::class, 'login'])->name('pulse.login');
+Route::post('/pulse/login', [PulseController::class, 'authenticate'])->name('pulse.authenticate')->middleware('web');
+Route::post('/logout', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/pulse');
+})->name('logout')->middleware('web');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/api/pulse/{client_code}', [PulseController::class, 'metrics'])->name('api.pulse');
+    Route::get('/pulse/{client_code}/sw.js', [PulseController::class, 'sw'])->name('pulse.sw');
+    Route::get('/pulse/{client_code}/manifest.json', [PulseController::class, 'manifest'])->name('pulse.manifest');
+    Route::get('/pulse/{client_code}', [PulseController::class, 'dashboard'])->name('pulse.dashboard');
+});
+
+Route::get('/survey', [SurveyController::class, 'show'])->name('survey');
+Route::get('/survey/{client_code}/sw.js', [SurveyController::class, 'sw'])->name('survey.sw');
+Route::get('/survey/{client_code}', [SurveyController::class, 'show'])->name('survey.client');
+Route::get('/manifest/{client_code}.json', [SurveyController::class, 'manifest'])->name('survey.manifest');
+
+/*
+ * Ruta POST para el login del panel Filament.
+ * El formulario de Filament usa method="post"; si el envío no es interceptado por
+ * Livewire (p. ej. sin JS), el navegador hace POST aquí. Esta ruta evita
+ * "Method Not Allowed" y procesa el login.
+ */
+Route::post('/admin/login', function (Request $request) {
+    // Filament envía el formulario con statePath 'data' → data[email], data[password], data[remember]
+    $email = $request->input('data.email') ?? $request->input('email');
+    $password = $request->input('data.password') ?? $request->input('password');
+    $remember = $request->boolean('data.remember') || $request->boolean('remember');
+
+    $validated = validator([
+        'email' => $email,
+        'password' => $password,
+    ], [
+        'email' => ['required', 'string', 'max:255'],
+        'password' => ['required', 'string'],
+    ], [
+        'email.required' => 'El usuario o correo es obligatorio.',
+        'password.required' => 'La contraseña es obligatoria.',
+    ])->validate();
+
+    $user = User::findByIdentifier($validated['email']);
+    if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        return redirect()->route('filament.admin.auth.login')
+            ->withInput($request->only('email', 'data'))
+            ->withErrors(['email' => __('filament-panels::pages/auth/login.messages.failed')]);
+    }
+
+    Auth::guard('web')->login($user, $remember);
+    $request->session()->regenerate();
+    $request->session()->save();
+
+    return redirect()->intended('/admin');
+})->middleware(['web'])->name('filament.admin.auth.login.post');
