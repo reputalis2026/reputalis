@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Employee extends Model
 {
@@ -41,6 +42,18 @@ class Employee extends Model
             'client_id' => 'string',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // En PostgreSQL el UUID puede venir como default en BD, pero Eloquent a veces
+        // no lo devuelve en el modelo inmediatamente. Para mantener consistencia (y
+        // para el enlace 1–1 con NfcToken) generamos el UUID en app si falta.
+        static::creating(function (self $model): void {
+            if (! filled($model->getAttribute('id'))) {
+                $model->setAttribute('id', (string) Str::uuid());
+            }
+        });
     }
 
     /**

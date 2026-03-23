@@ -34,7 +34,7 @@ class SurveyController extends Controller
 
         $score = (int) $request->input('score');
         $improvementReason = null;
-        $improvementPointOptionId = null;
+        $improvementOptionId = null;
 
         if ($score >= 1 && $score <= 3) {
             if (filled($request->improvement_option_id)) {
