@@ -2,6 +2,10 @@
     $isPwa = isset($client) && $client !== null;
     $clientCode = $isPwa ? $client->code : null;
     $clientName = $isPwa ? $client->namecommercial : '';
+
+    $showNfcDemo = isset($showNfcDemo) ? (bool) $showNfcDemo : true;
+    $employeeDisplayName = isset($employee) && $employee ? ($employee->alias ?: $employee->name) : null;
+    $employeeCodeResolved = isset($employeeCode) ? $employeeCode : null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -52,14 +56,26 @@
         </section>
         @else
         {{-- PWA: encuesta fija a este cliente (sin selector) --}}
-        {{-- Demo NFC solo en PWA --}}
-        <section class="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Demo</h2>
-            <div class="flex gap-2">
-                <input type="text" id="nfc-uid" placeholder="UID chip" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <button type="button" id="btn-nfc" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300">{{ __('Leer NFC') }}</button>
-            </div>
-        </section>
+        @if(isset($employee) && $employee)
+            <section class="mb-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('Cliente') }}</p>
+                <p class="text-base font-semibold text-slate-900">{{ $client->namecommercial }}</p>
+                @if($employeeDisplayName)
+                    <p class="text-sm font-medium text-slate-600 mt-0.5">{{ __('Empleado') }}: {{ $employeeDisplayName }}</p>
+                @endif
+            </section>
+        @endif
+
+        @if($showNfcDemo)
+            {{-- Demo NFC solo en PWA --}}
+            <section class="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Demo</h2>
+                <div class="flex gap-2">
+                    <input type="text" id="nfc-uid" placeholder="UID chip" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <button type="button" id="btn-nfc" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300">{{ __('Leer NFC') }}</button>
+                </div>
+            </section>
+        @endif
 
         <section data-step="active" id="step-rating" class="flex-1">
             <div class="rounded-2xl overflow-hidden bg-white shadow-sm ring-1 ring-slate-200 mb-6">
@@ -118,6 +134,7 @@
 (function() {
     const CLIENT_CODE = @json($clientCode);
     const CLIENT_NAME = @json($clientName);
+    const EMPLOYEE_CODE = @json($employeeCodeResolved);
     const STORAGE_KEY_DEVICE = 'reputalis_' + CLIENT_CODE + '_devicehash';
     const STORAGE_KEY_PENDING = 'reputalis_' + CLIENT_CODE + '_pending_surveys';
 
@@ -161,7 +178,8 @@
         try {
             const raw = localStorage.getItem(STORAGE_KEY_PENDING) || '[]';
             const arr = JSON.parse(raw);
-            arr.push({ ...payload, locale_used: getLocale(), device_hash: getDeviceHash(), _ts: Date.now() });
+            const effectiveEmployeeCode = payload.employee_code || EMPLOYEE_CODE || null;
+            arr.push({ ...payload, employee_code: effectiveEmployeeCode, locale_used: getLocale(), device_hash: getDeviceHash(), _ts: Date.now() });
             localStorage.setItem(STORAGE_KEY_PENDING, JSON.stringify(arr));
         } catch (e) {}
     }
@@ -180,7 +198,14 @@
         const pending = getPending();
         if (pending.length === 0) return Promise.resolve();
         const first = pending[0];
-        const payload = { client_code: CLIENT_CODE, score: first.score, improvement_option_id: first.improvement_option_id || null, locale_used: first.locale_used || getLocale(), device_hash: first.device_hash || getDeviceHash() };
+        const payload = { 
+            client_code: CLIENT_CODE,
+            employee_code: first.employee_code || EMPLOYEE_CODE || null,
+            score: first.score,
+            improvement_option_id: first.improvement_option_id || null,
+            locale_used: first.locale_used || getLocale(),
+            device_hash: first.device_hash || getDeviceHash()
+        };
         return fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
@@ -195,7 +220,15 @@
 
     function submitSurvey(payload, fromQueue) {
         if (!fromQueue) setOverlay(true, t('sending'));
-        const body = { client_code: CLIENT_CODE, employee_code: payload.employee_code || null, score: payload.score, improvement_option_id: payload.improvement_option_id || null, locale_used: getLocale(), device_hash: getDeviceHash() };
+        const effectiveEmployeeCode = payload.employee_code || EMPLOYEE_CODE || null;
+        const body = { 
+            client_code: CLIENT_CODE, 
+            employee_code: effectiveEmployeeCode,
+            score: payload.score, 
+            improvement_option_id: payload.improvement_option_id || null, 
+            locale_used: getLocale(), 
+            device_hash: getDeviceHash()
+        };
         fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
@@ -212,11 +245,11 @@
                     } else showStep('step-thanks-low');
                 }
             } else {
-                if (!fromQueue) { savePending(payload); alert(data.message || t('error')); }
+                if (!fromQueue) { savePending({ ...payload, employee_code: effectiveEmployeeCode }); alert(data.message || t('error')); }
             }
         })
         .catch(() => {
-            if (!fromQueue) { setOverlay(false); savePending(payload); alert(t('errorNetwork')); }
+            if (!fromQueue) { setOverlay(false); savePending({ ...payload, employee_code: effectiveEmployeeCode }); alert(t('errorNetwork')); }
         });
     }
 

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\ImprovementReason;
+use App\Models\NfcToken;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -51,6 +53,62 @@ class SurveyController extends Controller
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
             'client_code' => $client->code,
+        ]);
+    }
+
+    /**
+     * Encuesta pública vía NFC:
+     * GET /survey/nfc/{token}
+     *
+     * Resuelve token activo -> cliente + empleado y renderiza la misma vista
+     * de encuesta CSAT, pero preasignando internamente el empleado.
+     */
+    public function showNfc(string $token): View|Response
+    {
+        $nfcToken = NfcToken::query()
+            ->where('token', $token)
+            ->where('is_active', true)
+            ->with(['client', 'employee'])
+            ->first();
+
+        if (! $nfcToken?->client || ! $nfcToken?->employee) {
+            return response()->view('survey-nfc-invalid', [
+                'message' => 'Este enlace de encuesta no es válido o ya no está activo.',
+            ], 404);
+        }
+
+        /** @var Client $client */
+        $client = $nfcToken->client;
+        /** @var Employee $employee */
+        $employee = $nfcToken->employee;
+
+        // Validación extra: el empleado debe pertenecer al mismo cliente.
+        if ((string) $employee->client_id !== (string) $client->id) {
+            return response()->view('survey-nfc-invalid', [
+                'message' => 'Este enlace de encuesta no es válido o ya no está activo.',
+            ], 404);
+        }
+
+        $config = $client->improvementConfig;
+        $improvementBlock = null;
+        if ($config) {
+            $options = $config->options()->orderBy('sort_order')->orderBy('created_at')->get();
+            if ($options->count() >= 2) {
+                $improvementBlock = [
+                    'title' => $config->title,
+                    'options' => $options->map(fn ($o) => ['id' => $o->id, 'label' => $o->label])->values()->all(),
+                ];
+            }
+        }
+
+        return view('survey', [
+            'client' => $client,
+            'clients' => collect(),
+            'improvementBlock' => $improvementBlock,
+            'client_code' => $client->code,
+            'employee' => $employee,
+            'employeeCode' => $employee->name, // La API resuelve empleado por name
+            'showNfcDemo' => false,
         ]);
     }
 

@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/survey', [SurveyController::class, 'show'])->name('survey');
+// Encuesta vía NFC: resolución por token
+Route::get('/survey/nfc/{token}', [SurveyController::class, 'showNfc'])->name('survey.nfc');
 Route::get('/survey/{client_code}/sw.js', [SurveyController::class, 'sw'])->name('survey.sw');
 Route::get('/survey/{client_code}', [SurveyController::class, 'show'])->name('survey.client');
 Route::get('/manifest/{client_code}.json', [SurveyController::class, 'manifest'])->name('survey.manifest');
