@@ -96,6 +96,7 @@ class EmployeeResource extends Resource
                                 }
                             }),
                         Forms\Components\Placeholder::make('copy_nfc_survey_url')
+                            ->label('')
                             ->content(function (? \App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
                                 $token = $record?->nfcTokens?->token;
                                 if (! $token) {
@@ -104,7 +105,9 @@ class EmployeeResource extends Resource
 
                                 $url = url('/survey/nfc/' . $token);
 
-                                $onclick = 'navigator.clipboard.writeText(' . json_encode($url) . ').then(() => {' .
+                                // Evitamos json_encode() porque mete comillas dobles dentro de un atributo double-quoted.
+                                $urlJsLiteral = "'" . addslashes($url) . "'";
+                                $onclick = 'navigator.clipboard.writeText(' . $urlJsLiteral . ').then(() => {' .
                                     'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
                                 '});';
 
