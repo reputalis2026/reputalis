@@ -22,6 +22,7 @@
 
 #### 2. Clientes (entidad central)
 - **Client** (tabla `clients`): antes “Pharmacy”; renombrado. Datos fiscales, contacto, `owner_id`, `created_by`, `is_active`, `fecha_inicio_alta`, `fecha_fin`, `logo`, soft deletes.
+- **Soft deletes:** el listado incluye pestaña de “Clientes eliminados”; **solo SuperAdmin** puede verlos y restaurarlos.
 - **Activación y vigencia (solo SuperAdmin en Editar cliente):**
   - Toggle “Cliente activo”.
   - **Duración de activación:** 12, 24 o 36 meses (se calcula `fecha_fin` desde `fecha_inicio_alta`) u “Otra fecha” (DatePicker manual). Obligatorio al activar.
@@ -41,6 +42,7 @@
 #### 5. Encuestas CSAT
 - **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` (si score 1–3), `employee_code`, etc. Límites por IP y por dispositivo.
 - **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío). Puntos de mejora por cliente se muestran si score 1–3.
+- **Encuesta por NFC (token):** `GET /survey/nfc/{token}` resuelve `NfcToken` activo y renderiza la encuesta preasignando el empleado (crea `CsatSurvey` con `employee_id`).
 
 #### 6. PWA “El Pulso del Día”
 - `/pulse`: login para propietarios de cliente. Dashboard por `client_code` con métricas de satisfacción (CsatMetrics).
