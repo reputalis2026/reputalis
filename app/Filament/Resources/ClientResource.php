@@ -476,13 +476,20 @@ class ClientResource extends Resource
      */
     public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
     {
-        return $page->generateNavigationItems([
+        $items = [
             Pages\ViewClient::class,
-            Pages\EditClient::class,
             Pages\PuntosDeMejora::class,
             Pages\Empleados::class,
             Pages\Llamadas::class,
-        ]);
+        ];
+
+        // En la pantalla ViewClient no mostramos "Editar" en la subnavegación porque ya
+        // existe el botón superior "Ir a Editar".
+        if (! ($page instanceof Pages\ViewClient)) {
+            $items[] = Pages\EditClient::class;
+        }
+
+        return $page->generateNavigationItems($items);
     }
 
     public static function canViewAny(): bool
