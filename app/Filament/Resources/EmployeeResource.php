@@ -96,7 +96,7 @@ class EmployeeResource extends Resource
                                 }
                             }),
                         Forms\Components\Placeholder::make('copy_nfc_survey_url')
-                            ->content(function (?App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
+                            ->content(function (? \App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
                                 $token = $record?->nfcTokens?->token;
                                 if (! $token) {
                                     return null;
