@@ -115,7 +115,9 @@ class PuntosDeMejora extends Page
                             ->schema([
                                 \Filament\Forms\Components\TextInput::make('label')
                                     ->label('Texto de la respuesta')
-                                    ->required()
+                                    // No requerimos el campo aquí:
+                                    // Filtramos en el save() los labels vacíos/null para que
+                                    // el usuario pueda dejar bloques vacíos sin que falle la validación.
                                     ->maxLength(255)
                                     ->disabled($readOnly),
                             ])
@@ -155,7 +157,7 @@ class PuntosDeMejora extends Page
         }, $optionsData)));
 
         if (count($labels) < 2) {
-            Notification::make()->danger()->title('Se necesitan al menos 2 respuestas')->send();
+            Notification::make()->danger()->title('Mínimo 2 respuestas')->send();
 
             return;
         }
