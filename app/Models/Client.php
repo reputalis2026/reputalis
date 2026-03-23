@@ -41,6 +41,8 @@ class Client extends Model
         'fecha_inicio_alta',
         'fecha_fin',
         'logo',
+        'last_call_at',
+        'next_call_at',
     ];
 
     /**
@@ -57,6 +59,8 @@ class Client extends Model
             'is_active' => 'boolean',
             'fecha_inicio_alta' => 'date',
             'fecha_fin' => 'date',
+            'last_call_at' => 'datetime',
+            'next_call_at' => 'datetime',
         ];
     }
 
@@ -122,5 +126,14 @@ class Client extends Model
     public function improvementConfig(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ClientImprovementConfig::class, 'client_id');
+    }
+
+    /**
+     * Historial de llamadas del cliente.
+     */
+    public function calls(): HasMany
+    {
+        return $this->hasMany(ClientCall::class, 'client_id')
+            ->orderByDesc('called_at');
     }
 }
