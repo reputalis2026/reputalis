@@ -104,11 +104,13 @@ class EmployeeResource extends Resource
 
                                 $url = url('/survey/nfc/' . $token);
 
+                                $onclick = 'navigator.clipboard.writeText(' . json_encode($url) . ').then(() => {' .
+                                    'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
+                                '});';
+
                                 return new \Illuminate\Support\HtmlString(
                                     '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined ' .
-                                    'onclick="navigator.clipboard.writeText(' . json_encode($url) . ').then(() => {' .
-                                    'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
-                                    '});"' .
+                                    'onclick="' . $onclick . '"' .
                                     '>Copiar enlace</x-filament::button>'
                                 );
                             }),
