@@ -13,7 +13,9 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\RestoreAction;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ClientResource extends Resource
 {
@@ -346,6 +348,20 @@ class ClientResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('last_call_at')
+                    ->label('Última llamada')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->placeholder('Sin llamadas aún'),
+                Tables\Columns\TextColumn::make('next_call_at')
+                    ->label('Próxima llamada')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->placeholder('—')
+                    ->badge()
+                    ->color(function ($state, Client $record): string {
+                        return $record->next_call_at && $record->next_call_at->isPast() ? 'danger' : 'gray';
+                    }),
                 Tables\Columns\TextColumn::make('createdBy.fullname')
                     ->label('Creador')
                     ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: '—')
@@ -379,6 +395,16 @@ class ClientResource extends Resource
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
+                Tables\Actions\Action::make('llamadas')
+                    ->label('Llamadas')
+                    ->icon('heroicon-o-phone-arrow-up-right')
+                    ->url(fn (Client $record): string => static::getUrl('llamadas', ['record' => $record]))
+                    ->visible(function () {
+                        $user = auth()->user();
+
+                        return $user?->isSuperAdmin() === true || $user?->isDistributor() === true;
+                    })
+                    ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('puntosDeMejora')
                     ->label('Puntos de mejora')
                     ->icon('heroicon-o-light-bulb')
@@ -396,6 +422,12 @@ class ClientResource extends Resource
                     ->modalHeading('Eliminar cliente')
                     ->modalDescription('El cliente pasará a la pestaña "Clientes eliminados". No se borra de la base de datos.')
                     ->visible(fn ($record) => ! $record->trashed() && static::canDelete($record)),
+                RestoreAction::make()
+                    ->label('Restaurar')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->modalHeading('Restaurar cliente')
+                    ->modalDescription('¿Restaurar este cliente? Se reactivará completamente.')
+                    ->visible(fn ($record) => $record->trashed() && static::canRestore($record)),
                 Tables\Actions\Action::make('forceDelete')
                     ->label('Eliminar de la base de datos')
                     ->icon('heroicon-o-trash')
@@ -433,6 +465,7 @@ class ClientResource extends Resource
             'edit' => Pages\EditClient::route('/{record}/edit'),
             'puntos-de-mejora' => Pages\PuntosDeMejora::route('/{record}/puntos-de-mejora'),
             'empleados' => Pages\Empleados::route('/{record}/empleados'),
+            'llamadas' => Pages\Llamadas::route('/{record}/llamadas'),
         ];
     }
 
@@ -448,6 +481,7 @@ class ClientResource extends Resource
             Pages\EditClient::class,
             Pages\PuntosDeMejora::class,
             Pages\Empleados::class,
+            Pages\Llamadas::class,
         ]);
     }
 
@@ -522,6 +556,12 @@ class ClientResource extends Resource
      */
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
     {
+        return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canRestore(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        // Solo el SuperAdmin puede restaurar clientes eliminados.
         return auth()->user()?->isSuperAdmin() ?? false;
     }
 }

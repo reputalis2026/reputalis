@@ -30,11 +30,19 @@ class ListClients extends ListRecords
 
     public function getTabs(): array
     {
-        return [
+        $user = auth()->user();
+
+        $tabs = [
             'todos' => Tab::make('Todos los clientes'),
-            'eliminados' => Tab::make('Clientes eliminados')
-                ->modifyQueryUsing(fn ($query) => $query->onlyTrashed()),
         ];
+
+        // Solo SuperAdmin debe ver la pestaña de eliminados/restauración.
+        if ($user?->isSuperAdmin() === true) {
+            $tabs['eliminados'] = Tab::make('Clientes eliminados')
+                ->modifyQueryUsing(fn ($query) => $query->onlyTrashed());
+        }
+
+        return $tabs;
     }
 
     protected function getHeaderActions(): array
