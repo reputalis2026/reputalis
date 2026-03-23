@@ -107,9 +107,27 @@ class EmployeeResource extends Resource
 
                                 // Evitamos json_encode() porque mete comillas dobles dentro de un atributo double-quoted.
                                 $urlJsLiteral = "'" . addslashes($url) . "'";
-                                $onclick = 'navigator.clipboard.writeText(' . $urlJsLiteral . ').then(() => {' .
-                                    'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
-                                '});';
+                                $onclick = '(async () => {' .
+                                    'try {' .
+                                        'await navigator.clipboard.writeText(' . $urlJsLiteral . ');' .
+                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
+                                    '} catch (e) {' .
+                                        'const ta = document.createElement(\'textarea\');' .
+                                        'ta.value = ' . $urlJsLiteral . ';' .
+                                        'ta.setAttribute(\'readonly\', \'\');' .
+                                        'ta.style.position = \'fixed\';' .
+                                        'ta.style.left = \'-9999px\';' .
+                                        'document.body.appendChild(ta);' .
+                                        'ta.select();' .
+                                        'const ok = document.execCommand(\'copy\');' .
+                                        'document.body.removeChild(ta);' .
+                                        'if (ok) {' .
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
+                                        '} else {' .
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'No se pudo copiar\', status: \'danger\' } } }));' .
+                                        '}' .
+                                    '}' .
+                                '})()';
 
                                 return new \Illuminate\Support\HtmlString(
                                     '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined ' .
