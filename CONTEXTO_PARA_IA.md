@@ -65,8 +65,8 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Tabla:** `clients`
 - **PK:** UUID
 - **Soft deletes:** sí (`SoftDeletes`)
-- **Fillable:** `id`, `code`, `namecommercial`, `nif`, `razon_social`, `calle`, `pais`, `codigo_postal`, `ciudad`, `sector`, `telefono_negocio`, `telefono_cliente`, `owner_id`, `created_by`, `is_active`, `fecha_inicio_alta`, `fecha_fin`, `logo`
-- **Casts:** `owner_id`, `created_by` string; `is_active` boolean; `fecha_inicio_alta`, `fecha_fin` date.
+- **Fillable:** `id`, `code`, `namecommercial`, `nif`, `razon_social`, `calle`, `pais`, `codigo_postal`, `ciudad`, `sector`, `telefono_negocio`, `telefono_cliente`, `owner_id`, `created_by`, `is_active`, `fecha_inicio_alta`, `fecha_fin`, `logo`, `last_call_at`, `next_call_at`
+- **Casts:** `owner_id`, `created_by` string; `is_active` boolean; `fecha_inicio_alta`, `fecha_fin` date; `last_call_at`, `next_call_at` datetime.
 - **Activación y vigencia:** al activar el cliente (`is_active = true`), la **fecha de fin (expiración)** es obligatoria. En el formulario de edición (solo SuperAdmin) se establece mediante un **selector de duración de activación**: 12, 24 o 36 meses (la app calcula `fecha_fin` desde `fecha_inicio_alta` + meses) u **“Otra fecha”** (DatePicker manual). Si el cliente está inactivo, no se exige duración ni fecha de fin.
 - **Relaciones:**
   - `owner()` → BelongsTo User
@@ -75,6 +75,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
   - `employees()` → HasMany Employee
   - `csatSurveys()` → HasMany CsatSurvey
   - `nfcTokens()` → HasMany NfcToken
+- `calls()` → HasMany ClientCall (ordenado desc por `called_at`)
   - `improvementReasonLabels()` → HasMany ClientImprovementReasonLabel (legacy; ver §2.11).
   - `improvementConfig()` → HasOne ClientImprovementConfig (configuración única: título + lista de respuestas para la encuesta negativa).
 
@@ -86,7 +87,8 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **PK:** UUID
 - **Fillable:** `client_id`, `name`, `alias`, `photo`, `position`, `is_active`
 - **Campos:** `name` (nombre completo o visible), `alias` (identificador corto para encuestas o como código), `photo` (ruta de imagen subida, disco `public`, directorio `employees`). Se usa como **catálogo de empleados por cliente** para poder asociar encuestas a un empleado concreto (`employee_id` en CsatSurvey) en el futuro.
-- **Relaciones:** `client()` BelongsTo Client; `csatSurveys()` HasMany CsatSurvey; `nfcTokens()` HasMany NfcToken.
+- **Relaciones:** `client()` BelongsTo Client; `csatSurveys()` HasMany CsatSurvey; `nfcTokens()` HasOne NfcToken.
+- **Regla NFC (refactor):** cada `Employee` tiene **exactamente 1 token lógico NFC** (aunque se puedan imprimir/cargar varias tarjetas con el mismo token). La URL pública usa ese token: `/survey/nfc/{token}`.
 
 ### 2.4 CsatSurvey (`App\Models\CsatSurvey`)
 
@@ -101,9 +103,19 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Tabla:** `nfctokens`
 - **PK:** UUID
 - **Fillable:** `client_id`, `employee_id`, `token`, `is_active`
-- **Relaciones:** `client()` BelongsTo Client; `employee()` BelongsTo Employee (nullable).
+- **Restricción 1–1:** `employee_id` está en `NOT NULL` y tiene `UNIQUE` (un empleado no puede tener 2 tokens distintos).
+- **Relaciones:** `client()` BelongsTo Client; `employee()` BelongsTo Employee.
 
-### 2.6 ImprovementReason (`App\Models\ImprovementReason`)
+### 2.6 ClientCall (`App\Models\ClientCall`)
+
+- **Tabla:** `client_calls`
+- **PK:** UUID
+- **Fillable:** `id`, `client_id`, `called_at`, `notes`
+- **Campos:** `called_at` (fecha/hora de la llamada); `notes` (texto libre, nullable)
+- **Relaciones:** `client()` BelongsTo Client
+- **Integración con `clients`:** al registrar una llamada se actualizan `clients.last_call_at` y `clients.next_call_at = now() + 30 días`. El histórico se consulta vía `Client::calls()`.
+
+### 2.7 ImprovementReason (`App\Models\ImprovementReason`)
 
 - **Tabla:** `improvementreasons`
 - **PK:** UUID
@@ -160,11 +172,13 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 ## 3. Filament Resources (panel `/admin`)
 
 - **ClientResource:** CRUD de clientes (solo registros con `owner.role = cliente`). Permisos: SuperAdmin ve/edita todo; **Distribuidor solo ve/edita clientes que él creó** (`created_by === user->id`). Cliente (rol cliente) puede ver su propio cliente (`owner_id`) pero **no ve el ítem “Clientes” en el menú** (`shouldRegisterNavigation` false para cliente); ; el rol cliente usa las páginas independientes ClientPuntosDeMejora y ClientEmpleados (ver más abajo). Solo SuperAdmin puede eliminar (soft delete) y force delete. **Tabla de clientes:** además de Ver y Editar, hay acciones **“Puntos de mejora”** (icono `heroicon-o-light-bulb`) y **“Empleados”** (icono `heroicon-o-user-group`) que enlazan a las subpáginas del registro; visibles si `canView($record)`. **ViewClient y EditClient:** en la cabecera hay también acciones “Puntos de mejora” y “Empleados” con las mismas URLs. **Subpágina Empleados (ClientResource → Empleados):** listado de empleados del cliente en formato **tarjetas** (foto o placeholder, nombre, alias). **SuperAdmin** puede ver/crear/editar/borrar empleados de cualquier cliente. **Distribuidor** solo de clientes que él creó (`created_by === user->id`): ver, crear, editar, borrar. Crear/editar empleado se hace desde la subpágina “Añadir empleado” (enlace a EmployeeResource create con `?client_id=`) o “Editar” en cada tarjeta (EmployeeResource edit); tras guardar se redirige a la subpágina Empleados del cliente. **Estado y vigencia (solo Editar cliente, solo SuperAdmin):** sección “Estado y vigencia” con: (1) Toggle “Cliente activo”; (2) selector **“Duración de activación”** (12 meses, 24 meses, 36 meses, Otra fecha); (3) campo **“Fecha de fin (expiración)”**. Al activar el cliente es obligatorio elegir una duración o “Otra fecha”. Si se elige 12/24/36 meses, `fecha_fin` se calcula automáticamente desde `fecha_inicio_alta` + meses y el DatePicker se muestra deshabilitado con esa fecha; si se elige “Otra fecha”, el DatePicker queda habilitado para elegir manualmente. Al cargar un cliente ya activo, si su `fecha_fin` coincide con ~12, ~24 o ~36 meses desde `fecha_inicio_alta`, se preselecciona esa opción; si no, “Otra fecha” con la fecha guardada. Solo el SuperAdmin puede activar/desactivar y ver/editar esta sección. **Confirmación al cambiar expiración:** si al pulsar Guardar se ha modificado algo relacionado con la expiración (duración 12/24/36/Otra o fecha manual), aparece un modal de confirmación (“Has cambiado la fecha de expiración”, con texto en español y botones Aceptar/Cancelar). Si se cancela, no se guardan los cambios; si se acepta, se guarda todo con normalidad. Si no hay cambios en expiración, el guardado es directo sin modal. **Implementación:** el modal se controla en `EditClient` con la propiedad Livewire `$showExpirationConfirmModal` y la vista `resources/views/filament/resources/client-resource/pages/edit-client-expiration-modal.blade.php` (incluida vía `getFooter()`); métodos públicos `confirmExpirationSave()` y `closeExpirationConfirmModal()`.
+- **Llamadas (ClientResource → Llamadas):** subpágina por cliente para SuperAdmin y Distribuidor. Muestra resumen **“Última llamada”** y **“Próxima llamada”** (badge “Vencida” si `next_call_at < now()`). Incluye botones **“Registrar llamada de hoy”** (modal con notas: crea `ClientCall` y actualiza `clients.last_call_at` y `clients.next_call_at = now() + 30 días`) y **“Programar próxima llamada”** (DateTimePicker para editar `next_call_at`). Debajo muestra el histórico `client_calls` con acción **“Editar notas”** (sin tocar `called_at`).
 - **DistributorResource:** mismo modelo `Client`, filtrado por `owner.role = distribuidor`. Slug `/distribuidores`. Solo SuperAdmin puede ver/crear/editar.
 - **EmployeeResource:** CRUD de empleados (formulario con name, alias, photo, position, is_active). **No aparece en el menú** (`shouldRegisterNavigation` false); la gestión se hace desde **Cliente → Empleados**. SuperAdmin: ver/crear/editar/borrar cualquier empleado. Distribuidor: ver/crear/editar/borrar solo empleados de clientes que él creó. Cliente: solo **ver** empleados de su `ownedClient` (desde el ítem de menú “Empleados”). Create acepta `?client_id=` en la URL y redirige tras guardar a ClientResource empleados del cliente.
-- **NfcTokenResource:** CRUD de tokens NFC por cliente/empleado.
+- **NfcTokenResource:** **oculto** (sin menú global y sin CRUD accesible). La gestión del token se hace **desde** `EmployeeResource` dentro de la sección **“Token NFC”**.
 - **CsatSurveyResource:** listado/consulta de encuestas CSAT (no creación desde panel; se crean por API).
 - **SectorResource:** CRUD de sectores (nombre, orden).
+- **ClientCalls (página global “Llamadas”):** listado de clientes ordenado por `next_call_at` ascendente (nulls al final). Visible para SuperAdmin y Distribuidor. Muestra “Última llamada” y “Próxima llamada”; si `next_call_at` está vencida se resalta en rojo. Acción “Ver” abre la subpágina del cliente `ClientResource → Llamadas`.
 
 **Nota:** No existe recurso Filament para **ImprovementReason** (motivos base). Los códigos se gestionan por datos/seeders; la configuración visible al usuario es por cliente en **Puntos de mejora** (ClientResource → PuntosDeMejora).
 
@@ -188,6 +202,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
   - Dentro de `middleware('auth')`: `GET /api/pulse/{client_code}`, `GET /pulse/{client_code}/sw.js`, `GET /pulse/{client_code}/manifest.json`, `GET /pulse/{client_code}` (dashboard).
 - **Encuesta pública:**
   - `GET /survey`, `GET /survey/{client_code}`, `GET /survey/{client_code}/sw.js`, `GET /manifest/{client_code}.json`.
+  - `GET /survey/nfc/{token}` → resuelve token activo → cliente + empleado y renderiza la vista de encuesta CSAT preasignando `employee_id` vía `employee_code`.
 - **Filament login fallback:** `POST /admin/login` (cuando el formulario no es manejado por Livewire).
 
 ### 4.2 API (`routes/api.php`)
@@ -200,6 +215,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 
 - **App\Http\Controllers\PulseController:** login Pulse, `authenticate`, dashboard por `client_code`, métricas (usa `CsatMetrics`), servicio worker y manifest PWA.
 - **App\Http\Controllers\SurveyController (web):** vistas de encuesta (show, manifest, sw). Cuando hay `$client`, carga **puntos de mejora con opciones** (`$client->improvementPoints()->with('options')`), filtra los que tienen al menos una opción y pasa `improvementPoints` a la vista (cada punto: título + lista de opciones con `id` y `label`). Si el cliente no tiene puntos con opciones, en puntuación negativa se envía solo el score sin motivo.
+- **App\Http\Controllers\SurveyController (web):** también incluye `showNfc(token)` para `/survey/nfc/{token}`. Valida token activo, resuelve `client` + `employee`, y renderiza `survey.blade.php` con `showNfcDemo=false` y `employee_code` preasignado (para que el API cree `CsatSurvey` con `employee_id`).
 - **App\Http\Controllers\Api\SurveyController:** `store` para crear encuesta; valida con `StoreSurveyRequest`; busca cliente por `client_code`, empleado opcional por `employee_code` (campo `name` del empleado). Si score 1–3: si viene `improvement_option_id`, valida que la opción pertenezca al cliente (vía ClientImprovementOption → clientImprovementConfig → client_id) y guarda en `csat_surveys.improvement_option_id`; opcionalmente rellena `improvementreason_id` desde `improvement_reason_code`. Si solo viene `improvement_reason_code`, valida motivo activo y guarda `improvementreason_id`.
 - **App\Http\Requests\Api\StoreSurveyRequest:** reglas: `client_code` required; `score` 1–5; `improvement_option_id` nullable uuid; si score 1–3, obligatorio **uno de**: `improvement_reason_code` o `improvement_option_id` (validación en `withValidator`).
 
@@ -264,6 +280,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Puntos de mejora por cliente:** Cada cliente tiene **una** configuración (**ClientImprovementConfig**): título general (ej. “¿En qué podemos mejorar?”) + lista de **ClientImprovementOption** (mínimo 2). En el panel: Cliente → Puntos de mejora (título + Repeater de respuestas). Al guardar se usa `firstOrNew` + UUID explícito para el config nuevo y `$configId = $config->getKey()` para crear las opciones. En la encuesta (`/survey/{client_code}`): si puntuación 1–3 se muestra el título y las opciones como botones; al elegir una se envía `improvement_option_id`. La API acepta `improvement_option_id` y lo guarda en `csat_surveys.improvement_option_id`. SuperAdmin y Distribuidor editan; rol cliente solo ve (solo lectura). **Acceso:** SuperAdmin y Distribuidor ven “Clientes”; en la tabla hay acción “Puntos de mejora” por fila y en Ver/Editar cliente hay botón “Puntos de mejora” en la cabecera; rol cliente usa la página **ClientPuntosDeMejora** (menú “Puntos de mejora”).
 - **Fecha de fin al activar cliente:** En la edición de cliente (solo SuperAdmin), al marcar “Cliente activo” es obligatorio indicar la vigencia. **Selector “Duración de activación”:** 12 meses, 24 meses, 36 meses u “Otra fecha”. Con 12/24/36, `fecha_fin` se calcula desde `fecha_inicio_alta` + meses y se muestra en un DatePicker deshabilitado; con “Otra fecha” se elige la fecha manualmente. Al cargar un cliente activo, si su `fecha_fin` encaja con ~12, ~24 o ~36 meses desde `fecha_inicio_alta` se preselecciona esa opción; si no, “Otra fecha” con la fecha guardada. La lógica de notificaciones al activar (PanelMessageService) se mantiene igual. **Confirmación al cambiar expiración:** si al guardar se detecta cambio en duración o fecha de fin (solo cuando el cliente está activo), se muestra un modal de confirmación en español (Aceptar/Cancelar); al cancelar no se guarda; al aceptar se guarda todo.
 - **Empleados por cliente:** Catálogo de empleados (name, alias, photo, position, is_active) por cliente para futuras encuestas. **ClientResource → Empleados:** subpágina con listado en **tarjetas** (foto o placeholder, nombre, alias). SuperAdmin y Distribuidor pueden crear, editar y borrar; Distribuidor solo en clientes que él creó. Rol **cliente** usa la página **ClientEmpleados** (menú “Empleados”) en solo lectura, no ClientResource. EmployeeResource no está en el menú; create/edit se abren desde la subpágina (create con `?client_id=`; redirect tras guardar a Empleados del cliente).
+- **NFC por empleado (UX en panel):** en `EmployeeResource` hay una sección **“Token NFC”** (solo lectura) y un campo con **“Copiar enlace de encuesta”** para `/survey/nfc/{token}`. En la subpágina de tarjetas **“Empleados”** se muestra un botón **“Copiar enlace”** que copia al portapapeles la URL de encuesta del token del empleado.
 
 ---
 
