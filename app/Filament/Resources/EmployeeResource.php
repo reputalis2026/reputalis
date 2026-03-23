@@ -86,14 +86,31 @@ class EmployeeResource extends Resource
                             ->label('Copiar enlace de encuesta')
                             ->disabled()
                             ->dehydrated(false)
-                            ->copyable()
-                            ->copyMessage('Enlace de encuesta copiado')
+                            // En esta versión de Filament no existe TextInput::copyable().
+                            // El copiado se realiza con un botón JS debajo.
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
                                 if ($record?->nfcTokens?->token) {
                                     $component->state(url('/survey/nfc/' . $record->nfcTokens->token));
                                 } else {
                                     $component->state('—');
                                 }
+                            }),
+                        Forms\Components\Placeholder::make('copy_nfc_survey_url')
+                            ->content(function (?App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
+                                $token = $record?->nfcTokens?->token;
+                                if (! $token) {
+                                    return null;
+                                }
+
+                                $url = url('/survey/nfc/' . $token);
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined ' .
+                                    'onclick="navigator.clipboard.writeText(' . json_encode($url) . ').then(() => {' .
+                                    'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
+                                    '});"' .
+                                    '>Copiar enlace</x-filament::button>'
+                                );
                             }),
                     ])
                     ->columns(1),
