@@ -10,6 +10,7 @@ use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Enums\MaxWidth;
 
 class EditClient extends EditRecord
 {
@@ -37,6 +38,16 @@ class EditClient extends EditRecord
     public function getTitle(): string
     {
         return 'Editar Cliente';
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getMaxContentWidth(): MaxWidth | string | null
+    {
+        return MaxWidth::Full;
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -261,20 +272,8 @@ class EditClient extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make()
-                ->label('Ver'),
-            Actions\Action::make('puntosDeMejora')
-                ->label('Puntos de mejora')
-                ->icon('heroicon-o-light-bulb')
-                ->url(ClientResource::getUrl('puntos-de-mejora', ['record' => $this->record]))
-                ->visible(fn () => ClientResource::canView($this->record)),
-            Actions\Action::make('empleados')
-                ->label('Empleados')
-                ->icon('heroicon-o-user-group')
-                ->url(ClientResource::getUrl('empleados', ['record' => $this->record]))
-                ->visible(fn () => ClientResource::canView($this->record)),
             Actions\DeleteAction::make()
-                ->label('Eliminar')
+                ->label('Eliminar cliente')
                 ->requiresConfirmation()
                 ->modalHeading('Eliminar cliente')
                 ->modalDescription('¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.')
@@ -284,5 +283,11 @@ class EditClient extends EditRecord
                 ->disabled(fn ($record) => $record->is_active)
                 ->tooltip(fn ($record) => $record->is_active ? '¡Cliente activo! Desactiva primero' : null),
         ];
+    }
+
+    public function getSubNavigation(): array
+    {
+        // En pantalla de edición no mostramos la subnavegación lateral del registro.
+        return [];
     }
 }
