@@ -9,6 +9,7 @@ use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Support\Enums\MaxWidth;
 use Illuminate\Database\Eloquent\Model;
 
 class Empleados extends Page
@@ -27,6 +28,16 @@ class Empleados extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+    }
+
+    public function getMaxContentWidth(): MaxWidth | string | null
+    {
+        return MaxWidth::Full;
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 
     protected function authorizeAccess(): void

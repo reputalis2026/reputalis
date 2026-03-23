@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Support\Enums\MaxWidth;
 use Illuminate\Support\Facades\DB;
 
 class PuntosDeMejora extends Page
@@ -40,6 +41,16 @@ class PuntosDeMejora extends Page
         if ($this->canEditPuntos()) {
             $this->fillForm();
         }
+    }
+
+    public function getMaxContentWidth(): MaxWidth | string | null
+    {
+        return MaxWidth::Full;
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 
     protected function authorizeAccess(): void

@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 class ViewClient extends ViewRecord
 {
     protected static string $resource = ClientResource::class;
+    protected static ?string $navigationLabel = 'Cliente';
+    protected static ?string $navigationIcon = '';
 
     public function getBreadcrumbs(): array
     {
@@ -27,7 +29,7 @@ class ViewClient extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Cliente';
+        return (string) ($this->record?->namecommercial ?? 'Cliente');
     }
 
     public function getMaxContentWidth(): MaxWidth | string | null

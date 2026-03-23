@@ -482,13 +482,8 @@ class ClientResource extends Resource
             Pages\Empleados::class,
             Pages\Llamadas::class,
         ];
-
-        // En la pantalla ViewClient no mostramos "Editar" en la subnavegación porque ya
-        // existe el botón superior "Ir a Editar".
-        if (! ($page instanceof Pages\ViewClient)) {
-            $items[] = Pages\EditClient::class;
-        }
-
+        // UX: el submenú lateral no incluye "Edit client" porque el flujo de edición
+        // se realiza desde el botón superior.
         return $page->generateNavigationItems($items);
     }
 

@@ -11,6 +11,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Concerns\InteractsWithTable as TablesInteractsWithTable;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -33,6 +34,16 @@ class Llamadas extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+    }
+
+    public function getMaxContentWidth(): MaxWidth | string | null
+    {
+        return MaxWidth::Full;
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 
     protected function authorizeAccess(): void
