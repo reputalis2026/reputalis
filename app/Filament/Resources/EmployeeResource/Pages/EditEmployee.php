@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
 use App\Filament\Resources\EmployeeResource;
+use App\Models\NfcToken;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Str;
 
 class EditEmployee extends EditRecord
 {
@@ -29,5 +31,38 @@ class EditEmployee extends EditRecord
         }
 
         return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * Regla 1–1 dominio: aseguramos que el empleado tenga su token NFC.
+     */
+    protected function afterSave(): void
+    {
+        $employee = $this->getRecord();
+
+        if (! $employee) {
+            return;
+        }
+
+        if ($employee->nfcTokens()->exists()) {
+            return;
+        }
+
+        $token = $this->generateUniqueToken();
+
+        $employee->nfcTokens()->create([
+            'client_id' => $employee->client_id,
+            'token' => $token,
+            'is_active' => true,
+        ]);
+    }
+
+    protected function generateUniqueToken(): string
+    {
+        do {
+            $token = Str::random(32);
+        } while (NfcToken::query()->where('token', $token)->exists());
+
+        return $token;
     }
 }

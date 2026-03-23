@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
 use App\Filament\Resources\EmployeeResource;
+use App\Models\NfcToken;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Str;
 
 class CreateEmployee extends CreateRecord
 {
@@ -36,5 +38,38 @@ class CreateEmployee extends CreateRecord
         }
 
         return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * Regla 1–1 dominio: si el empleado no tiene token NFC, se crea automáticamente.
+     */
+    protected function afterCreate(): void
+    {
+        $employee = $this->getRecord();
+        if (! $employee) {
+            return;
+        }
+
+        if ($employee->nfcTokens()->exists()) {
+            return;
+        }
+
+        $token = $this->generateUniqueToken();
+
+        // Se crea el NfcToken asociado al empleado (1–1 por employee_id).
+        $employee->nfcTokens()->create([
+            'client_id' => $employee->client_id,
+            'token' => $token,
+            'is_active' => true,
+        ]);
+    }
+
+    protected function generateUniqueToken(): string
+    {
+        do {
+            $token = Str::random(32);
+        } while (NfcToken::query()->where('token', $token)->exists());
+
+        return $token;
     }
 }

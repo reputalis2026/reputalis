@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -61,8 +62,9 @@ class Employee extends Model
     /**
      * Relación con los tokens NFC asignados al empleado.
      */
-    public function nfcTokens(): HasMany
+    public function nfcTokens(): HasOne
     {
-        return $this->hasMany(NfcToken::class, 'employee_id');
+        // Regla del dominio: cada empleado tiene exactamente un token NFC lógico.
+        return $this->hasOne(NfcToken::class, 'employee_id');
     }
 }
