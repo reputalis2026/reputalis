@@ -67,6 +67,36 @@ class EmployeeResource extends Resource
                             ->label('Activo')
                             ->default(true),
                     ]),
+                Forms\Components\Section::make('Token NFC')
+                    ->icon('heroicon-o-credit-card')
+                    ->description('Token NFC 1–1 por empleado. No editable.')
+                    ->schema([
+                        Forms\Components\TextInput::make('nfc_token')
+                            ->label('Token NFC')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
+                                if ($record?->nfcTokens?->token) {
+                                    $component->state($record->nfcTokens->token);
+                                } else {
+                                    $component->state('Se generará al guardar');
+                                }
+                            }),
+                        Forms\Components\TextInput::make('nfc_survey_url')
+                            ->label('Copiar enlace de encuesta')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->copyable()
+                            ->copyMessage('Enlace de encuesta copiado')
+                            ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
+                                if ($record?->nfcTokens?->token) {
+                                    $component->state(url('/survey/nfc/' . $record->nfcTokens->token));
+                                } else {
+                                    $component->state('—');
+                                }
+                            }),
+                    ])
+                    ->columns(1),
             ]);
     }
 

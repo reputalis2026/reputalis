@@ -87,6 +87,10 @@
                         </div>
                         @if ($canEdit)
                             <div class="mt-auto flex flex-wrap items-center justify-center gap-1.5 border-t border-gray-200 px-3 py-2.5 dark:border-white/10">
+                                @php
+                                    $token = $employee->nfcTokens?->token;
+                                    $surveyUrl = $token ? url('/survey/nfc/' . $token) : null;
+                                @endphp
                                 <x-filament::button
                                     tag="a"
                                     :href="\App\Filament\Resources\EmployeeResource::getUrl('edit', ['record' => $employee])"
@@ -106,6 +110,33 @@
                                     wire:confirm="¿Eliminar a {{ $employee->name }}? Esta acción no se puede deshacer."
                                 >
                                     Eliminar
+                                </x-filament::button>
+
+                                @if ($surveyUrl)
+                                    <x-filament::button
+                                        size="sm"
+                                        color="gray"
+                                        icon="heroicon-o-clipboard-document"
+                                        outlined
+                                        onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: 'Enlace de encuesta copiado', status: 'success' } } })); });"
+                                    >
+                                        Copiar enlace
+                                    </x-filament::button>
+                                @endif
+                            </div>
+                        @elseif ($employee->nfcTokens?->token)
+                            <div class="mt-auto flex flex-wrap items-center justify-center gap-1.5 border-t border-gray-200 px-3 py-2.5 dark:border-white/10">
+                                @php
+                                    $surveyUrl = url('/survey/nfc/' . $employee->nfcTokens->token);
+                                @endphp
+                                <x-filament::button
+                                    size="sm"
+                                    color="gray"
+                                    icon="heroicon-o-clipboard-document"
+                                    outlined
+                                    onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: 'Enlace de encuesta copiado', status: 'success' } } })); });"
+                                >
+                                    Copiar enlace
                                 </x-filament::button>
                             </div>
                         @endif
