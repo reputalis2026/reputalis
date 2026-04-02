@@ -54,6 +54,12 @@ class Employee extends Model
                 $model->setAttribute('id', (string) Str::uuid());
             }
         });
+
+        // Dominio 1–1: si se borra el empleado, su token NFC no puede quedar colgando.
+        // Además, nfctokens.employee_id es NOT NULL, así que hay que borrar el token antes.
+        static::deleting(function (self $model): void {
+            $model->nfcTokens()->delete();
+        });
     }
 
     /**

@@ -105,6 +105,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Fillable:** `client_id`, `employee_id`, `token`, `is_active`
 - **Restricción 1–1:** `employee_id` está en `NOT NULL` y tiene `UNIQUE` (un empleado no puede tener 2 tokens distintos).
 - **Relaciones:** `client()` BelongsTo Client; `employee()` BelongsTo Employee.
+- **Borrado de empleados (importante PostgreSQL):** al eliminar un `Employee`, la app elimina primero su `NfcToken` asociado (hook `Employee::deleting`) para evitar violaciones por `NOT NULL` cuando la FK intenta aplicar `ON DELETE SET NULL`.
 
 ### 2.6 ClientCall (`App\Models\ClientCall`)
 
