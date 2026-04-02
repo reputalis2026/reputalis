@@ -41,6 +41,14 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - Todas las tablas principales usan **UUID** como clave primaria (`$keyType = 'string'`, `$incrementing = false`).
 - La entidad central de negocio es **Cliente** (tabla `clients`). Antes se llamaba “Pharmacy”; se renombró con la migración `2026_02_12_000000_rename_pharmacies_to_clients.php`. Cualquier referencia antigua a “pharmacy” en migraciones se traduce a “client” en código actual.
 
+### 1.1 Producción público / HTTPS (VPS)
+
+- **Dominio:** `reputalis.org` y `www.reputalis.org` — tráfico **HTTPS** con **Let's Encrypt** (Certbot + plugin **Nginx**). Certificados: `/etc/letsencrypt/live/reputalis.org/` (renovación vía **`certbot.timer`**).
+- **Nginx:** único sitio habilitado típico: `/etc/nginx/sites-enabled/reputalis` → `/etc/nginx/sites-available/reputalis` (Certbot suele añadir `ssl_certificate` y redirección HTTP→HTTPS).
+- **Firewall (UFW):** política por defecto suele ser **deny incoming**; deben existir reglas **ALLOW** para **TCP 80** y **TCP 443**. Si solo está abierto el **80**, desde fuera **HTTPS no carga** aunque `curl` en el propio servidor funcione.
+- **Laravel:** conviene `APP_URL=https://reputalis.org` en `.env` del servidor para URLs y cookies coherentes (no obligatorio para que Nginx sirva TLS).
+- **Guía operativa detallada / backup del vhost:** `docs/GUIA_SSL_CERTBOT_PROGRESO.md`.
+
 ---
 
 ## 2. Modelos (Eloquent)
