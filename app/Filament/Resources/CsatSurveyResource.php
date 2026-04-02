@@ -57,7 +57,12 @@ class CsatSurveyResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('improvementReason.code')
                     ->label('Motivo mejora')
-                    ->placeholder('Sin motivo')
+                    ->state(function ($record) {
+                        return $record->improvementOption?->label
+                            ?? $record->improvementReason?->code
+                            ?? 'Sin motivo';
+                    })
+                    ->wrap()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('locale_used')
                     ->label('Idioma')
@@ -144,7 +149,9 @@ class CsatSurveyResource extends Resource
                             ->placeholder('Sin asignar'),
                         TextEntry::make('improvementReason')
                             ->label('Motivo de mejora')
-                            ->formatStateUsing(fn ($state) => $state?->code ?? 'Sin motivo'),
+                            ->formatStateUsing(fn ($state, $record) => $record->improvementOption?->label
+                                ?? $record->improvementReason?->code
+                                ?? 'Sin motivo'),
                         TextEntry::make('locale_used')
                             ->label('Idioma')
                             ->placeholder('-'),
