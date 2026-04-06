@@ -76,7 +76,8 @@ class CsatSurveyResource extends Resource
                     ->placeholder('-'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
+                    ->timezone('Europe/Madrid')
                     ->sortable(),
             ])
             ->filters([
@@ -161,7 +162,8 @@ class CsatSurveyResource extends Resource
                             ->placeholder('-'),
                         TextEntry::make('created_at')
                             ->label('Fecha y hora')
-                            ->dateTime(),
+                            ->dateTime('d/m/Y H:i')
+                            ->timezone('Europe/Madrid'),
                     ]),
             ]);
     }
