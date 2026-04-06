@@ -6,6 +6,27 @@
     $showNfcDemo = isset($showNfcDemo) ? (bool) $showNfcDemo : true;
     $employeeDisplayName = isset($employee) && $employee ? ($employee->alias ?: $employee->name) : null;
     $employeeCodeResolved = isset($employeeCode) ? $employeeCode : null;
+    $surveyDisplayMode = isset($surveyDisplayMode) && $surveyDisplayMode === 'faces' ? 'faces' : 'numbers';
+
+    $surveyRatingPreloadUrls = [];
+    if ($isPwa) {
+        $ratingPreloadFacesMode = file_exists(public_path('survey-rating/faces/cara1.png'));
+        if ($ratingPreloadFacesMode) {
+            foreach ([1, 2, 3, 4, 5] as $i) {
+                $facePath = public_path('survey-rating/faces/cara'.$i.'.png');
+                if (file_exists($facePath)) {
+                    $surveyRatingPreloadUrls[] = asset('survey-rating/faces/cara'.$i.'.png');
+                }
+            }
+        } else {
+            foreach ([1, 2, 3, 4, 5] as $i) {
+                $numPath = public_path('survey-rating/numbers/'.$i.'.png');
+                if (file_exists($numPath)) {
+                    $surveyRatingPreloadUrls[] = asset('survey-rating/numbers/'.$i.'.png');
+                }
+            }
+        }
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -17,12 +38,37 @@
     <title>{{ $isPwa ? "Reputalis - {$clientName}" : __('Encuesta de satisfacción') }}</title>
     @if($isPwa)
     <link rel="manifest" href="{{ route('survey.manifest', ['client_code' => $clientCode]) }}">
+    @foreach($surveyRatingPreloadUrls as $preloadHref)
+    <link rel="preload" href="{{ $preloadHref }}" as="image" fetchpriority="high">
+    @endforeach
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         [data-step]:not([data-step="active"]) { display: none; }
         [data-step="active"] { display: block; }
         .btn-score { min-height: 3.5rem; font-size: 1.5rem; }
+        /* Imágenes de puntuación (modo números o caritas): celda cuadrada, sin padding. */
+        .btn-score.btn-score--numbers,
+        .btn-score.btn-score--faces {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1;
+            min-height: 0;
+            min-width: 0;
+            padding: 0;
+            overflow: hidden;
+            font-size: 0;
+            line-height: 0;
+        }
+        .btn-score.btn-score--numbers img,
+        .btn-score.btn-score--faces img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
         .btn-reason { min-height: 2.75rem; }
     </style>
 </head>
@@ -86,7 +132,25 @@
                     <p class="text-lg font-medium text-slate-700" id="text-question">{{ __('¿Cómo le hemos atendido hoy?') }}</p>
                     <div class="mt-6 grid grid-cols-5 gap-2">
                         @foreach([1,2,3,4,5] as $n)
-                            <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500" data-score="{{ $n }}">{{ $n }}</button>
+                            @php
+                                $numbersImgPath = public_path('survey-rating/numbers/'.$n.'.png');
+                                $useNumbersImg = $surveyDisplayMode === 'numbers' && is_file($numbersImgPath);
+                            @endphp
+                            <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 {{ $surveyDisplayMode === 'faces' ? 'btn-score--faces' : ($useNumbersImg ? 'btn-score--numbers' : '') }}" data-score="{{ $n }}">
+                                @if($surveyDisplayMode === 'faces')
+                                    <picture class="contents">
+                                        <source srcset="{{ asset('survey-rating/faces/cara'.$n.'.webp') }}" type="image/webp">
+                                        <img src="{{ asset('survey-rating/faces/cara'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                    </picture>
+                                @elseif($useNumbersImg)
+                                    <picture class="contents">
+                                        <source srcset="{{ asset('survey-rating/numbers/'.$n.'.webp') }}" type="image/webp">
+                                        <img src="{{ asset('survey-rating/numbers/'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                    </picture>
+                                @else
+                                    {{ $n }}
+                                @endif
+                            </button>
                         @endforeach
                     </div>
                 </div>
