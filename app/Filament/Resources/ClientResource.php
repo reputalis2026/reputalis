@@ -406,7 +406,7 @@ class ClientResource extends Resource
                     })
                     ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('puntosDeMejora')
-                    ->label('Puntos de mejora')
+                    ->label('Encuesta')
                     ->icon('heroicon-o-light-bulb')
                     ->url(fn (Client $record): string => static::getUrl('puntos-de-mejora', ['record' => $record]))
                     ->visible(fn (Client $record): bool => static::canView($record))
@@ -470,7 +470,7 @@ class ClientResource extends Resource
     }
 
     /**
-     * Subnavegación al ver/editar un cliente: Ver, Editar, Puntos de mejora, Empleados.
+     * Subnavegación al ver/editar un cliente: Ver, Editar, Encuesta, Empleados.
      *
      * @return array<\Filament\Navigation\NavigationItem>
      */
@@ -495,7 +495,7 @@ class ClientResource extends Resource
 
     /**
      * El ítem "Clientes" no se muestra en el menú para el rol cliente;
-     * ellos solo ven "Puntos de mejora" (ítem personalizado en AdminPanelProvider).
+     * ellos solo ven "Encuesta" (ítem personalizado en AdminPanelProvider).
      */
     public static function shouldRegisterNavigation(): bool
     {

@@ -29,6 +29,12 @@
             </p>
             <div class="space-y-4">
                 <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Modo de puntuación</p>
+                    <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
+                        {{ $readOnly['display_mode_label'] }}
+                    </p>
+                </div>
+                <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Título del bloque</p>
                     <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
                         {{ $readOnly['title'] }}

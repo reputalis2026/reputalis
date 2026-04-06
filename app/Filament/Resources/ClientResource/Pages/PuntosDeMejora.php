@@ -25,9 +25,9 @@ class PuntosDeMejora extends Page
 
     protected static string $view = 'filament.resources.client-resource.pages.puntos-de-mejora';
 
-    protected static ?string $title = 'Puntos de mejora';
+    protected static ?string $title = 'Encuesta';
 
-    protected static ?string $navigationLabel = 'Puntos de mejora';
+    protected static ?string $navigationLabel = 'Encuesta';
 
     /**
      * @var array<string, mixed>|null
@@ -89,6 +89,7 @@ class PuntosDeMejora extends Page
 
         $this->form->fill([
             'title' => $config?->title ?? '¿En qué podemos mejorar?',
+            'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
             'options' => $options->map(fn ($o) => ['label' => $o->label])->all(),
         ]);
     }
@@ -99,13 +100,22 @@ class PuntosDeMejora extends Page
 
         return $form
             ->schema([
-                \Filament\Forms\Components\Section::make('Configuración de puntos de mejora')
+                \Filament\Forms\Components\Section::make('Encuesta')
                     ->description($readOnly
-                        ? 'Título y respuestas que verá el usuario en la encuesta (solo lectura).'
-                        : 'Define el título y las respuestas que verá el usuario cuando la encuesta sea negativa (1–3). Mínimo 2 respuestas.')
+                        ? 'Modo de puntuación, título y respuestas que verá el usuario (solo lectura).'
+                        : 'Escala visual de la encuesta (1–5), título y respuestas cuando la puntuación sea baja (1–3). Mínimo 2 respuestas.')
                     ->schema([
+                        \Filament\Forms\Components\Radio::make('display_mode')
+                            ->label('Modo de puntuación en la encuesta')
+                            ->options([
+                                ClientImprovementConfig::DISPLAY_MODE_NUMBERS => 'Números',
+                                ClientImprovementConfig::DISPLAY_MODE_FACES => 'Caritas',
+                            ])
+                            ->default(ClientImprovementConfig::DISPLAY_MODE_NUMBERS)
+                            ->required()
+                            ->disabled($readOnly),
                         \Filament\Forms\Components\TextInput::make('title')
-                            ->label('Título del bloque')
+                            ->label('Título del bloque (pregunta de mejora)')
                             ->required()
                             ->maxLength(255)
                             ->placeholder('¿En qué podemos mejorar?')
@@ -142,6 +152,7 @@ class PuntosDeMejora extends Page
         $client = $this->getRecord();
         $data = $this->form->getState();
         $title = trim((string) ($data['title'] ?? ''));
+        $displayMode = ClientImprovementConfig::normalizeDisplayMode($data['display_mode'] ?? null);
         $optionsData = $data['options'] ?? [];
 
         if ($title === '') {
@@ -162,12 +173,13 @@ class PuntosDeMejora extends Page
             return;
         }
 
-        DB::transaction(function () use ($client, $title, $labels): void {
+        DB::transaction(function () use ($client, $title, $displayMode, $labels): void {
             $config = ClientImprovementConfig::firstOrNew(['client_id' => $client->id]);
             if (! $config->exists) {
                 $config->id = (string) Str::uuid();
             }
             $config->title = $title;
+            $config->display_mode = $displayMode;
             $config->save();
 
             $configId = $config->getKey();
@@ -184,7 +196,7 @@ class PuntosDeMejora extends Page
 
         Notification::make()
             ->success()
-            ->title('Puntos de mejora guardados')
+            ->title('Encuesta guardada')
             ->send();
     }
 
@@ -205,32 +217,34 @@ class PuntosDeMejora extends Page
     {
         $user = auth()->user();
         if ($user?->isClientOwner()) {
-            return 'Tus puntos de mejora';
+            return 'Tu encuesta';
         }
 
-        return 'Puntos de mejora: ' . $this->getRecord()->namecommercial;
+        return 'Encuesta: ' . $this->getRecord()->namecommercial;
     }
 
     /**
      * Datos para la vista de solo lectura (rol cliente): título y lista de respuestas.
      *
-     * @return array{title: string, options: array<int, string>}
+     * @return array{title: string, display_mode_label: string, options: array<int, string>}
      */
     public function getPuntosReadOnlyData(): array
     {
         $client = $this->getRecord();
         $config = $client->improvementConfig;
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $mode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
 
         return [
             'title' => $config?->title ?? '¿En qué podemos mejorar?',
+            'display_mode_label' => $mode === ClientImprovementConfig::DISPLAY_MODE_FACES ? 'Caritas' : 'Números',
             'options' => $options->pluck('label')->values()->all(),
         ];
     }
 
     public function getBreadcrumb(): string
     {
-        return 'Puntos de mejora';
+        return 'Encuesta';
     }
 
     public function getFormStatePath(): ?string

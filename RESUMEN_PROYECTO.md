@@ -33,15 +33,15 @@
 
 #### 4. Panel Filament (`/admin`)
 - **ClientResource:** CRUD de clientes (solo `owner.role = cliente`). SuperAdmin ve/edita todo; Distribuidor solo clientes que él creó. El rol cliente no ve “Clientes” en el menú; usa páginas propias de solo lectura (ClientPuntosDeMejora, ClientEmpleados).
-- **Páginas solo para rol cliente:** **ClientPuntosDeMejora** y **ClientEmpleados** (Filament Pages independientes, datos de `ownedClient`). Menú del cliente: Dashboard, Puntos de mejora, Empleados. Sin breadcrumbs de ClientResource. SuperAdmin/Distribuidor usan ClientResource (Clientes → [Cliente] → Puntos de mejora / Empleados).
+- **Páginas solo para rol cliente:** **ClientPuntosDeMejora** y **ClientEmpleados** (Filament Pages independientes, datos de `ownedClient`). Menú del cliente: Dashboard, Encuesta, Empleados. Sin breadcrumbs de ClientResource. SuperAdmin/Distribuidor usan ClientResource (Clientes → [Cliente] → Encuesta / Empleados).
 - **DistributorResource:** CRUD de distribuidores (Client con rol distribuidor).
 - **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados).
-- **Puntos de mejora por cliente:** en ClientResource, subpágina por cliente (ClientImprovementConfig + ClientImprovementOption): título + lista de opciones (mín. 2). SuperAdmin y Distribuidor editan; el cliente solo consulta en ClientPuntosDeMejora.
+- **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, solo presentación en `/survey`) + **ClientImprovementOption** — título + lista de opciones (mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en ClientPuntosDeMejora (“Tu encuesta”). Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
 - **Notificaciones/mensajes del panel:** AdminNotifications (SuperAdmin), DistributorMessages (distribuidor). Flujo: distribuidor crea cliente inactivo → notificación a SuperAdmin y distribuidor; SuperAdmin activa → notificación al distribuidor (PanelMessageService).
 
 #### 5. Encuestas CSAT
 - **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` (si score 1–3), `employee_code`, etc. Límites por IP y por dispositivo.
-- **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío). Puntos de mejora por cliente se muestran si score 1–3.
+- **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío; score siempre 1–5). Escala 1–5 con `data-score`; gráficos en `public/survey-rating/` (`<picture>` PNG + WebP). Spinner en grid hasta cargar imágenes (caras o números con PNG); botones solo-imagen sin borde. PWA: precarga de imágenes en `<head>`; SW `v2` precachea PNG existentes y cachea `/survey-rating/` en `fetch`. Tras puntuación baja, `improvementBlock` si aplica.
 - **Encuesta por NFC (token):** `GET /survey/nfc/{token}` resuelve `NfcToken` activo y renderiza la encuesta preasignando el empleado (crea `CsatSurvey` con `employee_id`).
 
 #### 6. PWA “El Pulso del Día”
@@ -55,7 +55,7 @@
 ## Estructura relevante (resumida)
 
 - **Modelos:** User, Client, Employee, NfcToken, CsatSurvey, ImprovementReason, Sector, PanelMessage, PanelMessageRecipient, ClientImprovementConfig, ClientImprovementOption, ClientImprovementReasonLabel (legacy).
-- **Filament:** ClientResource (CreateClient, EditClient, PuntosDeMejora, Empleados, etc.), DistributorResource, EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource. Páginas solo para rol cliente: **ClientPuntosDeMejora**, **ClientEmpleados** (solo lectura, menú: Dashboard, Puntos de mejora, Empleados). Widgets: CsatStatsOverviewWidget, ClientsOverviewWidget.
+- **Filament:** ClientResource (CreateClient, EditClient, PuntosDeMejora — UI “Encuesta”, Empleados, etc.), DistributorResource, EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource. Páginas solo para rol cliente: **ClientPuntosDeMejora**, **ClientEmpleados** (solo lectura, menú: Dashboard, Encuesta, Empleados). Widgets: CsatStatsOverviewWidget, ClientsOverviewWidget.
 - **Rutas:** web (Pulse, survey, admin), api (surveys/create).
 - **Vistas propias:** encuesta pública, Pulse, modal de confirmación de expiración en EditClient (`edit-client-expiration-modal.blade.php`).
 
@@ -78,5 +78,5 @@
 
 ---
 
-**Última actualización:** Marzo 2026  
-**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, puntos de mejora, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.
+**Última actualización:** Abril 2026  
+**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.

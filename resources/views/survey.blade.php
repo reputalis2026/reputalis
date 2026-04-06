@@ -8,6 +8,17 @@
     $employeeCodeResolved = isset($employeeCode) ? $employeeCode : null;
     $surveyDisplayMode = isset($surveyDisplayMode) && $surveyDisplayMode === 'faces' ? 'faces' : 'numbers';
 
+    $ratingNumbersWithImagesReveal = false;
+    if ($surveyDisplayMode === 'numbers') {
+        foreach ([1, 2, 3, 4, 5] as $i) {
+            if (is_file(public_path('survey-rating/numbers/'.$i.'.png'))) {
+                $ratingNumbersWithImagesReveal = true;
+                break;
+            }
+        }
+    }
+    $ratingSpinnerReveal = $surveyDisplayMode === 'faces' || $ratingNumbersWithImagesReveal;
+
     $surveyRatingPreloadUrls = [];
     if ($isPwa) {
         $ratingPreloadFacesMode = file_exists(public_path('survey-rating/faces/cara1.png'));
@@ -68,6 +79,29 @@
             height: 100%;
             object-fit: contain;
             object-position: center;
+        }
+        /* Solo la imagen visible: sin marco ni fondo del botón */
+        .btn-score.btn-score--faces,
+        .btn-score.btn-score--numbers {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none;
+        }
+        .btn-score.btn-score--faces:hover,
+        .btn-score.btn-score--numbers:hover {
+            border: none !important;
+            background: transparent !important;
+            opacity: 0.88;
+            transform: scale(1.04);
+        }
+        .btn-score.btn-score--faces:focus,
+        .btn-score.btn-score--numbers:focus {
+            outline: none;
+        }
+        .btn-score.btn-score--faces:focus-visible,
+        .btn-score.btn-score--numbers:focus-visible {
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.55);
+            border-radius: 0.75rem;
         }
         .btn-reason { min-height: 2.75rem; }
     </style>
@@ -130,29 +164,69 @@
                 </div>
                 <div class="p-6 text-center">
                     <p class="text-lg font-medium text-slate-700" id="text-question">{{ __('¿Cómo le hemos atendido hoy?') }}</p>
-                    <div class="mt-6 grid grid-cols-5 gap-2">
-                        @foreach([1,2,3,4,5] as $n)
-                            @php
-                                $numbersImgPath = public_path('survey-rating/numbers/'.$n.'.png');
-                                $useNumbersImg = $surveyDisplayMode === 'numbers' && is_file($numbersImgPath);
-                            @endphp
-                            <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 {{ $surveyDisplayMode === 'faces' ? 'btn-score--faces' : ($useNumbersImg ? 'btn-score--numbers' : '') }}" data-score="{{ $n }}">
-                                @if($surveyDisplayMode === 'faces')
-                                    <picture class="contents">
-                                        <source srcset="{{ asset('survey-rating/faces/cara'.$n.'.webp') }}" type="image/webp">
-                                        <img src="{{ asset('survey-rating/faces/cara'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
-                                    </picture>
-                                @elseif($useNumbersImg)
-                                    <picture class="contents">
-                                        <source srcset="{{ asset('survey-rating/numbers/'.$n.'.webp') }}" type="image/webp">
-                                        <img src="{{ asset('survey-rating/numbers/'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
-                                    </picture>
-                                @else
-                                    {{ $n }}
-                                @endif
-                            </button>
-                        @endforeach
-                    </div>
+                    @if($surveyDisplayMode === 'faces')
+                        <div class="mt-6">
+                            <div id="rating-spinner" class="grid grid-cols-5 gap-2">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <button type="button" disabled class="btn-score btn-score--faces rounded-xl bg-transparent pointer-events-none flex items-center justify-center text-slate-400" aria-hidden="true" tabindex="-1">
+                                        <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                        </svg>
+                                    </button>
+                                @endfor
+                            </div>
+                            <div id="rating-buttons" class="grid grid-cols-5 gap-2 hidden opacity-0 transition-opacity duration-300 ease-out">
+                                @foreach([1,2,3,4,5] as $n)
+                                    <button type="button" class="btn-score rounded-xl transition focus:outline-none btn-score--faces" data-score="{{ $n }}">
+                                        <picture class="contents">
+                                            <source srcset="{{ asset('survey-rating/faces/cara'.$n.'.webp') }}" type="image/webp">
+                                            <img src="{{ asset('survey-rating/faces/cara'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                        </picture>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        @if($ratingNumbersWithImagesReveal)
+                            <div class="mt-6">
+                                <div id="rating-spinner" class="grid grid-cols-5 gap-2">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <button type="button" disabled class="btn-score btn-score--numbers rounded-xl bg-transparent pointer-events-none flex items-center justify-center text-slate-400" aria-hidden="true" tabindex="-1">
+                                            <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                            </svg>
+                                        </button>
+                                    @endfor
+                                </div>
+                                <div id="rating-buttons" class="grid grid-cols-5 gap-2 hidden opacity-0 transition-opacity duration-300 ease-out">
+                                    @foreach([1,2,3,4,5] as $n)
+                                        @php
+                                            $numbersImgPath = public_path('survey-rating/numbers/'.$n.'.png');
+                                            $useNumbersImg = is_file($numbersImgPath);
+                                        @endphp
+                                        <button type="button" class="btn-score rounded-xl transition focus:outline-none {{ $useNumbersImg ? 'btn-score--numbers' : 'border-2 border-slate-200 bg-white font-semibold text-slate-600 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:ring-2 focus:ring-amber-500' }}" data-score="{{ $n }}">
+                                            @if($useNumbersImg)
+                                                <picture class="contents">
+                                                    <source srcset="{{ asset('survey-rating/numbers/'.$n.'.webp') }}" type="image/webp">
+                                                    <img src="{{ asset('survey-rating/numbers/'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                                </picture>
+                                            @else
+                                                {{ $n }}
+                                            @endif
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @else
+                            <div class="mt-6 grid grid-cols-5 gap-2">
+                                @foreach([1,2,3,4,5] as $n)
+                                    <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500" data-score="{{ $n }}">{{ $n }}</button>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endif
                 </div>
             </div>
         </section>
@@ -341,6 +415,65 @@
 
     if (navigator.onLine) flushPending();
     window.addEventListener('online', () => flushPending());
+
+@if($ratingSpinnerReveal)
+    (function() {
+        function revealRatingButtons() {
+            const spin = document.getElementById('rating-spinner');
+            const btns = document.getElementById('rating-buttons');
+            if (spin) spin.classList.add('hidden');
+            if (btns) {
+                btns.classList.remove('hidden');
+                requestAnimationFrame(function() {
+                    btns.classList.remove('opacity-0');
+                    btns.classList.add('opacity-100');
+                });
+            }
+        }
+        function waitForRatingImages() {
+            const imgs = document.querySelectorAll('#rating-buttons picture img, #rating-buttons img');
+            const seen = new Set();
+            const images = [];
+            imgs.forEach(function(img) {
+                if (!seen.has(img)) { seen.add(img); images.push(img); }
+            });
+            const total = images.length;
+            if (total === 0) {
+                revealRatingButtons();
+                return;
+            }
+            let loaded = 0;
+            let finished = false;
+            function checkAllLoaded() {
+                if (finished) return;
+                if (loaded >= total) {
+                    finished = true;
+                    clearTimeout(fallbackTimer);
+                    revealRatingButtons();
+                }
+            }
+            const fallbackTimer = setTimeout(function() {
+                if (finished) return;
+                finished = true;
+                revealRatingButtons();
+            }, 3000);
+            images.forEach(function(img) {
+                if (img.complete && img.naturalWidth > 0) {
+                    loaded++;
+                } else {
+                    img.addEventListener('load', function() { loaded++; checkAllLoaded(); }, { once: true });
+                    img.addEventListener('error', function() { loaded++; checkAllLoaded(); }, { once: true });
+                }
+            });
+            checkAllLoaded();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', waitForRatingImages);
+        } else {
+            waitForRatingImages();
+        }
+    })();
+@endif
 })();
     </script>
     @if($clientCode)

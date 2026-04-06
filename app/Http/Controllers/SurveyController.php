@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\ClientImprovementConfig;
 use App\Models\ImprovementReason;
 use App\Models\NfcToken;
 use App\Models\Employee;
@@ -28,6 +29,7 @@ class SurveyController extends Controller
                 'client' => null,
                 'clients' => $clients,
                 'improvementBlock' => null,
+                'surveyDisplayMode' => ClientImprovementConfig::DISPLAY_MODE_NUMBERS,
             ]);
         }
 
@@ -37,6 +39,7 @@ class SurveyController extends Controller
             ->firstOrFail();
 
         $config = $client->improvementConfig;
+        $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
             $options = $config->options()->orderBy('sort_order')->orderBy('created_at')->get();
@@ -53,6 +56,7 @@ class SurveyController extends Controller
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
             'client_code' => $client->code,
+            'surveyDisplayMode' => $surveyDisplayMode,
         ]);
     }
 
@@ -90,6 +94,7 @@ class SurveyController extends Controller
         }
 
         $config = $client->improvementConfig;
+        $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
             $options = $config->options()->orderBy('sort_order')->orderBy('created_at')->get();
@@ -109,6 +114,7 @@ class SurveyController extends Controller
             'employee' => $employee,
             'employeeCode' => $employee->name, // La API resuelve empleado por name
             'showNfcDemo' => false,
+            'surveyDisplayMode' => $surveyDisplayMode,
         ]);
     }
 
@@ -156,22 +162,42 @@ class SurveyController extends Controller
             ->firstOrFail();
 
         $code = $client->code;
-        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v1';
-        $scope = url("/survey/{$code}");
+        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v2';
         $manifestUrl = url("/manifest/{$code}.json");
         $surveyUrl = url("/survey/{$code}");
         $apiUrl = url('/api/surveys/create');
+
+        $precacheUrls = [$surveyUrl, $manifestUrl];
+        for ($i = 1; $i <= 5; $i++) {
+            $face = public_path("survey-rating/faces/cara{$i}.png");
+            if (is_file($face)) {
+                $precacheUrls[] = url("/survey-rating/faces/cara{$i}.png");
+            }
+            $num = public_path("survey-rating/numbers/{$i}.png");
+            if (is_file($num)) {
+                $precacheUrls[] = url("/survey-rating/numbers/{$i}.png");
+            }
+        }
+        $precacheJson = json_encode(array_values(array_unique($precacheUrls)));
 
         $js = <<<SW
 const CACHE_NAME = "{$cacheName}";
 const SURVEY_URL = "{$surveyUrl}";
 const MANIFEST_URL = "{$manifestUrl}";
 const API_URL = "{$apiUrl}";
+const PRECACHE_URLS = {$precacheJson};
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll([SURVEY_URL, MANIFEST_URL])
+      Promise.all(
+        PRECACHE_URLS.map((u) =>
+          cache.add(u).catch((err) => {
+            console.warn('[Reputalis SW] precache omitido:', u, err && err.message);
+            return null;
+          })
+        )
+      )
     ).then(() => self.skipWaiting())
   );
 });
@@ -188,14 +214,22 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
   if (url.pathname === '/api/surveys/create') return;
+  const originOk = url.origin === self.location.origin;
+  const cacheablePath =
+    originOk &&
+    (url.pathname.startsWith('/survey/') ||
+      url.pathname.startsWith('/manifest/') ||
+      url.pathname.startsWith('/survey-rating/'));
   e.respondWith(
     caches.match(e.request).then((cached) =>
-      cached || fetch(e.request).then((res) => {
-        const clone = res.clone();
-        if (url.origin === location.origin && (url.pathname.startsWith('/survey/') || url.pathname.startsWith('/manifest/')))
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-        return res;
-      })
+        cached ||
+        fetch(e.request).then((res) => {
+          if (cacheablePath && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          }
+          return res;
+        })
     )
   );
 });

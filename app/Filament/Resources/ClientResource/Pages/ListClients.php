@@ -21,7 +21,7 @@ class ListClients extends ListRecords
     {
         parent::mount();
 
-        // El rol cliente no debe ver el listado; redirigir a sus Puntos de mejora.
+        // El rol cliente no debe ver el listado; redirigir a su página Encuesta.
         $user = auth()->user();
         if ($user?->isClientOwner() && $user->ownedClient) {
             $this->redirect(ClientPuntosDeMejora::getUrl());

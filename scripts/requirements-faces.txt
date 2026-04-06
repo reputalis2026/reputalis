@@ -1,0 +1,2 @@
+# Procesado de PNG de caritas (scripts/process_survey_faces.py)
+Pillow>=10.0.0

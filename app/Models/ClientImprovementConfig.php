@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClientImprovementConfig extends Model
 {
+    public const DISPLAY_MODE_NUMBERS = 'numbers';
+
+    public const DISPLAY_MODE_FACES = 'faces';
+
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -17,6 +21,7 @@ class ClientImprovementConfig extends Model
         'id',
         'client_id',
         'title',
+        'display_mode',
     ];
 
     protected function casts(): array
@@ -37,5 +42,15 @@ class ClientImprovementConfig extends Model
         return $this->hasMany(ClientImprovementOption::class, 'client_improvement_config_id')
             ->orderBy('sort_order')
             ->orderBy('created_at');
+    }
+
+    /**
+     * @return self::DISPLAY_MODE_NUMBERS|self::DISPLAY_MODE_FACES
+     */
+    public static function normalizeDisplayMode(?string $value): string
+    {
+        return in_array($value, [self::DISPLAY_MODE_NUMBERS, self::DISPLAY_MODE_FACES], true)
+            ? $value
+            : self::DISPLAY_MODE_NUMBERS;
     }
 }

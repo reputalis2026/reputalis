@@ -2,19 +2,19 @@
 
 - **App\Models\User**: Representa a los usuarios del sistema (superadmin, cliente, distribuidor), controla el acceso al panel Filament y expone helpers como `isSuperAdmin()`, `isClientOwner()` e `isDistributor()`, además de relaciones con el cliente que posee y los mensajes de panel recibidos.
 
-- **App\Models\Client**: Entidad central de cliente (farmacia/negocio); guarda datos fiscales, de contacto, estado y vigencia, y se relaciona con su propietario (`owner`), el usuario que lo creó (`createdBy`), sus usuarios internos, empleados, encuestas CSAT, tokens NFC, configuración de puntos de mejora, etiquetas personalizadas y el historial de llamadas.
+- **App\Models\Client**: Entidad central de cliente (farmacia/negocio); guarda datos fiscales, de contacto, estado y vigencia, y se relaciona con su propietario (`owner`), el usuario que lo creó (`createdBy`), sus usuarios internos, empleados, encuestas CSAT, tokens NFC, configuración de **encuesta** (`ClientImprovementConfig`: título, opciones y modo visual de escala), etiquetas personalizadas y el historial de llamadas.
 
 - **App\Models\Employee**: Empleado de un cliente, con nombre, alias, foto, puesto y estado activo; se asegura de tener UUID propio y se relaciona con el cliente, sus encuestas CSAT y su token NFC (relación 1–1 lógica).
 
 - **App\Models\NfcToken**: Token NFC asignado a un empleado y un cliente; almacena el identificador físico (`token`) y si está activo, y permite navegar al cliente y al empleado asociados.
 
-- **App\Models\CsatSurvey**: Encuesta CSAT registrada por el sistema; guarda cliente, empleado (opcional), puntuación, motivo de mejora clásico (`ImprovementReason`) u opción personalizada de puntos de mejora (`ClientImprovementOption`), idioma y `device_hash` para limitar abusos.
+- **App\Models\CsatSurvey**: Encuesta CSAT registrada por el sistema; guarda cliente, empleado (opcional), puntuación 1–5, motivo de mejora clásico (`ImprovementReason`) u opción configurada en la encuesta del cliente (`ClientImprovementOption`), idioma y `device_hash` para limitar abusos.
 
 - **App\Models\Sector**: Catálogo simple de sectores con nombre y orden; expone métodos para contar clientes en un sector y determinar si se puede eliminar (solo cuando no tiene clientes).
 
 - **App\Models\ImprovementReason**: Catálogo legado de códigos de motivo de mejora (por ejemplo, tiempo de espera, trato, etc.); define si un motivo está activo y su relación con las encuestas CSAT que lo usan.
 
-- **App\Models\ClientImprovementConfig**: Configuración de puntos de mejora por cliente (título de la pregunta y vínculo al cliente); gestiona la colección de opciones (`ClientImprovementOption`) ordenadas que se mostrarán en la encuesta negativa y en el panel del cliente.
+- **App\Models\ClientImprovementConfig**: Configuración de la **encuesta** (bloque tras puntuación baja) por cliente: `title`, `display_mode` (`numbers` \| `faces`, solo afecta la vista pública `survey.blade.php`; el score sigue siendo numérico) y vínculo al cliente; gestiona la colección de opciones (`ClientImprovementOption`) ordenadas para el panel y la encuesta pública.
 
 - **App\Models\ClientImprovementOption**: Opción concreta dentro de la configuración de mejora de un cliente (texto de la opción y orden de visualización); se asocia a una `ClientImprovementConfig` y puede ser enlazada desde encuestas CSAT negativas.
 
@@ -32,9 +32,9 @@
 
 - **App\Support\ImprovementReasonLabelResolver**: Servicio que resuelve el texto final de los motivos de mejora combinando las etiquetas personalizadas por cliente (`ClientImprovementReasonLabel`) con un conjunto de textos por defecto, y devuelve listados completos para usarlos en encuestas o APIs.
 
-- **App\Filament\Resources\ClientResource**: Recurso Filament que define formularios, tablas, permisos y navegación para gestionar clientes en el panel (`/admin`), incluyendo bloques de facturación, administrador, acceso a plataforma, estado y vigencia, acciones para puntos de mejora, empleados, llamadas, soft deletes y control de acceso según rol.
+- **App\Filament\Resources\ClientResource**: Recurso Filament que define formularios, tablas, permisos y navegación para gestionar clientes en el panel (`/admin`), incluyendo bloques de facturación, administrador, acceso a plataforma, estado y vigencia, acciones para **Encuesta** (subpágina `PuntosDeMejora`), empleados, llamadas, soft deletes y control de acceso según rol.
 
-- **App\Filament\Pages\ClientPuntosDeMejora**: Página Filament de solo lectura para el rol cliente que muestra, en su propio menú, el título y las opciones configuradas de sus puntos de mejora (`ClientImprovementConfig` y `ClientImprovementOption`) a partir del `ownedClient` del usuario.
+- **App\Filament\Pages\ClientPuntosDeMejora**: Página Filament de solo lectura para el rol cliente (menú **“Encuesta”**, título **“Tu encuesta”**) que muestra el modo de puntuación, el título y las opciones de su `ClientImprovementConfig` / `ClientImprovementOption` a partir del `ownedClient` del usuario.
 
 - **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre, como vista amigable dentro del menú del cliente.
 
@@ -62,7 +62,7 @@
 
 - **App\Filament\Resources\ClientResource\Pages\ViewClient**: Página de visualización de la ficha de un cliente (solo lectura), que carga datos del propietario y ofrece una acción rápida para ir a la edición cuando los permisos lo permiten.
 
-- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` para configurar (superadmin/distribuidor) o consultar (cliente) el bloque de puntos de mejora, persistiendo título y opciones en `ClientImprovementConfig` y `ClientImprovementOption`.
+- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` (etiqueta de interfaz **“Encuesta”**) para configurar (superadmin/distribuidor) o consultar (cliente) el bloque: `display_mode`, título y opciones en `ClientImprovementConfig` y `ClientImprovementOption`.
 
 - **App\Filament\Resources\ClientResource\Pages\Empleados**: Subpágina de un cliente que muestra sus empleados, permite a superadmin/distribuidor crearlos/borrarlos (delegando en `EmployeeResource`) y, para el rol cliente, actúa como vista de sólo lectura “Empleados de este cliente”.
 
@@ -88,7 +88,7 @@
 
 ## Controladores HTTP (web y PWA)
 
-- **App\Http\Controllers\SurveyController**: Controlador web de la encuesta CSAT pública; sirve la landing `/survey`, la encuesta fija por cliente `/survey/{client_code}`, gestiona encuestas vía NFC (`/survey/nfc/{token}`) y genera manifest y service worker PWA por cliente para la parte de encuestas.
+- **App\Http\Controllers\SurveyController**: Controlador web de la encuesta CSAT pública; sirve la landing `/survey`, la encuesta fija por cliente `/survey/{client_code}`, gestiona encuestas vía NFC (`/survey/nfc/{token}`) y genera manifest y service worker PWA por cliente (caché **v2**, precache condicional de PNG en `survey-rating/`, runtime cache de `/survey-rating/`). Pasa a la vista `improvementBlock`, `surveyDisplayMode` (normalizado desde `ClientImprovementConfig`) y **no** modifica la API ni el valor numérico del score.
 
 - **App\Http\Controllers\PulseController**: Controlador de la PWA “El Pulso del Día”; gestiona login específico para propietarios de cliente, redirección al dashboard `/pulse/{client_code}`, manifest y service worker por cliente, y un endpoint JSON de métricas diarias/acumuladas basado en `CsatMetrics`.
 
