@@ -88,6 +88,7 @@ class PuntosDeMejora extends Page
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
 
         $this->form->fill([
+            'survey_question_text' => $config?->survey_question_text ?? '¿Cómo le hemos atendido hoy?',
             'title' => $config?->title ?? '¿En qué podemos mejorar?',
             'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
             'options' => $options->map(fn ($o) => ['label' => $o->label])->all(),
@@ -113,6 +114,12 @@ class PuntosDeMejora extends Page
                             ])
                             ->default(ClientImprovementConfig::DISPLAY_MODE_NUMBERS)
                             ->required()
+                            ->disabled($readOnly),
+                        \Filament\Forms\Components\TextInput::make('survey_question_text')
+                            ->label('Pregunta principal de la encuesta')
+                            ->maxLength(255)
+                            ->placeholder('¿Cómo le hemos atendido hoy?')
+                            ->default('¿Cómo le hemos atendido hoy?')
                             ->disabled($readOnly),
                         \Filament\Forms\Components\TextInput::make('title')
                             ->label('Título del bloque (pregunta de mejora)')
@@ -151,6 +158,7 @@ class PuntosDeMejora extends Page
 
         $client = $this->getRecord();
         $data = $this->form->getState();
+        $surveyQuestionText = trim((string) ($data['survey_question_text'] ?? ''));
         $title = trim((string) ($data['title'] ?? ''));
         $displayMode = ClientImprovementConfig::normalizeDisplayMode($data['display_mode'] ?? null);
         $optionsData = $data['options'] ?? [];
@@ -173,11 +181,16 @@ class PuntosDeMejora extends Page
             return;
         }
 
-        DB::transaction(function () use ($client, $title, $displayMode, $labels): void {
+        if ($surveyQuestionText === '') {
+            $surveyQuestionText = '¿Cómo le hemos atendido hoy?';
+        }
+
+        DB::transaction(function () use ($client, $surveyQuestionText, $title, $displayMode, $labels): void {
             $config = ClientImprovementConfig::firstOrNew(['client_id' => $client->id]);
             if (! $config->exists) {
                 $config->id = (string) Str::uuid();
             }
+            $config->survey_question_text = $surveyQuestionText;
             $config->title = $title;
             $config->display_mode = $displayMode;
             $config->save();

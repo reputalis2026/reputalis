@@ -22,6 +22,7 @@ class ClientImprovementConfig extends Model
         'client_id',
         'title',
         'display_mode',
+        'survey_question_text',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class ClientImprovementConfig extends Model
         return [
             'id' => 'string',
             'client_id' => 'string',
+            'survey_question_text' => 'string',
         ];
     }
 

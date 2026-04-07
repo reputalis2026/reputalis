@@ -38,7 +38,9 @@ class SurveyController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        $client->load('improvementConfig');
         $config = $client->improvementConfig;
+        $surveyQuestion = $config?->survey_question_text ?: '¿Cómo le hemos atendido hoy?';
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
@@ -57,6 +59,7 @@ class SurveyController extends Controller
             'improvementBlock' => $improvementBlock,
             'client_code' => $client->code,
             'surveyDisplayMode' => $surveyDisplayMode,
+            'surveyQuestion' => $surveyQuestion,
         ]);
     }
 
@@ -93,7 +96,9 @@ class SurveyController extends Controller
             ], 404);
         }
 
+        $client->load('improvementConfig');
         $config = $client->improvementConfig;
+        $surveyQuestion = $config?->survey_question_text ?: '¿Cómo le hemos atendido hoy?';
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
@@ -115,6 +120,7 @@ class SurveyController extends Controller
             'employeeCode' => $employee->name, // La API resuelve empleado por name
             'showNfcDemo' => false,
             'surveyDisplayMode' => $surveyDisplayMode,
+            'surveyQuestion' => $surveyQuestion,
         ]);
     }
 
