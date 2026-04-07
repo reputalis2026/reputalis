@@ -159,10 +159,10 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 
 - **Tabla:** `client_improvement_configs`
 - **PK:** UUID
-- **Fillable:** `id`, `client_id`, `title`, `display_mode`
+- **Fillable:** `id`, `client_id`, `title`, `display_mode`, `survey_question_text`
 - **Constantes:** `DISPLAY_MODE_NUMBERS` (`numbers`), `DISPLAY_MODE_FACES` (`faces`).
 - **`normalizeDisplayMode(?string)`:** devuelve `numbers` o `faces`; ante `null` o valor inválido hace **fallback a `numbers`** (compatibilidad con filas antiguas).
-- **Uso:** configuración única de la **encuesta (pregunta y opciones tras puntuación baja)** por cliente. Incluye **`display_mode`**: cómo se pinta la escala 1–5 en la encuesta pública (solo presentación; el valor enviado sigue siendo 1–5). Un **título** general (ej. “¿En qué podemos mejorar?”) y una lista de **opciones** (ClientImprovementOption). Una sola fila por cliente (`client_id` unique). **Importante:** al crear un config nuevo desde la app hay que asignar `id` en PHP antes de `save()` (p. ej. con `firstOrNew` + `$config->id = (string) Str::uuid()` si `!$config->exists`), porque PostgreSQL no siempre devuelve el UUID por defecto a Eloquent y las opciones necesitan `client_improvement_config_id` no nulo.
+- **Uso:** configuración única de la **encuesta (pregunta y opciones tras puntuación baja)** por cliente. Incluye **`display_mode`** (cómo se pinta la escala 1–5), **`survey_question_text`** (pregunta principal visible en la encuesta pública, fallback “¿Cómo le hemos atendido hoy?”), un **título** general del bloque de mejora y una lista de **opciones** (`ClientImprovementOption`). Una sola fila por cliente (`client_id` unique). **Importante:** al crear un config nuevo desde la app hay que asignar `id` en PHP antes de `save()` (p. ej. con `firstOrNew` + `$config->id = (string) Str::uuid()` si `!$config->exists`), porque PostgreSQL no siempre devuelve el UUID por defecto a Eloquent y las opciones necesitan `client_improvement_config_id` no nulo.
 - **Relaciones:** `client()` BelongsTo Client; `options()` HasMany ClientImprovementOption (ordenado por sort_order, created_at).
 - **Assets (encuesta pública):** imágenes bajo `public/survey-rating/` — `numbers/{1..5}.png` y `faces/cara{1..5}.png`, opcionalmente **`.webp`** homónimos para `<picture>`; rutas vía `asset()` en `survey.blade.php`.
 
@@ -256,6 +256,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 ## 6. Soporte / servicios
 
 - **App\Support\CsatMetrics:** métricas para dashboard (media de score, total, % satisfechos 4–5, cuenta “hoy”). Métodos estáticos: `getMetrics(?clientId, period)` con periodos `today`, `7`, `30`, `all`; cache 5 min por usuario/cliente/periodo. `dateRangeForPeriod(period)`. Los no-SuperAdmin solo ven su cliente.
+- **Optimización dashboard (abril 2026):** migración `2026_04_07_110000_add_high_priority_dashboard_indexes` crea índices en `csat_surveys(created_at)`, `csat_surveys(client_id, created_at)`, `csat_surveys(client_id, created_at, score)` y en `clients(is_active, namecommercial)` + `clients(is_active, fecha_fin)` para acelerar tabs y métricas.
 
 - **App\Support\PanelMessageService:** creación de mensajes del panel. `notifyClientPendingActivation(Client $client)`: crea mensaje tipo `client_pending_activation`, destinatarios = todos los SuperAdmin + el distribuidor que creó el cliente (se llama desde `CreateClient::afterCreate()` cuando el usuario es distribuidor). `notifyClientActivated(Client $client)`: crea mensaje tipo `client_activated` para el distribuidor (`created_by` del cliente); se llama desde `EditClient::afterSave()` cuando el cliente pasa de inactivo a activo. **Importante:** al crear `PanelMessage` se genera el UUID en PHP (`Str::uuid()`) y se pasa en `create(['id' => $messageId, ...])` para que `$message->id` esté disponible al crear los `PanelMessageRecipient` (PostgreSQL no siempre devuelve el default a Eloquent).
 
@@ -290,6 +291,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - Código de cliente (`Client.code`) se usa en URLs públicas (Pulse, encuesta, API) y se genera en las páginas Create (Client/Distributor).
 - Permisos Filament: comprobar `auth()->user()->isSuperAdmin()`, `isClientOwner()`, `isDistributor()` y relaciones `owner_id` / `created_by` según recurso.
 - **Distribuidor:** en listados y widgets de clientes (ClientResource, ClientsOverviewWidget) filtrar por `created_by = auth()->id()` para que solo vea los clientes que él creó; `canView`/`canEdit` por registro deben comprobar `$record->created_by === $user->id`.
+- **Listados Filament (rendimiento):** en `ListClients::getTableQuery()` se aplica eager loading explícito de `createdBy` (`with(['createdBy:id,name,fullname,email'])`) y selección mínima de columnas de `clients` usadas por tabla/tabs para reducir payload y evitar N+1.
 - Al crear modelos que luego se usan como FK (ej. PanelMessage antes de PanelMessageRecipient, o ClientImprovementConfig antes de ClientImprovementOption): si la tabla usa UUID por defecto en BD, generar el UUID en la app (`Str::uuid()`) y asignarlo al modelo antes de `save()` (o en `create(['id' => $id, ...])`) para evitar que el modelo quede sin `id` y falle al crear registros relacionados. En la página Filament **Encuesta** (`PuntosDeMejora`) se usa `firstOrNew` + `$config->id = Str::uuid()` cuando el config es nuevo, luego `$configId = $config->getKey()` para las opciones.
 - Al crear cliente o distribuidor se crea el usuario propietario (owner) con rol correspondiente y opcionalmente contraseña; en edición hay toggle “Cambiar contraseña” para no obligar a rellenar siempre.
 

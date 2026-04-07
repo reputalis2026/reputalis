@@ -54,7 +54,7 @@
 
 - **App\Filament\Resources\DistributorResource**: Recurso Filament para gestionar distribuidores (también basados en `Client`, filtrados por `owner.role = distribuidor`); define formularios, tabla y permisos específicos solo para superadmin.
 
-- **App\Filament\Resources\ClientResource\Pages\ListClients**: Página de listado de clientes que define pestañas (todos, eliminados), restringe el acceso/navegación por rol y redirige a `ClientPuntosDeMejora` cuando el usuario es cliente propietario.
+- **App\Filament\Resources\ClientResource\Pages\ListClients**: Página de listado de clientes que define pestañas (todos, eliminados), restringe el acceso/navegación por rol y redirige a `ClientPuntosDeMejora` cuando el usuario es cliente propietario; optimizada con `with(['createdBy:id,name,fullname,email'])` en `getTableQuery()` y selección mínima de columnas para evitar N+1 y reducir carga.
 
 - **App\Filament\Resources\ClientResource\Pages\CreateClient**: Página para crear un nuevo cliente y su usuario propietario en una sola operación, generando el código `CLIENxxxxxx`, asignando fechas y disparando notificaciones de “cliente pendiente de activación” cuando lo crea un distribuidor.
 
@@ -83,6 +83,8 @@
 - **App\Filament\Widgets\CsatStatsOverviewWidget**: Widget de dashboard que muestra cuatro métricas clave de CSAT (nota media, encuestas totales, porcentaje de satisfechos y encuestas de hoy) usando `CsatMetrics`, con enlaces directos a los listados filtrados de encuestas.
 
 - **App\Filament\Widgets\ClientsOverviewWidget**: Widget de dashboard que ofrece una visión rápida de clientes por pestañas (activos, inactivos, con baja próxima y distribuidores), mostrando fechas, teléfonos, actividad diaria de encuestas y filtros según el rol del usuario.
+
+- **database/migrations/2026_04_07_110000_add_high_priority_dashboard_indexes.php**: Migración de rendimiento para panel/dasboard que añade índices en `csat_surveys` (`created_at`, `client_id + created_at`, `client_id + created_at + score`) y `clients` (`is_active + namecommercial`, `is_active + fecha_fin`) para acelerar navegación y métricas.
 
 ---
 

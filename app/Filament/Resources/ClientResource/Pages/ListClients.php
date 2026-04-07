@@ -51,7 +51,7 @@ class ListClients extends ListRecords
 
         $tabs = [
             'todos' => Tab::make('Todos los clientes')
-                ->modifyQueryUsing(fn (Builder $query) => $query->withTrashed()->withoutTrashed()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed()),
         ];
 
         // Solo SuperAdmin debe ver la pestaña de eliminados/restauración.
@@ -74,7 +74,16 @@ class ListClients extends ListRecords
 
     protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = parent::getTableQuery();
+        $query = parent::getTableQuery()
+            ->select([
+                'clients.id',
+                'clients.namecommercial',
+                'clients.is_active',
+                'clients.deleted_at',
+                'clients.owner_id',
+                'clients.created_by',
+            ])
+            ->with(['createdBy:id,name,fullname,email']);
 
         if (auth()->user()?->isClientOwner()) {
             $user = auth()->user();
