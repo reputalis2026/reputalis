@@ -1,12 +1,24 @@
 ## Descripción de clases principales
 
+## REGLA CRITICA (NO BORRAR)
+
+Estos archivos de contexto se mantienen siempre en el repo y **no se borran**:
+
+- `CONTEXTO_PARA_IA.md`
+- `DESCRIPCION_CLASES.md`
+- `RESUMEN_PROYECTO.md`
+
+Si cambian flujos o permisos, se actualizan; no se eliminan.
+
+---
+
 - **App\Models\User**: Representa a los usuarios del sistema (superadmin, cliente, distribuidor), controla el acceso al panel Filament y expone helpers como `isSuperAdmin()`, `isClientOwner()` e `isDistributor()`, además de relaciones con el cliente que posee y los mensajes de panel recibidos.
 
 - **App\Models\Client**: Entidad central de cliente (farmacia/negocio); guarda datos fiscales, de contacto, estado y vigencia, y se relaciona con su propietario (`owner`), el usuario que lo creó (`createdBy`), sus usuarios internos, empleados, encuestas CSAT, tokens NFC, configuración de **encuesta** (`ClientImprovementConfig`: título, opciones y modo visual de escala), etiquetas personalizadas y el historial de llamadas.
 
-- **App\Models\Employee**: Empleado de un cliente, con nombre, alias, foto, puesto y estado activo; se asegura de tener UUID propio y se relaciona con el cliente, sus encuestas CSAT y su token NFC (relación 1–1 lógica).
+- **App\Models\Employee**: Empleado de un cliente, con nombre, alias, foto, puesto y estado activo; se relaciona con el cliente y su token NFC (`hasOne` `nfcTokens()`). En `booted()` asigna **UUID en `creating`** si no hay clave, para que tras guardar exista `id` en PHP (Eloquent no rellena el default de PostgreSQL en modelos no autoincrementales); necesario para crear el `NfcToken` relacionado sin violar NOT NULL en `employee_id`.
 
-- **App\Models\NfcToken**: Token NFC asignado a un empleado y un cliente; almacena el identificador físico (`token`) y si está activo, y permite navegar al cliente y al empleado asociados.
+- **App\Models\NfcToken**: Token NFC asignado a un empleado y un cliente; almacena el identificador (`token`) y si está activo. La FK **`employee_id` → `employees.id`** está en **ON DELETE CASCADE** (migración `2026_04_08_161000_...`); antes era SET NULL e incompatible con `employee_id` NOT NULL.
 
 - **App\Models\CsatSurvey**: Encuesta CSAT registrada por el sistema; guarda cliente, empleado (opcional), puntuación 1–5, motivo de mejora clásico (`ImprovementReason`) u opción configurada en la encuesta del cliente (`ClientImprovementOption`), idioma y `device_hash` para limitar abusos.
 
@@ -34,7 +46,7 @@
 
 - **App\Filament\Resources\ClientResource**: Recurso Filament que define formularios, tablas, permisos y navegación para gestionar clientes en el panel (`/admin`), incluyendo bloques de facturación, administrador, acceso a plataforma, estado y vigencia, acciones para **Encuesta** (subpágina `PuntosDeMejora`), empleados, llamadas, soft deletes y control de acceso según rol.
 
-- **App\Filament\Pages\ClientPuntosDeMejora**: Página Filament de solo lectura para el rol cliente (menú **“Encuesta”**, título **“Tu encuesta”**) que muestra el modo de puntuación, el título y las opciones de su `ClientImprovementConfig` / `ClientImprovementOption` a partir del `ownedClient` del usuario.
+- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina activa de **Encuesta** por cliente dentro de `ClientResource`; permite edición (superadmin/distribuidor) y vista de solo lectura (cliente), incluyendo pregunta principal, modo (`numbers|faces`) y opciones.
 
 - **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre, como vista amigable dentro del menú del cliente.
 
@@ -44,11 +56,13 @@
 
 ## Filament: Resources, Pages y Widgets adicionales
 
-- **App\Filament\Resources\EmployeeResource**: Recurso Filament para gestionar empleados de los clientes (formularios, tabla, filtros y permisos); se usa principalmente desde la subpágina `Empleados` de `ClientResource` y no aparece en el menú, respetando los roles (superadmin, distribuidor, cliente).
+- **App\Filament\Resources\EmployeeResource**: Recurso Filament para gestionar empleados (formularios, tabla, filtros y permisos); oculto en menú; acceso desde **Cliente → Empleados**. Incluye **`canAccess()`** = `canViewAny() || canCreate()` porque Filament ejecuta `mountCanAuthorizeResourceAccess` → `canAccess()` al abrir rutas del recurso (evita 403 para distribuidor/cliente con permiso de alta aunque `canViewAny` sea solo superadmin). **`canViewAny()`** sigue limitando el índice global; **`canCreate()`** incluye comprobación por `owner_id` para rol cliente.
+
+- **App\Filament\Resources\EmployeeResource\Pages\CreateEmployee**: Alta de empleado; con **`?client_id=`** autoriza con **`ClientResource::canEdit($client)`**; valida `client_id` en `mutateFormDataBeforeCreate` para distribuidor (`created_by`) y cliente (`ownedClient` / propiedad del cliente).
 
 - **App\Filament\Resources\NfcTokenResource**: Recurso Filament técnico para tokens NFC, mantenido por compatibilidad; oculta navegación y CRUD porque la gestión real se hace desde la ficha de `Employee` (un token lógico por empleado).
 
-- **App\Filament\Resources\CsatSurveyResource**: Recurso Filament para listar y consultar encuestas CSAT en el panel; solo visible para superadmin, con filtros por puntuación, fechas y cliente, y vista de detalle de cada encuesta.
+- **App\Filament\Resources\CsatSurveyResource**: Recurso Filament para listar y consultar encuestas CSAT; visible por rol con alcance de datos (superadmin todo, distribuidor sus clientes, cliente su propio cliente).
 
 - **App\Filament\Resources\SectorResource**: Recurso Filament de configuración para el catálogo de sectores; permite crear, editar y eliminar sectores controlando que no tengan clientes asociados antes de borrarlos.
 
@@ -93,4 +107,11 @@
 - **App\Http\Controllers\SurveyController**: Controlador web de la encuesta CSAT pública; sirve la landing `/survey`, la encuesta fija por cliente `/survey/{client_code}`, gestiona encuestas vía NFC (`/survey/nfc/{token}`) y genera manifest y service worker PWA por cliente (caché **v2**, precache condicional de PNG en `survey-rating/`, runtime cache de `/survey-rating/`). Pasa a la vista `improvementBlock`, `surveyDisplayMode` (normalizado desde `ClientImprovementConfig`) y **no** modifica la API ni el valor numérico del score.
 
 - **App\Http\Controllers\PulseController**: Controlador de la PWA “El Pulso del Día”; gestiona login específico para propietarios de cliente, redirección al dashboard `/pulse/{client_code}`, manifest y service worker por cliente, y un endpoint JSON de métricas diarias/acumuladas basado en `CsatMetrics`.
+
+---
+
+## Nota operativa reciente
+
+- El panel admin usa `App\Providers\Filament\AdminPanelProvider` con `->spa()` y overlay global de carga mediante hooks `BODY_START` y `SCRIPTS_BEFORE`.
+- **Despliegue:** tras cambios en BD, ejecutar migraciones (incl. `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`) en cada entorno.
 

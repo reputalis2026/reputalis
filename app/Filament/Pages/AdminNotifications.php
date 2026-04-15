@@ -18,14 +18,23 @@ class AdminNotifications extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-bell';
+
     protected static ?string $navigationLabel = 'Notificaciones';
+
     protected static ?string $title = 'Bandeja de notificaciones';
+
     protected static ?string $navigationGroup = 'Sistema';
+
     protected static string $view = 'filament.pages.admin-notifications';
 
     public static function shouldRegisterNavigation(): bool
     {
         return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->isSuperAdmin() === true;
     }
 
     protected function getTableQuery(): Builder

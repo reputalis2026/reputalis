@@ -12,10 +12,9 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Actions\RestoreAction;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 
 class ClientResource extends Resource
 {
@@ -35,7 +34,7 @@ class ClientResource extends Resource
             ->whereHas('owner', fn (Builder $q) => $q->where('role', User::ROLE_CLIENTE));
     }
 
-    public static function resolveRecordRouteBinding(int | string $key): ?\Illuminate\Database\Eloquent\Model
+    public static function resolveRecordRouteBinding(int|string $key): ?\Illuminate\Database\Eloquent\Model
     {
         return parent::resolveRecordRouteBinding($key)
             ?? app(static::getModel())
@@ -81,8 +80,7 @@ class ClientResource extends Resource
                             ->disabled()
                             ->dehydrated(true)
                             ->displayFormat('d/m/Y')
-                            ->visible(fn ($livewire) =>
-                                $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                            ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                             ),
                         Forms\Components\TextInput::make('nif')
@@ -158,7 +156,7 @@ class ClientResource extends Resource
                             ->maxLength(255)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
                                 if ($record?->owner) {
-                                    $component->state($record->owner->admin_email ?? $record->owner->email);
+                                    $component->state($record->owner->admin_email);
                                 }
                             }),
                         Forms\Components\TextInput::make('telefono_negocio')
@@ -173,8 +171,7 @@ class ClientResource extends Resource
                             ->placeholder('Ej: 612345678'),
                     ])
                     ->columns(2)
-                    ->visible(fn ($livewire) =>
-                        $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                    ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                         $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                     ),
 
@@ -194,26 +191,22 @@ class ClientResource extends Resource
                         Forms\Components\TextInput::make('access_password')
                             ->label('Contraseña')
                             ->password()
-                            ->required(fn ($livewire, $get) =>
-                                $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                            ->required(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             )
                             ->minLength(8)
-                            ->visible(fn ($livewire, $get) =>
-                                $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                            ->visible(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             )
                             ->helperText('Mínimo 8 caracteres'),
                         Forms\Components\TextInput::make('access_password_confirmation')
                             ->label('Confirmar')
                             ->password()
-                            ->required(fn ($livewire, $get) =>
-                                $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                            ->required(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             )
                             ->same('access_password')
-                            ->visible(fn ($livewire, $get) =>
-                                $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                            ->visible(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             ),
                         Forms\Components\Toggle::make('show_password')
@@ -223,8 +216,7 @@ class ClientResource extends Resource
                             ->reactive()
                             ->default(false),
                     ])
-                    ->visible(fn ($livewire) =>
-                        $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                    ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                         $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                     ),
                 Forms\Components\Section::make('Estado y vigencia')
@@ -276,8 +268,7 @@ class ClientResource extends Resource
                             ->disabled(fn ($get) => $get('activation_duration') !== 'custom')
                             ->visible(fn ($get) => (bool) $get('is_active')),
                     ])
-                    ->visible(fn ($livewire) =>
-                        $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
+                    ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                         && auth()->user()?->isSuperAdmin()
                     )
                     ->columns(1),
@@ -311,7 +302,7 @@ class ClientResource extends Resource
                     ->schema([
                         TextEntry::make('owner.fullname')->label('Nombre y Apellidos')->placeholder('—'),
                         TextEntry::make('owner.dni')->label('DNI Admin')->placeholder('—'),
-                        TextEntry::make('owner.admin_email')->label('Correo Admin')->placeholder('—')->formatStateUsing(fn ($state, $record) => $state ?? $record?->owner?->email ?? '—'),
+                        TextEntry::make('owner.admin_email')->label('Correo Admin')->placeholder('—'),
                     ])
                     ->columns(2),
                 InfolistSection::make('Acceso a Plataforma')
@@ -367,6 +358,7 @@ class ClientResource extends Resource
                     ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: '—')
                     ->searchable(query: function ($query, $search) {
                         $search = addcslashes($search, '%_');
+
                         return $query->whereHas('createdBy', fn ($q) => $q->where('fullname', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
                     })
                     ->sortable()
@@ -482,6 +474,7 @@ class ClientResource extends Resource
             Pages\Empleados::class,
             Pages\Llamadas::class,
         ];
+
         // UX: el submenú lateral no incluye "Edit client" porque el flujo de edición
         // se realiza desde el botón superior.
         return $page->generateNavigationItems($items);
@@ -490,6 +483,7 @@ class ClientResource extends Resource
     public static function canViewAny(): bool
     {
         $user = auth()->user();
+
         return $user?->isSuperAdmin() || $user?->isDistributor() || $user?->isClientOwner() || false;
     }
 
@@ -500,12 +494,14 @@ class ClientResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $user = auth()->user();
+
         return $user?->isSuperAdmin() || $user?->isDistributor() || false;
     }
 
     public static function canCreate(): bool
     {
         $user = auth()->user();
+
         return $user?->isSuperAdmin() || $user?->isDistributor() || false;
     }
 

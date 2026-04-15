@@ -38,7 +38,7 @@ class CsatSurveyResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('client.namecommercial')
                     ->label('Cliente')
-                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial . ' (' . $record->client->code . ')' : '-')
+                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : '-')
                     ->searchable(['clients.namecommercial', 'clients.code'])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('employee.name')
@@ -90,9 +90,10 @@ class CsatSurveyResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data) {
                         $value = $data['value'] ?? null;
-                        if (!$value) {
+                        if (! $value) {
                             return $query;
                         }
+
                         return match ($value) {
                             '1-2' => $query->whereIn('score', [1, 2]),
                             '3' => $query->where('score', 3),
@@ -118,7 +119,7 @@ class CsatSurveyResource extends Resource
                         ->relationship('client', 'namecommercial')
                         ->searchable()
                         ->preload()
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->namecommercial . ' (' . $record->code . ')'),
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->namecommercial.' ('.$record->code.')'),
                 ] : []),
             ])
             ->actions([
@@ -144,7 +145,7 @@ class CsatSurveyResource extends Resource
                             ->size('lg'),
                         TextEntry::make('client')
                             ->label('Cliente')
-                            ->formatStateUsing(fn ($state) => $state ? $state->namecommercial . ' (' . $state->code . ')' : '-'),
+                            ->formatStateUsing(fn ($state) => $state ? $state->namecommercial.' ('.$state->code.')' : '-'),
                         TextEntry::make('employee.name')
                             ->label('Empleado')
                             ->placeholder('Sin asignar'),
@@ -183,12 +184,17 @@ class CsatSurveyResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->isSuperAdmin() ?? false;
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->isDistributor() || $user->isClientOwner();
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->isSuperAdmin() ?? false;
+        return static::canViewAny();
     }
 
     public static function canCreate(): bool
@@ -204,7 +210,7 @@ class CsatSurveyResource extends Resource
     public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
         if ($user->isSuperAdmin()) {
@@ -213,6 +219,12 @@ class CsatSurveyResource extends Resource
         if ($user->isClientOwner()) {
             return $record->client_id === $user->ownedClient?->id;
         }
+        if ($user->isDistributor()) {
+            $client = $record->relationLoaded('client') ? $record->client : $record->client()->first();
+
+            return $client && $client->created_by === $user->id;
+        }
+
         return false;
     }
 

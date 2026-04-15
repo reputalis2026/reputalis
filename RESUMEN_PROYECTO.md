@@ -1,5 +1,15 @@
 # Resumen del Proyecto Reputalis
 
+## Regla de mantenimiento (obligatoria)
+
+Estos 3 documentos son de seguimiento continuo y **no se pueden borrar nunca**:
+
+- `CONTEXTO_PARA_IA.md`
+- `DESCRIPCION_CLASES.md`
+- `RESUMEN_PROYECTO.md`
+
+Siempre se actualizan, nunca se eliminan.
+
 ## Información General
 
 **Proyecto:** Reputalis  
@@ -14,6 +24,17 @@
 ---
 
 ## Estado Actual del Proyecto
+
+### Actualizacion reciente (Abr 2026)
+
+- Restaurado provider del panel (`AdminPanelProvider`) y login Filament (`/admin/login` GET+POST operativo).
+- Restaurada encuesta publica + NFC (`SurveyController`, `survey.blade.php`, `survey-nfc-invalid.blade.php`).
+- Restaurada/normalizada subpagina **Encuesta** de cliente (`ClientResource -> PuntosDeMejora`).
+- Ajustados permisos de empleados (crear/ver/editar/borrar por rol y cliente contenedor).
+- **Empleados (abr 2026, detalle):** `EmployeeResource::canAccess()` alineado con Filament SPA (`canViewAny` o `canCreate`); página **Crear empleado** con `?client_id=` autoriza vía `ClientResource::canEdit`; **UUID de empleado** generado en modelo al crear (evita `employee_id` nulo en `nfctokens`); migración **FK cascade** al borrar empleado para `nfctokens`.
+- Restaurado listado CSAT en panel (`CsatSurveyResource`) con alcance por rol.
+- Agregado overlay global de carga/navegacion para Filament (hooks + script + markup).
+- Añadido `canAccess()` en paginas críticas (`AdminNotifications`, `ClientCalls`, `DistributorMessages`) para bloquear URL directa.
 
 ### Implementado y funcional
 
@@ -35,7 +56,7 @@
 - **ClientResource:** CRUD de clientes (solo `owner.role = cliente`). SuperAdmin ve/edita todo; Distribuidor solo clientes que él creó. El rol cliente no ve “Clientes” en el menú; usa páginas propias de solo lectura (ClientPuntosDeMejora, ClientEmpleados).
 - **Páginas solo para rol cliente:** **ClientPuntosDeMejora** y **ClientEmpleados** (Filament Pages independientes, datos de `ownedClient`). Menú del cliente: Dashboard, Encuesta, Empleados. Sin breadcrumbs de ClientResource. SuperAdmin/Distribuidor usan ClientResource (Clientes → [Cliente] → Encuesta / Empleados).
 - **DistributorResource:** CRUD de distribuidores (Client con rol distribuidor).
-- **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados).
+- **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados). Alta/baja de empleado mantiene token NFC 1:1 (cascade en BD al eliminar).
 - **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, solo presentación en `/survey`) + **ClientImprovementOption** — título + lista de opciones (mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en ClientPuntosDeMejora (“Tu encuesta”). Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
 - **Notificaciones/mensajes del panel:** AdminNotifications (SuperAdmin), DistributorMessages (distribuidor). Flujo: distribuidor crea cliente inactivo → notificación a SuperAdmin y distribuidor; SuperAdmin activa → notificación al distribuidor (PanelMessageService).
 
@@ -78,5 +99,5 @@
 
 ---
 
-**Última actualización:** Abril 2026  
+**Última actualización:** 8 abril 2026 (documentado: permisos y flujo **Empleados/NFC** para distribuidor; BD `nfctokens` CASCADE).  
 **Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.

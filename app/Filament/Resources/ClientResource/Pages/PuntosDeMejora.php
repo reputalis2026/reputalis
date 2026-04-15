@@ -6,19 +6,19 @@ use App\Filament\Resources\ClientResource;
 use App\Models\ClientImprovementConfig;
 use App\Models\ClientImprovementOption;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Illuminate\Support\Str;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
-use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\MaxWidth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PuntosDeMejora extends Page
 {
-    use InteractsWithForms;
     use InteractsWithFormActions;
+    use InteractsWithForms;
     use InteractsWithRecord;
 
     protected static string $resource = ClientResource::class;
@@ -43,7 +43,7 @@ class PuntosDeMejora extends Page
         }
     }
 
-    public function getMaxContentWidth(): MaxWidth | string | null
+    public function getMaxContentWidth(): MaxWidth|string|null
     {
         return MaxWidth::Full;
     }
@@ -233,13 +233,13 @@ class PuntosDeMejora extends Page
             return 'Tu encuesta';
         }
 
-        return 'Encuesta: ' . $this->getRecord()->namecommercial;
+        return 'Encuesta: '.$this->getRecord()->namecommercial;
     }
 
     /**
      * Datos para la vista de solo lectura (rol cliente): título y lista de respuestas.
      *
-     * @return array{title: string, display_mode_label: string, options: array<int, string>}
+     * @return array{survey_question: string, title: string, display_mode_label: string, options: array<int, string>}
      */
     public function getPuntosReadOnlyData(): array
     {
@@ -247,8 +247,10 @@ class PuntosDeMejora extends Page
         $config = $client->improvementConfig;
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $mode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
+        $surveyQuestion = trim((string) ($config?->survey_question_text ?? ''));
 
         return [
+            'survey_question' => $surveyQuestion !== '' ? $surveyQuestion : '¿Cómo le hemos atendido hoy?',
             'title' => $config?->title ?? '¿En qué podemos mejorar?',
             'display_mode_label' => $mode === ClientImprovementConfig::DISPLAY_MODE_FACES ? 'Caritas' : 'Números',
             'options' => $options->pluck('label')->values()->all(),

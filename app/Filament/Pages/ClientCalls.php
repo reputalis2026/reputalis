@@ -2,8 +2,8 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Client;
 use App\Filament\Resources\ClientResource;
+use App\Models\Client;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +27,13 @@ class ClientCalls extends Page implements HasTable
     protected static ?string $title = 'Llamadas pendientes';
 
     public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->isSuperAdmin() === true || $user?->isDistributor() === true;
+    }
+
+    public static function canAccess(): bool
     {
         $user = auth()->user();
 
@@ -88,4 +95,3 @@ class ClientCalls extends Page implements HasTable
         return $query->orderByRaw('next_call_at IS NULL, next_call_at ASC');
     }
 }
-

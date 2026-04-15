@@ -15,6 +15,7 @@ class CreateDistributor extends CreateRecord
     protected static string $resource = DistributorResource::class;
 
     private ?array $formStateSnapshot = null;
+
     private ?string $createdOwnerId = null;
 
     public function create(bool $another = false): void
@@ -61,9 +62,7 @@ class CreateDistributor extends CreateRecord
             $data['owner_id'] = $this->createdOwnerId;
         }
 
-        $maxCode = Client::where('code', 'like', 'CLIEN%')->orderBy('code', 'desc')->value('code');
-        $nextNum = $maxCode ? ((int) substr($maxCode, 5)) + 1 : 1;
-        $data['code'] = 'CLIEN' . str_pad((string) $nextNum, 6, '0', STR_PAD_LEFT);
+        $data['code'] = $this->nextClientCode();
 
         $data['fecha_inicio_alta'] = $data['fecha_inicio_alta'] ?? now()->toDateString();
         $data['is_active'] = false;
@@ -106,5 +105,26 @@ class CreateDistributor extends CreateRecord
             $this->getCreateFormAction()->label('Crear'),
             $this->getCancelFormAction()->label('Cancelar'),
         ];
+    }
+
+    /**
+     * Genera el siguiente código CLIENXXXXXX considerando también registros soft-deleted.
+     */
+    protected function nextClientCode(): string
+    {
+        $maxCode = Client::withTrashed()
+            ->where('code', 'like', 'CLIEN%')
+            ->orderBy('code', 'desc')
+            ->value('code');
+
+        $nextNum = $maxCode ? ((int) substr($maxCode, 5)) + 1 : 1;
+
+        do {
+            $code = 'CLIEN'.str_pad((string) $nextNum, 6, '0', STR_PAD_LEFT);
+            $exists = Client::withTrashed()->where('code', $code)->exists();
+            $nextNum++;
+        } while ($exists);
+
+        return $code;
     }
 }

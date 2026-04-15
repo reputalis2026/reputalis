@@ -7,10 +7,9 @@ use App\Filament\Resources\EmployeeResource;
 use App\Models\Employee;
 use Filament\Actions;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\MaxWidth;
-use Illuminate\Database\Eloquent\Model;
 
 class Empleados extends Page
 {
@@ -30,7 +29,7 @@ class Empleados extends Page
         $this->authorizeAccess();
     }
 
-    public function getMaxContentWidth(): MaxWidth | string | null
+    public function getMaxContentWidth(): MaxWidth|string|null
     {
         return MaxWidth::Full;
     }
@@ -48,24 +47,17 @@ class Empleados extends Page
     }
 
     /**
-     * SuperAdmin o Distribuidor (solo sus clientes) pueden crear/editar/borrar empleados.
+     * Quien puede editar el cliente también puede gestionar sus empleados (dueño, distribuidor, superadmin).
      */
     public function canEditEmpleados(): bool
     {
-        $user = auth()->user();
         $client = $this->getRecord();
 
-        if (! $user || ! $client) {
+        if (! $client) {
             return false;
         }
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-        if ($user->isDistributor()) {
-            return $client->created_by === $user->id;
-        }
 
-        return false;
+        return ClientResource::canEdit($client);
     }
 
     public function getEmployees()
@@ -98,7 +90,7 @@ class Empleados extends Page
             $actions[] = Actions\Action::make('create')
                 ->label('Añadir empleado')
                 ->icon('heroicon-o-plus')
-                ->url(EmployeeResource::getUrl('create') . '?client_id=' . $client->id)
+                ->url(EmployeeResource::getUrl('create').'?client_id='.$client->id)
                 ->color('primary');
         }
 
@@ -112,7 +104,7 @@ class Empleados extends Page
             return 'Tus empleados';
         }
 
-        return 'Empleados: ' . $this->getRecord()->namecommercial;
+        return 'Empleados: '.$this->getRecord()->namecommercial;
     }
 
     public function getBreadcrumb(): string

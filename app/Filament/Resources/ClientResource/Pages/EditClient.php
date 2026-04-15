@@ -54,7 +54,7 @@ class EditClient extends EditRecord
     {
         $this->record->loadMissing('owner');
         if ($this->record->owner) {
-            $data['admin_email'] = $this->record->owner->admin_email ?? $this->record->owner->email;
+            $data['admin_email'] = $this->record->owner->admin_email;
             $data['admin_name'] = $this->record->owner->fullname;
             $data['admin_dni'] = $this->record->owner->dni;
             $data['access_email'] = $this->record->owner->email;

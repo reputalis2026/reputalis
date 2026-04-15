@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmployeeResource\Pages;
+use App\Models\Client;
 use App\Models\Employee;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -90,48 +91,48 @@ class EmployeeResource extends Resource
                             // El copiado se realiza con un botón JS debajo.
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
                                 if ($record?->nfcTokens?->token) {
-                                    $component->state(url('/survey/nfc/' . $record->nfcTokens->token));
+                                    $component->state(url('/survey/nfc/'.$record->nfcTokens->token));
                                 } else {
                                     $component->state('—');
                                 }
                             }),
                         Forms\Components\Placeholder::make('copy_nfc_survey_url')
                             ->label('')
-                            ->content(function (? \App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
+                            ->content(function (?\App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
                                 $token = $record?->nfcTokens?->token;
                                 if (! $token) {
                                     return null;
                                 }
 
-                                $url = url('/survey/nfc/' . $token);
+                                $url = url('/survey/nfc/'.$token);
 
                                 // Evitamos json_encode() porque mete comillas dobles dentro de un atributo double-quoted.
-                                $urlJsLiteral = "'" . addslashes($url) . "'";
-                                $onclick = '(async () => {' .
-                                    'try {' .
-                                        'await navigator.clipboard.writeText(' . $urlJsLiteral . ');' .
-                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
-                                    '} catch (e) {' .
-                                        'const ta = document.createElement(\'textarea\');' .
-                                        'ta.value = ' . $urlJsLiteral . ';' .
-                                        'ta.setAttribute(\'readonly\', \'\');' .
-                                        'ta.style.position = \'fixed\';' .
-                                        'ta.style.left = \'-9999px\';' .
-                                        'document.body.appendChild(ta);' .
-                                        'ta.select();' .
-                                        'const ok = document.execCommand(\'copy\');' .
-                                        'document.body.removeChild(ta);' .
-                                        'if (ok) {' .
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));' .
-                                        '} else {' .
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'No se pudo copiar\', status: \'danger\' } } }));' .
-                                        '}' .
-                                    '}' .
+                                $urlJsLiteral = "'".addslashes($url)."'";
+                                $onclick = '(async () => {'.
+                                    'try {'.
+                                        'await navigator.clipboard.writeText('.$urlJsLiteral.');'.
+                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));'.
+                                    '} catch (e) {'.
+                                        'const ta = document.createElement(\'textarea\');'.
+                                        'ta.value = '.$urlJsLiteral.';'.
+                                        'ta.setAttribute(\'readonly\', \'\');'.
+                                        'ta.style.position = \'fixed\';'.
+                                        'ta.style.left = \'-9999px\';'.
+                                        'document.body.appendChild(ta);'.
+                                        'ta.select();'.
+                                        'const ok = document.execCommand(\'copy\');'.
+                                        'document.body.removeChild(ta);'.
+                                        'if (ok) {'.
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));'.
+                                        '} else {'.
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'No se pudo copiar\', status: \'danger\' } } }));'.
+                                        '}'.
+                                    '}'.
                                 '})()';
 
                                 return new \Illuminate\Support\HtmlString(
-                                    '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined ' .
-                                    'onclick="' . $onclick . '"' .
+                                    '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined '.
+                                    'onclick="'.$onclick.'"'.
                                     '>Copiar enlace</x-filament::button>'
                                 );
                             }),
@@ -168,7 +169,7 @@ class EmployeeResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('client.namecommercial')
                     ->label('Cliente')
-                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial . ' (' . $record->client->code . ')' : '-')
+                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : '-')
                     ->searchable(['clients.namecommercial', 'clients.code'])
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -208,7 +209,7 @@ class EmployeeResource extends Resource
                             ->relationship('client', 'namecommercial')
                             ->searchable()
                             ->preload()
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->namecommercial . ' (' . $record->code . ')'),
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->namecommercial.' ('.$record->code.')'),
                     ]
                     : []
             )
@@ -252,7 +253,23 @@ class EmployeeResource extends Resource
     {
         $user = auth()->user();
 
-        return $user?->isSuperAdmin() || $user?->isDistributor() || $user?->isClientOwner() || false;
+        // Listado global solo superadmin (mantener empleados bajo Cliente para el resto de roles)
+        return $user?->isSuperAdmin() ?? false;
+    }
+
+    /**
+     * Filament (trait CanAuthorizeResourceAccess) ejecuta mountCanAuthorizeResourceAccess → canAccess()
+     * antes del mount de CreateRecord. Si esto solo delega en canViewAny(), distribuidores y clientes
+     * reciben 403 al abrir /employees/create aunque canCreate() sea true.
+     */
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return static::canViewAny() || static::canCreate();
     }
 
     /**
@@ -276,61 +293,84 @@ class EmployeeResource extends Resource
             return true;
         }
         if ($user->isClientOwner()) {
-            return false;
+            // No depender solo de ownedClient (p. ej. relación no hidratada); alinear con ClientResource (owner_id).
+            return Client::query()->where('owner_id', $user->id)->exists();
         }
 
         return false;
+    }
+
+    /**
+     * Cliente contenedor del empleado (incl. solo borrados para comprobar permisos de superadmin).
+     */
+    protected static function authorizationClient(?Employee $record): ?Client
+    {
+        if (! $record?->client_id) {
+            return null;
+        }
+
+        return Client::query()->find($record->client_id)
+            ?? Client::onlyTrashed()->find($record->client_id);
     }
 
     public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
         $user = auth()->user();
-        if (! $user) {
+        if (! $user || ! $record instanceof Employee) {
             return false;
         }
         if ($user->isSuperAdmin()) {
             return true;
         }
-        if ($user->isDistributor()) {
-            return $record->client && $record->client->created_by === $user->id;
+
+        $client = static::authorizationClient($record);
+        if (! $client) {
+            return false;
+        }
+        if ($client->trashed() && ! $user->isSuperAdmin()) {
+            return false;
         }
 
-        return false;
+        return ClientResource::canEdit($client);
     }
 
     public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
     {
         $user = auth()->user();
-        if (! $user) {
+        if (! $user || ! $record instanceof Employee) {
             return false;
         }
         if ($user->isSuperAdmin()) {
             return true;
         }
-        if ($user->isDistributor()) {
-            return $record->client && $record->client->created_by === $user->id;
+
+        $client = static::authorizationClient($record);
+        if (! $client) {
+            return false;
         }
-        if ($user->isClientOwner()) {
-            return $record->client_id === $user->ownedClient?->id;
+        if ($client->trashed() && ! $user->isSuperAdmin()) {
+            return false;
         }
 
-        return false;
+        return ClientResource::canView($client);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
     {
         $user = auth()->user();
-        if (! $user) {
+        if (! $user || ! $record instanceof Employee) {
             return false;
         }
         if ($user->isSuperAdmin()) {
             return true;
         }
-        if ($user->isDistributor()) {
-            return $record->client && $record->client->created_by === $user->id;
+
+        $client = static::authorizationClient($record);
+        if (! $client || $client->trashed()) {
+            return false;
         }
 
-        return false;
+        return ClientResource::canEdit($client);
     }
 
     public static function canDeleteAny(): bool

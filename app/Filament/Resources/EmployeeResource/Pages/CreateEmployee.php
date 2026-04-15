@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\EmployeeResource\Pages;
 
+use App\Filament\Resources\ClientResource;
 use App\Filament\Resources\EmployeeResource;
+use App\Models\Client;
 use App\Models\NfcToken;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
@@ -13,17 +15,46 @@ class CreateEmployee extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Nuevo Empleado';
+        return 'Nuevo empleado';
+    }
+
+    /**
+     * La creación llega casi siempre con ?client_id=... desde Cliente → Empleados.
+     * Autorizar con la misma regla que la ficha del cliente (canEdit), no solo canCreate(),
+     * para que el propietario o el distribuidor puedan añadir empleados aunque ownedClient
+     * no esté resuelto y clientes sigan inactivos (is_active = false).
+     */
+    protected function authorizeAccess(): void
+    {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
+        $clientId = request()->query('client_id');
+        if (filled($clientId)) {
+            $client = Client::query()->find($clientId);
+            abort_unless($client, 404);
+            abort_unless(ClientResource::canEdit($client), 403);
+
+            return;
+        }
+
+        parent::authorizeAccess();
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $user = auth()->user();
-        if ($user?->isClientOwner() && $user->ownedClient) {
-            $data['client_id'] = $user->ownedClient->id;
+        if ($user?->isDistributor() && filled($data['client_id'] ?? null)) {
+            Client::query()
+                ->whereKey($data['client_id'])
+                ->where('created_by', $user->id)
+                ->firstOrFail();
         }
-        if (request()->filled('client_id')) {
-            $data['client_id'] = request()->input('client_id');
+        if ($user?->isClientOwner() && filled($data['client_id'] ?? null)) {
+            $owned = $user->ownedClient;
+            if (! $owned || (string) $data['client_id'] !== (string) $owned->id) {
+                abort(403);
+            }
         }
 
         return $data;
@@ -31,32 +62,25 @@ class CreateEmployee extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        $clientId = request()->query('client_id');
-        $client = $clientId ? \App\Models\Client::find($clientId) : null;
-        if ($client && \App\Filament\Resources\ClientResource::canView($client)) {
-            return \App\Filament\Resources\ClientResource::getUrl('empleados', ['record' => $clientId]);
+        $record = $this->getRecord();
+        if ($record?->client_id && class_exists(\App\Filament\Resources\ClientResource::class)) {
+            $client = Client::find($record->client_id);
+            if ($client && \App\Filament\Resources\ClientResource::canView($client)) {
+                return \App\Filament\Resources\ClientResource::getUrl('empleados', ['record' => $record->client_id]);
+            }
         }
 
         return $this->getResource()::getUrl('index');
     }
 
-    /**
-     * Regla 1–1 dominio: si el empleado no tiene token NFC, se crea automáticamente.
-     */
     protected function afterCreate(): void
     {
         $employee = $this->getRecord();
-        if (! $employee) {
-            return;
-        }
-
-        if ($employee->nfcTokens()->exists()) {
+        if (! $employee || $employee->nfcTokens()->exists()) {
             return;
         }
 
         $token = $this->generateUniqueToken();
-
-        // Se crea el NfcToken asociado al empleado (1–1 por employee_id).
         $employee->nfcTokens()->create([
             'client_id' => $employee->client_id,
             'token' => $token,

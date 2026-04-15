@@ -24,6 +24,10 @@ class ListCsatSurveys extends ListRecords
             return $query->where('client_id', $user->ownedClient->id);
         }
 
+        if ($user?->isDistributor()) {
+            return $query->whereHas('client', fn (Builder $q) => $q->where('created_by', $user->id));
+        }
+
         return $query;
     }
 }

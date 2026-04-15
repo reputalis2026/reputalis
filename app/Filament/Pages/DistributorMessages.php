@@ -18,14 +18,23 @@ class DistributorMessages extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
+
     protected static ?string $navigationLabel = 'Mensajes';
+
     protected static ?string $title = 'Bandeja de mensajes';
+
     protected static ?string $navigationGroup = 'Comunicación';
+
     protected static string $view = 'filament.pages.distributor-messages';
 
     public static function shouldRegisterNavigation(): bool
     {
         return auth()->user()?->isDistributor() ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->isDistributor() === true;
     }
 
     protected function getTableQuery(): Builder

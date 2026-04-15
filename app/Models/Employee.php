@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
@@ -14,14 +13,25 @@ class Employee extends Model
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
+    protected static function booted(): void
+    {
+        // Con UUID generado en BD por defecto, Eloquent no asigna $model->id tras insert;
+        // sin id en memoria, las relaciones (p. ej. nfcTokens()->create()) dejan employee_id nulo.
+        static::creating(function (Employee $employee): void {
+            if (! $employee->getKey()) {
+                $employee->setAttribute($employee->getKeyName(), (string) Str::uuid());
+            }
+        });
+    }
+
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
+        'id',
         'client_id',
         'name',
         'alias',
@@ -31,9 +41,7 @@ class Employee extends Model
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * @return array<string, string|mixed>
      */
     protected function casts(): array
     {
@@ -44,46 +52,13 @@ class Employee extends Model
         ];
     }
 
-    protected static function booted(): void
-    {
-        // En PostgreSQL el UUID puede venir como default en BD, pero Eloquent a veces
-        // no lo devuelve en el modelo inmediatamente. Para mantener consistencia (y
-        // para el enlace 1–1 con NfcToken) generamos el UUID en app si falta.
-        static::creating(function (self $model): void {
-            if (! filled($model->getAttribute('id'))) {
-                $model->setAttribute('id', (string) Str::uuid());
-            }
-        });
-
-        // Dominio 1–1: si se borra el empleado, su token NFC no puede quedar colgando.
-        // Además, nfctokens.employee_id es NOT NULL, así que hay que borrar el token antes.
-        static::deleting(function (self $model): void {
-            $model->nfcTokens()->delete();
-        });
-    }
-
-    /**
-     * Relación con el cliente del empleado.
-     */
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'client_id');
     }
 
-    /**
-     * Relación con las encuestas CSAT del empleado.
-     */
-    public function csatSurveys(): HasMany
-    {
-        return $this->hasMany(CsatSurvey::class, 'employee_id');
-    }
-
-    /**
-     * Relación con los tokens NFC asignados al empleado.
-     */
     public function nfcTokens(): HasOne
     {
-        // Regla del dominio: cada empleado tiene exactamente un token NFC lógico.
         return $this->hasOne(NfcToken::class, 'employee_id');
     }
 }

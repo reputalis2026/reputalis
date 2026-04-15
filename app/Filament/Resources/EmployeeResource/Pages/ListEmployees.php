@@ -11,6 +11,11 @@ class ListEmployees extends ListRecords
 {
     protected static string $resource = EmployeeResource::class;
 
+    protected function authorizeAccess(): void
+    {
+        abort_unless(static::getResource()::canViewAny(), 403);
+    }
+
     public function getTitle(): string
     {
         return 'Empleados';

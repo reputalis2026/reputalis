@@ -4,6 +4,48 @@ Documento de handoff: estado actual de clases, modelos, rutas y convenciones par
 
 ---
 
+## REGLA CRITICA DE REPOSITORIO (NO BORRAR)
+
+Los siguientes archivos son de contexto vivo del proyecto y **NO se pueden borrar nunca**:
+
+- `CONTEXTO_PARA_IA.md`
+- `DESCRIPCION_CLASES.md`
+- `RESUMEN_PROYECTO.md`
+
+Si hay que actualizar información, se **edita** su contenido; no se eliminan del repositorio.
+
+---
+
+## Actualizacion reciente (Abr 2026)
+
+Cambios aplicados y validados en esta fase:
+
+- **Login panel Filament**: restaurado `AdminPanelProvider` y registro correcto de rutas GET/POST de `/admin/login`.
+- **Overlay global panel**: activado en Filament con `->spa()` + hooks:
+  - `PanelsRenderHook::BODY_START` -> markup de overlay global.
+  - `PanelsRenderHook::SCRIPTS_BEFORE` -> script global (eventos `livewire:navigating`, `livewire:navigated`, hook `Livewire.request`).
+  - Vistas nuevas: `resources/views/filament/components/panel-loading-overlay-markup.blade.php` y `panel-loading-overlay-script.blade.php`.
+- **Encuesta publica/NFC**: restaurado `App\Http\Controllers\SurveyController` completo (incluye `/survey/nfc/{token}`), `resources/views/survey.blade.php` y `resources/views/survey-nfc-invalid.blade.php`.
+- **ClientResource / Encuesta**: restaurada subpagina `PuntosDeMejora` y su ruta `/admin/clients/{record}/puntos-de-mejora`.
+- **Permisos empleados**:
+  - `EmployeeResource` ahora alinea `canView/canEdit/canDelete` con permisos del cliente contenedor.
+  - `CreateEmployee` valida `client_id` para distribuidor y cliente.
+  - `ListEmployees` mantiene control estricto de acceso.
+- **CSAT en panel**:
+  - restaurado `CsatSurveyResource`.
+  - visibilidad y filtros por rol (superadmin/distribuidor/cliente) ajustados.
+- **Paginas Filament** `AdminNotifications`, `ClientCalls`, `DistributorMessages`: agregado `canAccess()` para bloquear acceso por URL a roles no permitidos.
+
+### Sesion 8 abr 2026 — empleados, distribuidor y NFC
+
+- **403 al abrir “Crear empleado” como distribuidor (o cliente):** Filament ejecuta `mountCanAuthorizeResourceAccess` → `EmployeeResource::canAccess()`, que por defecto era igual a `canViewAny()` (solo superadmin). **Solucion:** override de `EmployeeResource::canAccess()` = `canViewAny() || canCreate()`; el listado global sigue restringido en `ListEmployees::authorizeAccess()` (`canViewAny` solo).
+- **Autorizacion fina en la pagina de alta:** `CreateEmployee::authorizeAccess()` con `?client_id=` valida `ClientResource::canEdit($client)`; sin query string delega en `parent` (`canCreate`). `EmployeeResource::canCreate()` para rol **cliente** usa `Client::where('owner_id', $user->id)->exists()` en lugar de depender solo de `ownedClient`.
+- **Error al guardar empleado:** `nfctokens.employee_id` NOT NULL pero insert con null. Causa: `Employee` con `$incrementing = false` y UUID generado solo en PostgreSQL; tras el INSERT Eloquent no rellenaba `$model->id`, y `nfcTokens()->create()` no podia fijar la FK. **Solucion:** `Employee::booted()` → evento `creating`: asignar `Str::uuid()` si no hay clave.
+- **Error al eliminar empleado:** FK `nfctokens.employee_id` seguia en `ON DELETE SET NULL` (migracion original) mientras `employee_id` es NOT NULL (migracion `2026_03_23_120500_unique_employee_id_on_nfctokens`). PostgreSQL intentaba poner NULL y fallaba. **Solucion:** migracion `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete.php` — FK con `cascadeOnDelete()` (al borrar empleado se borra su token).
+- **Codigo CLIEN duplicado** (crear cliente/distribuidor): ya documentado en flujo CreateClient/CreateDistributor con `nextClientCode()` usando `Client::withTrashed()`; mantener coherencia si se toca de nuevo.
+
+---
+
 ## 0. Contexto global: qué hace la aplicación
 
 **Reputalis** es una plataforma de **gestión de reputación y satisfacción** orientada inicialmente a negocios del sector farmacia/parafarmacia (aunque el modelo de datos es genérico: “clientes”). Permite:
@@ -273,6 +315,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Mensajes del panel:** `2026_02_24_100000_create_panel_messages_tables` (panel_messages, panel_message_recipients).
 - **Etiquetas motivos de mejora por cliente (legacy):** `2026_02_24_100001_create_client_improvement_reason_labels_table`.
 - **Encuesta por cliente / ClientImprovementConfig (modelo actual):** `2026_02_24_200000_create_client_improvement_configs_table` (client_id unique, title). `2026_02_24_200001_create_client_improvement_options_table` (client_improvement_config_id, label, sort_order; FK cascade). `2026_02_24_200002_switch_csat_surveys_to_improvement_option` (añade improvement_option_id FK a client_improvement_options, elimina improvement_point_option_id). `2026_02_24_200003_drop_old_improvement_point_tables` (elimina client_improvement_point_options y client_improvement_points). **`2026_04_02_120000_add_display_mode_to_client_improvement_configs_table`:** columna `display_mode` (string, default `numbers`). Las tablas antiguas por “motivo base” (improvement_reason_code) ya no se usan.
+- **NFC / empleados (integridad):** `2026_03_23_120500_unique_employee_id_on_nfctokens` (employee_id NOT NULL + indice unico). **`2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`:** sustituye `ON DELETE SET NULL` por **`ON DELETE CASCADE`** en `nfctokens.employee_id` → `employees.id` (obligatorio tras NOT NULL en employee_id).
 
 ---
 
@@ -293,6 +336,8 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Distribuidor:** en listados y widgets de clientes (ClientResource, ClientsOverviewWidget) filtrar por `created_by = auth()->id()` para que solo vea los clientes que él creó; `canView`/`canEdit` por registro deben comprobar `$record->created_by === $user->id`.
 - **Listados Filament (rendimiento):** en `ListClients::getTableQuery()` se aplica eager loading explícito de `createdBy` (`with(['createdBy:id,name,fullname,email'])`) y selección mínima de columnas de `clients` usadas por tabla/tabs para reducir payload y evitar N+1.
 - Al crear modelos que luego se usan como FK (ej. PanelMessage antes de PanelMessageRecipient, o ClientImprovementConfig antes de ClientImprovementOption): si la tabla usa UUID por defecto en BD, generar el UUID en la app (`Str::uuid()`) y asignarlo al modelo antes de `save()` (o en `create(['id' => $id, ...])`) para evitar que el modelo quede sin `id` y falle al crear registros relacionados. En la página Filament **Encuesta** (`PuntosDeMejora`) se usa `firstOrNew` + `$config->id = Str::uuid()` cuando el config es nuevo, luego `$configId = $config->getKey()` para las opciones.
+- **Employee:** con `$incrementing = false` y default UUID en PostgreSQL, **siempre** asignar el UUID en PHP en `creating` (`App\Models\Employee::booted`) para que tras guardar exista `$employee->id` y las relaciones (`nfcTokens()->create()`) rellenen `employee_id`. Sin eso, `nfctokens` puede insertarse con `employee_id` null.
+- **nfctokens:** la FK a `employees` debe ser **CASCADE** al borrar empleado, no SET NULL, porque `employee_id` es NOT NULL.
 - Al crear cliente o distribuidor se crea el usuario propietario (owner) con rol correspondiente y opcionalmente contraseña; en edición hay toggle “Cambiar contraseña” para no obligar a rellenar siempre.
 
 ---
@@ -313,8 +358,8 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Activación por SuperAdmin:** En `EditClient` se guarda `$wasInactiveBeforeSave = $this->record->is_active === false` en `mutateFormDataBeforeSave`. En `afterSave()`, si `$wasInactiveBeforeSave && $this->record->is_active`, se llama a `PanelMessageService::notifyClientActivated($this->record)` para notificar al distribuidor (`created_by` del cliente).
 - **Encuesta por cliente:** Cada cliente tiene **una** configuración (**ClientImprovementConfig**): **`display_mode`** (presentación de la escala 1–5 en la encuesta pública: `numbers` o `faces`), título general (ej. “¿En qué podemos mejorar?”) + lista de **ClientImprovementOption** (mínimo 2). En el panel: Cliente → **Encuesta** (Radio modo + título + Repeater de respuestas). Al guardar se usa `firstOrNew` + UUID explícito para el config nuevo y `$configId = $config->getKey()` para crear las opciones. En la encuesta (`/survey/{client_code}` y NFC): si puntuación 1–3 se muestra el título y las opciones como botones; la escala 1–5 respeta `surveyDisplayMode` (números o caritas vía `asset('survey-rating/...')`); al elegir una opción se envía `improvement_option_id`. La API acepta `improvement_option_id` y lo guarda en `csat_surveys.improvement_option_id` (sin cambios de contrato). SuperAdmin y Distribuidor editan; rol cliente solo ve (solo lectura). **Acceso:** SuperAdmin y Distribuidor ven “Clientes”; en la tabla hay acción **“Encuesta”** por fila y en Ver/Editar cliente hay botón **“Encuesta”** en la cabecera; rol cliente usa **ClientPuntosDeMejora** (menú “Encuesta”).
 - **Fecha de fin al activar cliente:** En la edición de cliente (solo SuperAdmin), al marcar “Cliente activo” es obligatorio indicar la vigencia. **Selector “Duración de activación”:** 12 meses, 24 meses, 36 meses u “Otra fecha”. Con 12/24/36, `fecha_fin` se calcula desde `fecha_inicio_alta` + meses y se muestra en un DatePicker deshabilitado; con “Otra fecha” se elige la fecha manualmente. Al cargar un cliente activo, si su `fecha_fin` encaja con ~12, ~24 o ~36 meses desde `fecha_inicio_alta` se preselecciona esa opción; si no, “Otra fecha” con la fecha guardada. La lógica de notificaciones al activar (PanelMessageService) se mantiene igual. **Confirmación al cambiar expiración:** si al guardar se detecta cambio en duración o fecha de fin (solo cuando el cliente está activo), se muestra un modal de confirmación en español (Aceptar/Cancelar); al cancelar no se guarda; al aceptar se guarda todo.
-- **Empleados por cliente:** Catálogo de empleados (name, alias, photo, position, is_active) por cliente para futuras encuestas. **ClientResource → Empleados:** subpágina con listado en **tarjetas** (foto o placeholder, nombre, alias). SuperAdmin y Distribuidor pueden crear, editar y borrar; Distribuidor solo en clientes que él creó. Rol **cliente** usa la página **ClientEmpleados** (menú “Empleados”) en solo lectura, no ClientResource. EmployeeResource no está en el menú; create/edit se abren desde la subpágina (create con `?client_id=`; redirect tras guardar a Empleados del cliente).
-- **NFC por empleado (UX en panel):** en `EmployeeResource` hay una sección **“Token NFC”** (solo lectura) y un campo con **“Copiar enlace de encuesta”** para `/survey/nfc/{token}`. En la subpágina de tarjetas **“Empleados”** se muestra un botón **“Copiar enlace”** que copia al portapapeles la URL de encuesta del token del empleado.
+- **Empleados por cliente:** Catálogo de empleados (name, alias, photo, position, is_active) por cliente para futuras encuestas. **ClientResource → Empleados:** subpágina con listado en **tarjetas** (foto o placeholder, nombre, alias). SuperAdmin y Distribuidor pueden crear, editar y borrar; Distribuidor solo en clientes que él creó. Rol **cliente** usa la página **ClientEmpleados** (menú “Empleados”) en solo lectura, no ClientResource. EmployeeResource no está en el menú; create/edit se abren desde la subpágina (create con `?client_id=`; redirect tras guardar a Empleados del cliente). **Permisos recurso:** `EmployeeResource::canAccess()` debe permitir crear/ver rutas del recurso a quien `canCreate()`/`canViewAny()` aplique (Filament llama `canAccess` al montar paginas del recurso). **Alta:** con `client_id` en query, autorizacion alineada a `ClientResource::canEdit` en `CreateEmployee`.
+- **NFC por empleado (UX en panel):** en `EmployeeResource` hay una sección **“Token NFC”** (solo lectura) y un campo con **“Copiar enlace de encuesta”** para `/survey/nfc/{token}`. En la subpágina de tarjetas **“Empleados”** se muestra un botón **“Copiar enlace”** que copia al portapapeles la URL de encuesta del token del empleado. Un empleado tiene como mucho un token; borrar empleado cascada el token en BD.
 
 ---
 

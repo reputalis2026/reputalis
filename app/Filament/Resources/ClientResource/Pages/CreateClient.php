@@ -72,10 +72,8 @@ class CreateClient extends CreateRecord
             $data['owner_id'] = $this->createdOwnerId;
         }
 
-        // Generar código: CLIEN + 6 dígitos secuenciales
-        $maxCode = Client::where('code', 'like', 'CLIEN%')->orderBy('code', 'desc')->value('code');
-        $nextNum = $maxCode ? ((int) substr($maxCode, 5)) + 1 : 1;
-        $data['code'] = 'CLIEN' . str_pad((string) $nextNum, 6, '0', STR_PAD_LEFT);
+        // Generar código: CLIEN + 6 dígitos secuenciales (incluyendo soft-deleted)
+        $data['code'] = $this->nextClientCode();
 
         $data['fecha_inicio_alta'] = $data['fecha_inicio_alta'] ?? now()->toDateString();
         $data['is_active'] = false;
@@ -126,5 +124,26 @@ class CreateClient extends CreateRecord
             $this->getCancelFormAction()
                 ->label('Cancelar'),
         ];
+    }
+
+    /**
+     * Genera el siguiente código CLIENXXXXXX considerando también registros soft-deleted.
+     */
+    protected function nextClientCode(): string
+    {
+        $maxCode = Client::withTrashed()
+            ->where('code', 'like', 'CLIEN%')
+            ->orderBy('code', 'desc')
+            ->value('code');
+
+        $nextNum = $maxCode ? ((int) substr($maxCode, 5)) + 1 : 1;
+
+        do {
+            $code = 'CLIEN'.str_pad((string) $nextNum, 6, '0', STR_PAD_LEFT);
+            $exists = Client::withTrashed()->where('code', $code)->exists();
+            $nextNum++;
+        } while ($exists);
+
+        return $code;
     }
 }
