@@ -84,7 +84,7 @@ class PuntosDeMejora extends Page
     protected function fillForm(): void
     {
         $client = $this->getRecord();
-        $config = $client->improvementConfig;
+        $config = $this->ensureDefaultConfigForClient($client->id);
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
 
         $this->form->fill([
@@ -93,6 +93,44 @@ class PuntosDeMejora extends Page
             'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
             'options' => $options->map(fn ($o) => ['label' => $o->label])->all(),
         ]);
+    }
+
+    private function ensureDefaultConfigForClient(string $clientId): ?ClientImprovementConfig
+    {
+        $config = ClientImprovementConfig::query()
+            ->where('client_id', $clientId)
+            ->first();
+
+        if ($config) {
+            return $config;
+        }
+
+        $config = ClientImprovementConfig::query()->create([
+            'id' => (string) Str::uuid(),
+            'client_id' => $clientId,
+            'title' => '¿En qué podemos mejorar?',
+        ]);
+
+        ClientImprovementOption::query()->insert([
+            [
+                'id' => (string) Str::uuid(),
+                'client_improvement_config_id' => $config->id,
+                'label' => 'Tiempo de espera',
+                'sort_order' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'client_improvement_config_id' => $config->id,
+                'label' => 'Atención recibida',
+                'sort_order' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        return $config;
     }
 
     public function form(Form $form): Form

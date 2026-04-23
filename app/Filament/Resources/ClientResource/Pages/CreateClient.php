@@ -4,6 +4,8 @@ namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\ClientImprovementConfig;
+use App\Models\ClientImprovementOption;
 use App\Models\User;
 use App\Support\PanelMessageService;
 use Filament\Notifications\Notification;
@@ -99,6 +101,8 @@ class CreateClient extends CreateRecord
             DB::table('users')->where('id', $this->createdOwnerId)->update(['client_id' => $this->record->id]);
         }
 
+        $this->ensureDefaultImprovementConfig();
+
         // Si un distribuidor creó el cliente, notificar a SuperAdmins (cliente queda inactivo hasta activación)
         if (auth()->user()?->isDistributor()) {
             PanelMessageService::notifyClientPendingActivation($this->record);
@@ -109,6 +113,50 @@ class CreateClient extends CreateRecord
             ->title('Cliente creado')
             ->body('El cliente y el usuario administrador han sido creados exitosamente.')
             ->send();
+    }
+
+    /**
+     * Crea la configuración inicial de encuesta del cliente si aún no existe.
+     */
+    private function ensureDefaultImprovementConfig(): void
+    {
+        $clientId = $this->record->id;
+        if (! $clientId) {
+            return;
+        }
+
+        $config = ClientImprovementConfig::query()
+            ->where('client_id', $clientId)
+            ->first();
+
+        if ($config) {
+            return;
+        }
+
+        $config = ClientImprovementConfig::query()->create([
+            'id' => (string) Str::uuid(),
+            'client_id' => $clientId,
+            'title' => '¿En qué podemos mejorar?',
+        ]);
+
+        ClientImprovementOption::query()->insert([
+            [
+                'id' => (string) Str::uuid(),
+                'client_improvement_config_id' => $config->id,
+                'label' => 'Tiempo de espera',
+                'sort_order' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'client_improvement_config_id' => $config->id,
+                'label' => 'Atención recibida',
+                'sort_order' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
     }
 
     protected function getRedirectUrl(): string

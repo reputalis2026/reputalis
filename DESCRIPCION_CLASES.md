@@ -70,13 +70,13 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Filament\Resources\ClientResource\Pages\ListClients**: Página de listado de clientes que define pestañas (todos, eliminados), restringe el acceso/navegación por rol y redirige a `ClientPuntosDeMejora` cuando el usuario es cliente propietario; optimizada con `with(['createdBy:id,name,fullname,email'])` en `getTableQuery()` y selección mínima de columnas para evitar N+1 y reducir carga.
 
-- **App\Filament\Resources\ClientResource\Pages\CreateClient**: Página para crear un nuevo cliente y su usuario propietario en una sola operación, generando el código `CLIENxxxxxx`, asignando fechas y disparando notificaciones de “cliente pendiente de activación” cuando lo crea un distribuidor.
+- **App\Filament\Resources\ClientResource\Pages\CreateClient**: Página para crear un nuevo cliente y su usuario propietario en una sola operación, generando el código `CLIENxxxxxx`, asignando fechas y disparando notificaciones de “cliente pendiente de activación” cuando lo crea un distribuidor. Además, tras crear el cliente inicializa automáticamente su configuración de encuesta si no existe: crea `ClientImprovementConfig` con título **“¿En qué podemos mejorar?”** y dos `ClientImprovementOption` por defecto (**“Tiempo de espera”** y **“Atención recibida”**, `sort_order` 1 y 2) usando UUID generados en PHP para evitar problemas de hidratación con PostgreSQL.
 
 - **App\Filament\Resources\ClientResource\Pages\EditClient**: Página de edición de cliente que sincroniza datos del propietario, controla la activación y fecha de expiración con un modal de confirmación y, al activar un cliente inactivo, envía un mensaje al distribuidor correspondiente.
 
 - **App\Filament\Resources\ClientResource\Pages\ViewClient**: Página de visualización de la ficha de un cliente (solo lectura), que carga datos del propietario y ofrece una acción rápida para ir a la edición cuando los permisos lo permiten.
 
-- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` (etiqueta de interfaz **“Encuesta”**) para configurar (superadmin/distribuidor) o consultar (cliente) el bloque: `display_mode`, título y opciones en `ClientImprovementConfig` y `ClientImprovementOption`.
+- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` (etiqueta de interfaz **“Encuesta”**) para configurar (superadmin/distribuidor) o consultar (cliente) el bloque: `display_mode`, título y opciones en `ClientImprovementConfig` y `ClientImprovementOption`. Si el cliente no tenía configuración previa (caso legacy), la página la inicializa automáticamente con título **“¿En qué podemos mejorar?”** y opciones base (**“Tiempo de espera”**, **“Atención recibida”**) usando UUID generados en PHP.
 
 - **App\Filament\Resources\ClientResource\Pages\Empleados**: Subpágina de un cliente que muestra sus empleados, permite a superadmin/distribuidor crearlos/borrarlos (delegando en `EmployeeResource`) y, para el rol cliente, actúa como vista de sólo lectura “Empleados de este cliente”.
 
