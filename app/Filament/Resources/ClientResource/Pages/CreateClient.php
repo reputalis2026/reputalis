@@ -148,6 +148,7 @@ class CreateClient extends CreateRecord
             'survey_question_text_es' => $defaultQuestions['es'],
             'survey_question_text_pt' => $defaultQuestions['pt'],
             'survey_question_text_en' => $defaultQuestions['en'],
+            'positive_scores' => ClientImprovementConfig::defaultPositiveScores(),
         ]);
 
         ClientImprovementOption::query()->insert(

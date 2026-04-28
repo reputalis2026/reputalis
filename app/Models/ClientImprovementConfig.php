@@ -16,6 +16,8 @@ class ClientImprovementConfig extends Model
 
     public const SUPPORTED_LOCALES = ['es', 'pt', 'en'];
 
+    public const DEFAULT_POSITIVE_SCORES = [4, 5];
+
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -34,6 +36,7 @@ class ClientImprovementConfig extends Model
         'survey_question_text_es',
         'survey_question_text_pt',
         'survey_question_text_en',
+        'positive_scores',
     ];
 
     protected function casts(): array
@@ -46,6 +49,7 @@ class ClientImprovementConfig extends Model
             'survey_question_text_es' => 'string',
             'survey_question_text_pt' => 'string',
             'survey_question_text_en' => 'string',
+            'positive_scores' => 'array',
         ];
     }
 
@@ -111,6 +115,60 @@ class ClientImprovementConfig extends Model
             'pt' => 'Em que podemos melhorar?',
             'en' => 'What can we improve?',
         ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public static function defaultPositiveScores(): array
+    {
+        return self::DEFAULT_POSITIVE_SCORES;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public static function normalizePositiveScores(mixed $scores): array
+    {
+        if (! is_array($scores)) {
+            return [];
+        }
+
+        $normalized = array_values(array_unique(array_filter(array_map(
+            fn (mixed $score): int => (int) $score,
+            $scores
+        ), fn (int $score): bool => $score >= 1 && $score <= 5)));
+
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    public static function positiveScoresAreValid(array $scores): bool
+    {
+        $scores = self::normalizePositiveScores($scores);
+        if (count($scores) === 0 || count($scores) === 5) {
+            return false;
+        }
+
+        $expected = range(min($scores), 5);
+
+        return $scores === $expected;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function positiveScores(): array
+    {
+        $scores = self::normalizePositiveScores($this->positive_scores);
+
+        return self::positiveScoresAreValid($scores) ? $scores : self::defaultPositiveScores();
+    }
+
+    public function isPositiveScore(int $score): bool
+    {
+        return in_array($score, $this->positiveScores(), true);
     }
 
     public function surveyQuestionTextForLocale(?string $locale): string

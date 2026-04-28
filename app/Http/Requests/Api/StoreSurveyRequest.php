@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\Client;
+use App\Models\ClientImprovementConfig;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -31,11 +33,17 @@ class StoreSurveyRequest extends FormRequest
             $score = (int) $this->input('score');
             $hasReasonCode = filled($this->input('improvement_reason_code'));
             $hasOptionId = filled($this->input('improvement_option_id'));
+            $client = Client::query()
+                ->where('code', $this->input('client_code'))
+                ->with('improvementConfig')
+                ->first();
+            $isPositiveScore = $client?->improvementConfig?->isPositiveScore($score)
+                ?? in_array($score, ClientImprovementConfig::defaultPositiveScores(), true);
 
-            if ($score >= 1 && $score <= 3 && ! $hasReasonCode && ! $hasOptionId) {
+            if (! $isPositiveScore && ! $hasReasonCode && ! $hasOptionId) {
                 $validator->errors()->add(
                     'improvement_option_id',
-                    'Debe indicar un motivo de mejora (opción elegida) cuando la puntuación es 1, 2 o 3.'
+                    'Debe indicar un motivo de mejora (opción elegida) cuando la puntuación no está configurada como positiva.'
                 );
             }
         });

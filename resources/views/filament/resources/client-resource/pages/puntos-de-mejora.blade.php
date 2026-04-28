@@ -41,6 +41,15 @@
                     </p>
                 </div>
                 <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Valoraciones positivas</p>
+                    <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
+                        {{ $readOnly['positive_scores_label'] }}
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Las valoraciones no marcadas irán al punto de mejora.
+                    </p>
+                </div>
+                <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pregunta principal</p>
                     <dl class="mt-2 grid gap-3 md:grid-cols-3">
                         @foreach (['es' => 'Español', 'pt' => 'Portugués', 'en' => 'Inglés'] as $locale => $label)

@@ -32,6 +32,7 @@ class SurveyController extends Controller
                 'improvementBlock' => null,
                 'surveyDisplayMode' => ClientImprovementConfig::DISPLAY_MODE_NUMBERS,
                 'surveyLocale' => ClientImprovementConfig::DEFAULT_LOCALE,
+                'surveyPositiveScores' => ClientImprovementConfig::defaultPositiveScores(),
             ]);
         }
 
@@ -47,6 +48,7 @@ class SurveyController extends Controller
         $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
             ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
+        $surveyPositiveScores = $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores();
         $improvementBlock = null;
         if ($config) {
             if ($options->count() >= 2) {
@@ -68,6 +70,7 @@ class SurveyController extends Controller
             'surveyDisplayMode' => $surveyDisplayMode,
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
+            'surveyPositiveScores' => $surveyPositiveScores,
         ])->header('Vary', 'Accept-Language');
     }
 
@@ -111,6 +114,7 @@ class SurveyController extends Controller
         $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
             ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
+        $surveyPositiveScores = $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores();
         $improvementBlock = null;
         if ($config) {
             if ($options->count() >= 2) {
@@ -135,6 +139,7 @@ class SurveyController extends Controller
             'surveyDisplayMode' => $surveyDisplayMode,
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
+            'surveyPositiveScores' => $surveyPositiveScores,
         ])->header('Vary', 'Accept-Language');
     }
 
@@ -219,7 +224,7 @@ class SurveyController extends Controller
             ->firstOrFail();
 
         $code = $client->code;
-        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v3';
+        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v5';
         $manifestUrl = url("/manifest/{$code}.json");
         $surveyUrl = url("/survey/{$code}");
         $apiUrl = url('/api/surveys/create');

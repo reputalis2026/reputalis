@@ -98,6 +98,7 @@ class PuntosDeMejora extends Page
             'title_pt' => $config?->title_pt ?? $defaultTitles['pt'],
             'title_en' => $config?->title_en ?? $defaultTitles['en'],
             'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
+            'positive_scores' => $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores(),
             'options' => $options->map(fn ($o) => [
                 'label_es' => $o->label_es ?: $o->label,
                 'label_pt' => $o->label_pt ?: ($o->label_es ?: $o->label),
@@ -131,6 +132,7 @@ class PuntosDeMejora extends Page
             'survey_question_text_es' => $defaultQuestions['es'],
             'survey_question_text_pt' => $defaultQuestions['pt'],
             'survey_question_text_en' => $defaultQuestions['en'],
+            'positive_scores' => ClientImprovementConfig::defaultPositiveScores(),
         ]);
 
         ClientImprovementOption::query()->insert(
@@ -181,6 +183,24 @@ class PuntosDeMejora extends Page
                             ->default(ClientImprovementConfig::DEFAULT_LOCALE)
                             ->required()
                             ->disabled($readOnly),
+                        \Filament\Forms\Components\Section::make('Valoraciones positivas')
+                            ->description('Las valoraciones no marcadas irán al punto de mejora.')
+                            ->schema([
+                                \Filament\Forms\Components\CheckboxList::make('positive_scores')
+                                    ->label('Marca las valoraciones positivas')
+                                    ->options([
+                                        1 => '1',
+                                        2 => '2',
+                                        3 => '3',
+                                        4 => '4',
+                                        5 => '5',
+                                    ])
+                                    ->columns(5)
+                                    ->bulkToggleable(false)
+                                    ->default(ClientImprovementConfig::defaultPositiveScores())
+                                    ->required()
+                                    ->disabled($readOnly),
+                            ]),
                         \Filament\Forms\Components\Section::make('Pregunta principal de la encuesta')
                             ->schema($this->localizedTextInputs('survey_question_text', [
                                 'es' => '¿Cómo le hemos atendido hoy?',
@@ -265,9 +285,20 @@ class PuntosDeMejora extends Page
         $data = $this->form->getState();
         $defaultLocale = ClientImprovementConfig::normalizeDefaultLocale($data['default_locale'] ?? null);
         $displayMode = ClientImprovementConfig::normalizeDisplayMode($data['display_mode'] ?? null);
+        $positiveScores = ClientImprovementConfig::normalizePositiveScores($data['positive_scores'] ?? []);
         $optionsData = $data['options'] ?? [];
         $surveyQuestionTexts = $this->trimLocalizedState($data, 'survey_question_text');
         $titles = $this->trimLocalizedState($data, 'title');
+
+        if (! ClientImprovementConfig::positiveScoresAreValid($positiveScores)) {
+            Notification::make()
+                ->danger()
+                ->title('Configura un bloque final de valoraciones positivas')
+                ->body('Debe haber al menos una valoración positiva, no pueden ser las cinco y deben ser consecutivas hasta 5. Ejemplos válidos: 5, 4-5, 3-5.')
+                ->send();
+
+            return;
+        }
 
         if (! $this->allLocalizedValuesFilled($surveyQuestionTexts)) {
             Notification::make()->danger()->title('La pregunta principal debe estar completa en todos los idiomas')->send();
@@ -297,7 +328,7 @@ class PuntosDeMejora extends Page
             }
         }
 
-        DB::transaction(function () use ($client, $defaultLocale, $surveyQuestionTexts, $titles, $displayMode, $labels): void {
+        DB::transaction(function () use ($client, $defaultLocale, $surveyQuestionTexts, $titles, $displayMode, $positiveScores, $labels): void {
             $config = ClientImprovementConfig::firstOrNew(['client_id' => $client->id]);
             if (! $config->exists) {
                 $config->id = (string) Str::uuid();
@@ -312,6 +343,7 @@ class PuntosDeMejora extends Page
             $config->title_pt = $titles['pt'];
             $config->title_en = $titles['en'];
             $config->display_mode = $displayMode;
+            $config->positive_scores = $positiveScores;
             $config->save();
 
             $configId = $config->getKey();
@@ -382,7 +414,7 @@ class PuntosDeMejora extends Page
     /**
      * Datos para la vista de solo lectura (rol cliente): textos traducidos y lista de respuestas.
      *
-     * @return array{default_locale: string, survey_questions: array<string, string>, titles: array<string, string>, display_mode_label: string, options: array<int, array<string, string>>}
+     * @return array{default_locale: string, positive_scores: array<int, int>, positive_scores_label: string, survey_questions: array<string, string>, titles: array<string, string>, display_mode_label: string, options: array<int, array<string, string>>}
      */
     public function getPuntosReadOnlyData(): array
     {
@@ -395,6 +427,8 @@ class PuntosDeMejora extends Page
 
         return [
             'default_locale' => ClientImprovementConfig::normalizeDefaultLocale($config?->default_locale),
+            'positive_scores' => $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores(),
+            'positive_scores_label' => implode(', ', $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores()),
             'survey_questions' => [
                 'es' => $config?->survey_question_text_es ?: $defaultQuestions['es'],
                 'pt' => $config?->survey_question_text_pt ?: $defaultQuestions['pt'],

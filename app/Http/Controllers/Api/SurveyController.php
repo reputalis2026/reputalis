@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreSurveyRequest;
 use App\Models\Client;
+use App\Models\ClientImprovementConfig;
 use App\Models\ClientImprovementOption;
 use App\Models\CsatSurvey;
 use App\Models\Employee;
@@ -32,11 +33,14 @@ class SurveyController extends Controller
                 ->first();
         }
 
+        $client->loadMissing('improvementConfig');
         $score = (int) $request->input('score');
+        $isPositiveScore = $client->improvementConfig?->isPositiveScore($score)
+            ?? in_array($score, ClientImprovementConfig::defaultPositiveScores(), true);
         $improvementReason = null;
         $improvementOptionId = null;
 
-        if ($score >= 1 && $score <= 3) {
+        if (! $isPositiveScore) {
             if (filled($request->improvement_option_id)) {
                 $option = ClientImprovementOption::with('clientImprovementConfig')
                     ->find($request->input('improvement_option_id'));
