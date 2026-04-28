@@ -7,6 +7,7 @@
     $employeeDisplayName = isset($employee) && $employee ? ($employee->alias ?: $employee->name) : null;
     $employeeCodeResolved = isset($employeeCode) ? $employeeCode : null;
     $surveyDisplayMode = isset($surveyDisplayMode) && $surveyDisplayMode === 'faces' ? 'faces' : 'numbers';
+    $surveyLocale = in_array(($surveyLocale ?? 'es'), ['es', 'pt', 'en'], true) ? $surveyLocale : 'es';
 
     $ratingNumbersWithImagesReveal = false;
     if ($surveyDisplayMode === 'numbers') {
@@ -40,7 +41,7 @@
     }
 @endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ $surveyLocale }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -273,14 +274,16 @@
     const CLIENT_CODE = @json($clientCode);
     const CLIENT_NAME = @json($clientName);
     const EMPLOYEE_CODE = @json($employeeCodeResolved);
+    const SURVEY_LOCALE = @json($surveyLocale);
     const STORAGE_KEY_DEVICE = 'reputalis_' + CLIENT_CODE + '_devicehash';
     const STORAGE_KEY_PENDING = 'reputalis_' + CLIENT_CODE + '_pending_surveys';
 
     const i18n = {
         es: { question: '¿Cómo le hemos atendido hoy?', why: '¿Por qué?', thanks: '¡Gracias!', thanksLow: '¡Gracias por ayudarnos a mejorar!', thanksSub: 'Su opinión nos ayuda a mejorar.', thanksLowSub: 'Tendremos en cuenta su opinión.', leaveReview: 'Dejar reseña en Google', sending: 'Enviando...', error: 'No se pudo enviar. Inténtelo de nuevo.', errorNetwork: 'Error de conexión.' },
+        pt: { question: 'Como fomos no seu atendimento hoje?', why: 'Por quê?', thanks: 'Obrigado!', thanksLow: 'Obrigado por nos ajudar a melhorar!', thanksSub: 'A sua opinião ajuda-nos a melhorar.', thanksLowSub: 'Teremos a sua opinião em conta.', leaveReview: 'Deixar avaliação no Google', sending: 'A enviar...', error: 'Não foi possível enviar. Tente novamente.', errorNetwork: 'Erro de ligação.' },
         en: { question: 'How was your experience today?', why: 'Why?', thanks: 'Thank you!', thanksLow: 'Thanks for helping us improve!', thanksSub: 'Your feedback helps us improve.', thanksLowSub: "We'll take your feedback into account.", leaveReview: 'Leave a review on Google', sending: 'Sending...', error: 'Could not send. Please try again.', errorNetwork: 'Connection error.' }
     };
-    const lang = (navigator.language || navigator.userLanguage || '').toLowerCase().startsWith('en') ? 'en' : 'es';
+    const lang = i18n[SURVEY_LOCALE] ? SURVEY_LOCALE : 'es';
     const t = (key) => i18n[lang][key] ?? i18n.es[key] ?? key;
 
     function getDeviceHash() {
@@ -294,7 +297,7 @@
     }
 
     function getLocale() {
-        return (navigator.language || navigator.userLanguage || 'es').toLowerCase().slice(0, 2);
+        return SURVEY_LOCALE || 'es';
     }
 
     function showStep(stepId) {

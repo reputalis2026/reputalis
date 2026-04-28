@@ -35,6 +35,7 @@ Siempre se actualizan, nunca se eliminan.
 - Restaurado listado CSAT en panel (`CsatSurveyResource`) con alcance por rol.
 - Agregado overlay global de carga/navegacion para Filament (hooks + script + markup).
 - Añadido `canAccess()` en paginas críticas (`AdminNotifications`, `ClientCalls`, `DistributorMessages`) para bloquear URL directa.
+- Añadida internacionalización mínima de la encuesta pública por cliente: columnas `es/pt/en`, `default_locale`, resolución por `Accept-Language` y fallback `idioma detectado -> default_locale -> es`.
 
 ### Implementado y funcional
 
@@ -54,16 +55,16 @@ Siempre se actualizan, nunca se eliminan.
 
 #### 4. Panel Filament (`/admin`)
 - **ClientResource:** CRUD de clientes (solo `owner.role = cliente`). SuperAdmin ve/edita todo; Distribuidor solo clientes que él creó. El rol cliente no ve “Clientes” en el menú; usa páginas propias de solo lectura (ClientPuntosDeMejora, ClientEmpleados).
-- **Alta de cliente con encuesta inicial:** al crear un cliente en `CreateClient`, si todavía no existe configuración para ese `client_id`, se crea automáticamente `ClientImprovementConfig` con título **“¿En qué podemos mejorar?”** y 2 opciones por defecto en `ClientImprovementOption`: **“Tiempo de espera”** (`sort_order` 1) y **“Atención recibida”** (`sort_order` 2). Además, la página `PuntosDeMejora` aplica el mismo fallback para clientes antiguos: al abrir **Encuesta**, si faltaba esa configuración, la crea en ese momento con los mismos valores base. SuperAdmin y distribuidor pueden editar luego estos valores desde **Encuesta**; el rol cliente solo los visualiza en modo lectura.
+- **Alta de cliente con encuesta inicial:** al crear un cliente en `CreateClient`, si todavía no existe configuración para ese `client_id`, se crea automáticamente `ClientImprovementConfig` con `default_locale = es`, pregunta principal, título y 2 opciones base traducidas a `es`, `pt`, `en`. Además, la página `PuntosDeMejora` aplica el mismo fallback para clientes antiguos: al abrir **Encuesta**, si faltaba esa configuración, la crea en ese momento con los mismos valores base. SuperAdmin y distribuidor pueden editar luego estos valores desde **Encuesta**; el rol cliente solo los visualiza en modo lectura.
 - **Páginas solo para rol cliente:** **ClientPuntosDeMejora** y **ClientEmpleados** (Filament Pages independientes, datos de `ownedClient`). Menú del cliente: Dashboard, Encuesta, Empleados. Sin breadcrumbs de ClientResource. SuperAdmin/Distribuidor usan ClientResource (Clientes → [Cliente] → Encuesta / Empleados).
 - **DistributorResource:** CRUD de distribuidores (Client con rol distribuidor).
 - **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados). Alta/baja de empleado mantiene token NFC 1:1 (cascade en BD al eliminar).
-- **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, solo presentación en `/survey`) + **ClientImprovementOption** — título + lista de opciones (mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en ClientPuntosDeMejora (“Tu encuesta”). Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
+- **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, `default_locale`, pregunta/título por idioma) + **ClientImprovementOption** (`label_es`, `label_pt`, `label_en`, mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en modo lectura. Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
 - **Notificaciones/mensajes del panel:** AdminNotifications (SuperAdmin), DistributorMessages (distribuidor). Flujo: distribuidor crea cliente inactivo → notificación a SuperAdmin y distribuidor; SuperAdmin activa → notificación al distribuidor (PanelMessageService).
 
 #### 5. Encuestas CSAT
 - **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` (si score 1–3), `employee_code`, etc. Límites por IP y por dispositivo.
-- **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío; score siempre 1–5). Escala 1–5 con `data-score`; gráficos en `public/survey-rating/` (`<picture>` PNG + WebP). Spinner en grid hasta cargar imágenes (caras o números con PNG); botones solo-imagen sin borde. PWA: precarga de imágenes en `<head>`; SW `v2` precachea PNG existentes y cachea `/survey-rating/` en `fetch`. Tras puntuación baja, `improvementBlock` si aplica.
+- **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío; score siempre 1–5). Resuelve idioma del cliente final por `Accept-Language`, normaliza `pt-BR`/`en-US`, usa traducción configurada si está completa, cae al `default_locale` de la encuesta y finalmente a español. Escala 1–5 con `data-score`; tras puntuación baja, `improvementBlock` muestra textos traducidos pero envía siempre `improvement_option_id`.
 - **Encuesta por NFC (token):** `GET /survey/nfc/{token}` resuelve `NfcToken` activo y renderiza la encuesta preasignando el empleado (crea `CsatSurvey` con `employee_id`).
 
 #### 6. PWA “El Pulso del Día”
@@ -96,9 +97,10 @@ Siempre se actualizan, nunca se eliminan.
 - **UUID** en tablas principales; PostgreSQL `gen_random_uuid()`.
 - Clientes y distribuidores comparten **Client**; se distinguen por `users.role` del `owner_id`.
 - Código de cliente (`Client.code`) en URLs públicas (Pulse, encuesta, API).
+- La internacionalización actual se limita a la encuesta pública por cliente; no traduce aún todo el panel ni mueve textos globales a archivos de idioma.
 - **CONTEXTO_PARA_IA.md** es la referencia actual; este resumen puede quedar desactualizado antes que aquel.
 
 ---
 
-**Última actualización:** 8 abril 2026 (documentado: permisos y flujo **Empleados/NFC** para distribuidor; BD `nfctokens` CASCADE).  
-**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.
+**Última actualización:** 28 abril 2026 (documentado: encuesta pública multidioma por cliente con `default_locale`, backfill y fallback de idioma).  
+**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente multidioma con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.

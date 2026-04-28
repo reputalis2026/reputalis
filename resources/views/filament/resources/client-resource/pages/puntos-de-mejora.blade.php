@@ -29,9 +29,9 @@
             </p>
             <div class="space-y-4">
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pregunta principal</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Idioma por defecto</p>
                     <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
-                        {{ $readOnly['survey_question'] }}
+                        {{ strtoupper($readOnly['default_locale']) }}
                     </p>
                 </div>
                 <div>
@@ -41,20 +41,45 @@
                     </p>
                 </div>
                 <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pregunta principal</p>
+                    <dl class="mt-2 grid gap-3 md:grid-cols-3">
+                        @foreach (['es' => 'Español', 'pt' => 'Portugués', 'en' => 'Inglés'] as $locale => $label)
+                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $label }}</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-950 dark:text-white">{{ $readOnly['survey_questions'][$locale] }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                </div>
+                <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Título del bloque</p>
-                    <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
-                        {{ $readOnly['title'] }}
-                    </p>
+                    <dl class="mt-2 grid gap-3 md:grid-cols-3">
+                        @foreach (['es' => 'Español', 'pt' => 'Portugués', 'en' => 'Inglés'] as $locale => $label)
+                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $label }}</dt>
+                                <dd class="mt-1 text-base font-medium text-gray-950 dark:text-white">{{ $readOnly['titles'][$locale] }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Respuestas</p>
-                    <ul class="mt-2 list-inside list-disc space-y-1 text-base text-gray-700 dark:text-gray-300">
-                        @forelse ($readOnly['options'] as $label)
-                            <li>{{ $label }}</li>
+                    <div class="mt-2 space-y-3 text-base text-gray-700 dark:text-gray-300">
+                        @forelse ($readOnly['options'] as $option)
+                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                <div class="grid gap-3 md:grid-cols-3">
+                                    @foreach (['es' => 'Español', 'pt' => 'Portugués', 'en' => 'Inglés'] as $locale => $label)
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $label }}</p>
+                                            <p class="mt-1">{{ $option[$locale] }}</p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         @empty
-                            <li class="text-gray-500 dark:text-gray-400">No hay respuestas configuradas.</li>
+                            <p class="text-gray-500 dark:text-gray-400">No hay respuestas configuradas.</p>
                         @endforelse
-                    </ul>
+                    </div>
                 </div>
             </div>
             <div class="mt-6">

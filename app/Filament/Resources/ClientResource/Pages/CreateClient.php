@@ -133,30 +133,36 @@ class CreateClient extends CreateRecord
             return;
         }
 
+        $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
+        $defaultTitles = ClientImprovementConfig::defaultTitles();
+
         $config = ClientImprovementConfig::query()->create([
             'id' => (string) Str::uuid(),
             'client_id' => $clientId,
-            'title' => '¿En qué podemos mejorar?',
+            'default_locale' => ClientImprovementConfig::DEFAULT_LOCALE,
+            'title' => $defaultTitles['es'],
+            'title_es' => $defaultTitles['es'],
+            'title_pt' => $defaultTitles['pt'],
+            'title_en' => $defaultTitles['en'],
+            'survey_question_text' => $defaultQuestions['es'],
+            'survey_question_text_es' => $defaultQuestions['es'],
+            'survey_question_text_pt' => $defaultQuestions['pt'],
+            'survey_question_text_en' => $defaultQuestions['en'],
         ]);
 
-        ClientImprovementOption::query()->insert([
-            [
+        ClientImprovementOption::query()->insert(
+            collect(ClientImprovementOption::defaultLabels())->map(fn (array $labels, int $index): array => [
                 'id' => (string) Str::uuid(),
                 'client_improvement_config_id' => $config->id,
-                'label' => 'Tiempo de espera',
-                'sort_order' => 1,
+                'label' => $labels['es'],
+                'label_es' => $labels['es'],
+                'label_pt' => $labels['pt'],
+                'label_en' => $labels['en'],
+                'sort_order' => $index + 1,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'id' => (string) Str::uuid(),
-                'client_improvement_config_id' => $config->id,
-                'label' => 'Atención recibida',
-                'sort_order' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+            ])->all()
+        );
     }
 
     protected function getRedirectUrl(): string

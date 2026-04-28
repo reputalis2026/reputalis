@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\ClientImprovementConfig;
+use App\Models\ClientImprovementOption;
 use App\Models\ImprovementReason;
 use App\Models\NfcToken;
 use App\Models\Employee;
@@ -17,7 +18,7 @@ class SurveyController extends Controller
      * Landing /survey: selector de cliente.
      * PWA /survey/{client_code}: encuesta fija a ese cliente.
      */
-    public function show(?string $clientCode = null): View|Response
+    public function show(Request $request, ?string $clientCode = null): View|Response
     {
         if ($clientCode === null) {
             $clients = Client::query()
@@ -30,6 +31,7 @@ class SurveyController extends Controller
                 'clients' => $clients,
                 'improvementBlock' => null,
                 'surveyDisplayMode' => ClientImprovementConfig::DISPLAY_MODE_NUMBERS,
+                'surveyLocale' => ClientImprovementConfig::DEFAULT_LOCALE,
             ]);
         }
 
@@ -40,27 +42,33 @@ class SurveyController extends Controller
 
         $client->load('improvementConfig');
         $config = $client->improvementConfig;
-        $surveyQuestion = $config?->survey_question_text ?: '¿Cómo le hemos atendido hoy?';
+        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $surveyLocale = $this->resolveSurveyLocale($request, $config, $options);
+        $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
+            ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
-            $options = $config->options()->orderBy('sort_order')->orderBy('created_at')->get();
             if ($options->count() >= 2) {
                 $improvementBlock = [
-                    'title' => $config->title,
-                    'options' => $options->map(fn ($o) => ['id' => $o->id, 'label' => $o->label])->values()->all(),
+                    'title' => $config->titleForLocale($surveyLocale),
+                    'options' => $options->map(fn (ClientImprovementOption $o) => [
+                        'id' => $o->id,
+                        'label' => $o->labelForLocale($surveyLocale),
+                    ])->values()->all(),
                 ];
             }
         }
 
-        return view('survey', [
+        return response()->view('survey', [
             'client' => $client,
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
             'client_code' => $client->code,
             'surveyDisplayMode' => $surveyDisplayMode,
             'surveyQuestion' => $surveyQuestion,
-        ]);
+            'surveyLocale' => $surveyLocale,
+        ])->header('Vary', 'Accept-Language');
     }
 
     /**
@@ -70,7 +78,7 @@ class SurveyController extends Controller
      * Resuelve token activo -> cliente + empleado y renderiza la misma vista
      * de encuesta CSAT, pero preasignando internamente el empleado.
      */
-    public function showNfc(string $token): View|Response
+    public function showNfc(Request $request, string $token): View|Response
     {
         $nfcToken = NfcToken::query()
             ->where('token', $token)
@@ -98,20 +106,25 @@ class SurveyController extends Controller
 
         $client->load('improvementConfig');
         $config = $client->improvementConfig;
-        $surveyQuestion = $config?->survey_question_text ?: '¿Cómo le hemos atendido hoy?';
+        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $surveyLocale = $this->resolveSurveyLocale($request, $config, $options);
+        $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
+            ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];
         $surveyDisplayMode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $improvementBlock = null;
         if ($config) {
-            $options = $config->options()->orderBy('sort_order')->orderBy('created_at')->get();
             if ($options->count() >= 2) {
                 $improvementBlock = [
-                    'title' => $config->title,
-                    'options' => $options->map(fn ($o) => ['id' => $o->id, 'label' => $o->label])->values()->all(),
+                    'title' => $config->titleForLocale($surveyLocale),
+                    'options' => $options->map(fn (ClientImprovementOption $o) => [
+                        'id' => $o->id,
+                        'label' => $o->labelForLocale($surveyLocale),
+                    ])->values()->all(),
                 ];
             }
         }
 
-        return view('survey', [
+        return response()->view('survey', [
             'client' => $client,
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
@@ -121,7 +134,45 @@ class SurveyController extends Controller
             'showNfcDemo' => false,
             'surveyDisplayMode' => $surveyDisplayMode,
             'surveyQuestion' => $surveyQuestion,
-        ]);
+            'surveyLocale' => $surveyLocale,
+        ])->header('Vary', 'Accept-Language');
+    }
+
+    private function resolveSurveyLocale(Request $request, ?ClientImprovementConfig $config, \Illuminate\Support\Collection $options): string
+    {
+        $detectedLocale = $this->detectRequestLocale($request);
+        if ($detectedLocale && $this->hasCompleteTranslation($config, $options, $detectedLocale)) {
+            return $detectedLocale;
+        }
+
+        $defaultLocale = ClientImprovementConfig::normalizeDefaultLocale($config?->default_locale);
+        if ($this->hasCompleteTranslation($config, $options, $defaultLocale)) {
+            return $defaultLocale;
+        }
+
+        return ClientImprovementConfig::DEFAULT_LOCALE;
+    }
+
+    private function detectRequestLocale(Request $request): ?string
+    {
+        foreach ($request->getLanguages() as $language) {
+            $locale = ClientImprovementConfig::normalizeLocale($language);
+            if ($locale) {
+                return $locale;
+            }
+        }
+
+        return ClientImprovementConfig::normalizeLocale($request->header('Accept-Language'));
+    }
+
+    private function hasCompleteTranslation(?ClientImprovementConfig $config, \Illuminate\Support\Collection $options, string $locale): bool
+    {
+        if (! $config?->hasTextForLocale($locale)) {
+            return false;
+        }
+
+        return $options->count() >= 2
+            && $options->every(fn (ClientImprovementOption $option): bool => $option->hasLabelForLocale($locale));
     }
 
     /**
@@ -168,7 +219,7 @@ class SurveyController extends Controller
             ->firstOrFail();
 
         $code = $client->code;
-        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v2';
+        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v3';
         $manifestUrl = url("/manifest/{$code}.json");
         $surveyUrl = url("/survey/{$code}");
         $apiUrl = url('/api/surveys/create');

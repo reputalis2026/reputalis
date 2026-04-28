@@ -86,12 +86,23 @@ class PuntosDeMejora extends Page
         $client = $this->getRecord();
         $config = $this->ensureDefaultConfigForClient($client->id);
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
+        $defaultTitles = ClientImprovementConfig::defaultTitles();
 
         $this->form->fill([
-            'survey_question_text' => $config?->survey_question_text ?? '¿Cómo le hemos atendido hoy?',
-            'title' => $config?->title ?? '¿En qué podemos mejorar?',
+            'default_locale' => ClientImprovementConfig::normalizeDefaultLocale($config?->default_locale),
+            'survey_question_text_es' => $config?->survey_question_text_es ?? $defaultQuestions['es'],
+            'survey_question_text_pt' => $config?->survey_question_text_pt ?? $defaultQuestions['pt'],
+            'survey_question_text_en' => $config?->survey_question_text_en ?? $defaultQuestions['en'],
+            'title_es' => $config?->title_es ?? $defaultTitles['es'],
+            'title_pt' => $config?->title_pt ?? $defaultTitles['pt'],
+            'title_en' => $config?->title_en ?? $defaultTitles['en'],
             'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
-            'options' => $options->map(fn ($o) => ['label' => $o->label])->all(),
+            'options' => $options->map(fn ($o) => [
+                'label_es' => $o->label_es ?: $o->label,
+                'label_pt' => $o->label_pt ?: ($o->label_es ?: $o->label),
+                'label_en' => $o->label_en ?: ($o->label_es ?: $o->label),
+            ])->all(),
         ]);
     }
 
@@ -105,30 +116,36 @@ class PuntosDeMejora extends Page
             return $config;
         }
 
+        $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
+        $defaultTitles = ClientImprovementConfig::defaultTitles();
+
         $config = ClientImprovementConfig::query()->create([
             'id' => (string) Str::uuid(),
             'client_id' => $clientId,
-            'title' => '¿En qué podemos mejorar?',
+            'default_locale' => ClientImprovementConfig::DEFAULT_LOCALE,
+            'title' => $defaultTitles['es'],
+            'title_es' => $defaultTitles['es'],
+            'title_pt' => $defaultTitles['pt'],
+            'title_en' => $defaultTitles['en'],
+            'survey_question_text' => $defaultQuestions['es'],
+            'survey_question_text_es' => $defaultQuestions['es'],
+            'survey_question_text_pt' => $defaultQuestions['pt'],
+            'survey_question_text_en' => $defaultQuestions['en'],
         ]);
 
-        ClientImprovementOption::query()->insert([
-            [
+        ClientImprovementOption::query()->insert(
+            collect(ClientImprovementOption::defaultLabels())->map(fn (array $labels, int $index): array => [
                 'id' => (string) Str::uuid(),
                 'client_improvement_config_id' => $config->id,
-                'label' => 'Tiempo de espera',
-                'sort_order' => 1,
+                'label' => $labels['es'],
+                'label_es' => $labels['es'],
+                'label_pt' => $labels['pt'],
+                'label_en' => $labels['en'],
+                'sort_order' => $index + 1,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'id' => (string) Str::uuid(),
-                'client_improvement_config_id' => $config->id,
-                'label' => 'Atención recibida',
-                'sort_order' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+            ])->all()
+        );
 
         return $config;
     }
@@ -153,29 +170,51 @@ class PuntosDeMejora extends Page
                             ->default(ClientImprovementConfig::DISPLAY_MODE_NUMBERS)
                             ->required()
                             ->disabled($readOnly),
-                        \Filament\Forms\Components\TextInput::make('survey_question_text')
-                            ->label('Pregunta principal de la encuesta')
-                            ->maxLength(255)
-                            ->placeholder('¿Cómo le hemos atendido hoy?')
-                            ->default('¿Cómo le hemos atendido hoy?')
-                            ->disabled($readOnly),
-                        \Filament\Forms\Components\TextInput::make('title')
-                            ->label('Título del bloque (pregunta de mejora)')
+                        \Filament\Forms\Components\Select::make('default_locale')
+                            ->label('Idioma por defecto de la encuesta pública')
+                            ->options([
+                                'es' => 'Español',
+                                'pt' => 'Portugués',
+                                'en' => 'Inglés',
+                            ])
+                            ->native(false)
+                            ->default(ClientImprovementConfig::DEFAULT_LOCALE)
                             ->required()
-                            ->maxLength(255)
-                            ->placeholder('¿En qué podemos mejorar?')
                             ->disabled($readOnly),
+                        \Filament\Forms\Components\Section::make('Pregunta principal de la encuesta')
+                            ->schema($this->localizedTextInputs('survey_question_text', [
+                                'es' => '¿Cómo le hemos atendido hoy?',
+                                'pt' => 'Como fomos no seu atendimento hoje?',
+                                'en' => 'How was your experience today?',
+                            ], $readOnly))
+                            ->columns(3),
+                        \Filament\Forms\Components\Section::make('Título del bloque (pregunta de mejora)')
+                            ->schema($this->localizedTextInputs('title', [
+                                'es' => '¿En qué podemos mejorar?',
+                                'pt' => 'Em que podemos melhorar?',
+                                'en' => 'What can we improve?',
+                            ], $readOnly))
+                            ->columns(3),
                         \Filament\Forms\Components\Repeater::make('options')
                             ->label('Respuestas / opciones')
                             ->schema([
-                                \Filament\Forms\Components\TextInput::make('label')
-                                    ->label('Texto de la respuesta')
-                                    // No requerimos el campo aquí:
-                                    // Filtramos en el save() los labels vacíos/null para que
-                                    // el usuario pueda dejar bloques vacíos sin que falle la validación.
+                                \Filament\Forms\Components\TextInput::make('label_es')
+                                    ->label('Español')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->disabled($readOnly),
+                                \Filament\Forms\Components\TextInput::make('label_pt')
+                                    ->label('Portugués')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->disabled($readOnly),
+                                \Filament\Forms\Components\TextInput::make('label_en')
+                                    ->label('Inglés')
+                                    ->required()
                                     ->maxLength(255)
                                     ->disabled($readOnly),
                             ])
+                            ->columns(3)
                             ->defaultItems(0)
                             ->addActionLabel('Añadir respuesta')
                             ->minItems(2)
@@ -183,11 +222,39 @@ class PuntosDeMejora extends Page
                             ->deletable(! $readOnly)
                             ->reorderable(! $readOnly)
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null),
+                            ->itemLabel(fn (array $state): ?string => $state['label_es'] ?? null),
                     ])
                     ->columns(1),
             ])
             ->statePath('data');
+    }
+
+    /**
+     * @param  array{es: string, pt: string, en: string}  $placeholders
+     * @return array<int, \Filament\Forms\Components\TextInput>
+     */
+    private function localizedTextInputs(string $fieldPrefix, array $placeholders, bool $readOnly): array
+    {
+        return [
+            \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_es")
+                ->label('Español')
+                ->required()
+                ->maxLength(255)
+                ->placeholder($placeholders['es'])
+                ->disabled($readOnly),
+            \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_pt")
+                ->label('Portugués')
+                ->required()
+                ->maxLength(255)
+                ->placeholder($placeholders['pt'])
+                ->disabled($readOnly),
+            \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_en")
+                ->label('Inglés')
+                ->required()
+                ->maxLength(255)
+                ->placeholder($placeholders['en'])
+                ->disabled($readOnly),
+        ];
     }
 
     public function save(): void
@@ -196,22 +263,25 @@ class PuntosDeMejora extends Page
 
         $client = $this->getRecord();
         $data = $this->form->getState();
-        $surveyQuestionText = trim((string) ($data['survey_question_text'] ?? ''));
-        $title = trim((string) ($data['title'] ?? ''));
+        $defaultLocale = ClientImprovementConfig::normalizeDefaultLocale($data['default_locale'] ?? null);
         $displayMode = ClientImprovementConfig::normalizeDisplayMode($data['display_mode'] ?? null);
         $optionsData = $data['options'] ?? [];
+        $surveyQuestionTexts = $this->trimLocalizedState($data, 'survey_question_text');
+        $titles = $this->trimLocalizedState($data, 'title');
 
-        if ($title === '') {
-            Notification::make()->danger()->title('El título es obligatorio')->send();
+        if (! $this->allLocalizedValuesFilled($surveyQuestionTexts)) {
+            Notification::make()->danger()->title('La pregunta principal debe estar completa en todos los idiomas')->send();
 
             return;
         }
 
-        $labels = array_values(array_filter(array_map(function ($o) {
-            $l = isset($o['label']) ? trim((string) $o['label']) : '';
+        if (! $this->allLocalizedValuesFilled($titles)) {
+            Notification::make()->danger()->title('El título del bloque debe estar completo en todos los idiomas')->send();
 
-            return $l === '' ? null : $l;
-        }, $optionsData)));
+            return;
+        }
+
+        $labels = array_values(array_map(fn (array $option): array => $this->trimLocalizedState($option, 'label'), $optionsData));
 
         if (count($labels) < 2) {
             Notification::make()->danger()->title('Mínimo 2 respuestas')->send();
@@ -219,17 +289,28 @@ class PuntosDeMejora extends Page
             return;
         }
 
-        if ($surveyQuestionText === '') {
-            $surveyQuestionText = '¿Cómo le hemos atendido hoy?';
+        foreach ($labels as $label) {
+            if (! $this->allLocalizedValuesFilled($label)) {
+                Notification::make()->danger()->title('Todas las respuestas deben estar completas en todos los idiomas')->send();
+
+                return;
+            }
         }
 
-        DB::transaction(function () use ($client, $surveyQuestionText, $title, $displayMode, $labels): void {
+        DB::transaction(function () use ($client, $defaultLocale, $surveyQuestionTexts, $titles, $displayMode, $labels): void {
             $config = ClientImprovementConfig::firstOrNew(['client_id' => $client->id]);
             if (! $config->exists) {
                 $config->id = (string) Str::uuid();
             }
-            $config->survey_question_text = $surveyQuestionText;
-            $config->title = $title;
+            $config->default_locale = $defaultLocale;
+            $config->survey_question_text = $surveyQuestionTexts['es'];
+            $config->survey_question_text_es = $surveyQuestionTexts['es'];
+            $config->survey_question_text_pt = $surveyQuestionTexts['pt'];
+            $config->survey_question_text_en = $surveyQuestionTexts['en'];
+            $config->title = $titles['es'];
+            $config->title_es = $titles['es'];
+            $config->title_pt = $titles['pt'];
+            $config->title_en = $titles['en'];
             $config->display_mode = $displayMode;
             $config->save();
 
@@ -238,8 +319,12 @@ class PuntosDeMejora extends Page
 
             foreach ($labels as $i => $label) {
                 ClientImprovementOption::create([
+                    'id' => (string) Str::uuid(),
                     'client_improvement_config_id' => $configId,
-                    'label' => $label,
+                    'label' => $label['es'],
+                    'label_es' => $label['es'],
+                    'label_pt' => $label['pt'],
+                    'label_en' => $label['en'],
                     'sort_order' => $i,
                 ]);
             }
@@ -249,6 +334,26 @@ class PuntosDeMejora extends Page
             ->success()
             ->title('Encuesta guardada')
             ->send();
+    }
+
+    /**
+     * @return array{es: string, pt: string, en: string}
+     */
+    private function trimLocalizedState(array $state, string $fieldPrefix): array
+    {
+        return [
+            'es' => trim((string) ($state["{$fieldPrefix}_es"] ?? '')),
+            'pt' => trim((string) ($state["{$fieldPrefix}_pt"] ?? '')),
+            'en' => trim((string) ($state["{$fieldPrefix}_en"] ?? '')),
+        ];
+    }
+
+    /**
+     * @param  array{es: string, pt: string, en: string}  $values
+     */
+    private function allLocalizedValuesFilled(array $values): bool
+    {
+        return $values['es'] !== '' && $values['pt'] !== '' && $values['en'] !== '';
     }
 
     protected function getFormActions(): array
@@ -275,9 +380,9 @@ class PuntosDeMejora extends Page
     }
 
     /**
-     * Datos para la vista de solo lectura (rol cliente): título y lista de respuestas.
+     * Datos para la vista de solo lectura (rol cliente): textos traducidos y lista de respuestas.
      *
-     * @return array{survey_question: string, title: string, display_mode_label: string, options: array<int, string>}
+     * @return array{default_locale: string, survey_questions: array<string, string>, titles: array<string, string>, display_mode_label: string, options: array<int, array<string, string>>}
      */
     public function getPuntosReadOnlyData(): array
     {
@@ -285,13 +390,27 @@ class PuntosDeMejora extends Page
         $config = $client->improvementConfig;
         $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $mode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
-        $surveyQuestion = trim((string) ($config?->survey_question_text ?? ''));
+        $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
+        $defaultTitles = ClientImprovementConfig::defaultTitles();
 
         return [
-            'survey_question' => $surveyQuestion !== '' ? $surveyQuestion : '¿Cómo le hemos atendido hoy?',
-            'title' => $config?->title ?? '¿En qué podemos mejorar?',
+            'default_locale' => ClientImprovementConfig::normalizeDefaultLocale($config?->default_locale),
+            'survey_questions' => [
+                'es' => $config?->survey_question_text_es ?: $defaultQuestions['es'],
+                'pt' => $config?->survey_question_text_pt ?: $defaultQuestions['pt'],
+                'en' => $config?->survey_question_text_en ?: $defaultQuestions['en'],
+            ],
+            'titles' => [
+                'es' => $config?->title_es ?: $defaultTitles['es'],
+                'pt' => $config?->title_pt ?: $defaultTitles['pt'],
+                'en' => $config?->title_en ?: $defaultTitles['en'],
+            ],
             'display_mode_label' => $mode === ClientImprovementConfig::DISPLAY_MODE_FACES ? 'Caritas' : 'Números',
-            'options' => $options->pluck('label')->values()->all(),
+            'options' => $options->map(fn (ClientImprovementOption $option): array => [
+                'es' => $option->label_es ?: $option->label,
+                'pt' => $option->label_pt ?: ($option->label_es ?: $option->label),
+                'en' => $option->label_en ?: ($option->label_es ?: $option->label),
+            ])->values()->all(),
         ];
     }
 
