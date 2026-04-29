@@ -42,6 +42,11 @@ class Empleados extends Page
 
     protected function authorizeAccess(): void
     {
+        $user = auth()->user();
+        if ($user?->isClientOwner()) {
+            abort(403);
+        }
+
         if (! ClientResource::canView($this->getRecord())) {
             abort(403);
         }
@@ -52,13 +57,22 @@ class Empleados extends Page
      */
     public function canEditEmpleados(): bool
     {
+        $user = auth()->user();
         $client = $this->getRecord();
 
-        if (! $client) {
+        if (! $user || ! $client) {
             return false;
         }
 
-        return ClientResource::canEdit($client);
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->isDistributor()) {
+            return (string) $client->created_by === (string) $user->id;
+        }
+
+        return false;
     }
 
     public function getEmployees()

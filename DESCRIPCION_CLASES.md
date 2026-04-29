@@ -84,7 +84,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` (etiqueta de interfaz **“Encuesta”**) para configurar (superadmin/distribuidor) o consultar (cliente) el bloque: `display_mode`, `default_locale`, `positive_scores`, pregunta/título/opciones multidioma en `ClientImprovementConfig` y `ClientImprovementOption`. Si el cliente no tenía configuración previa (caso legacy), la página la inicializa automáticamente en `es`, `pt`, `en` y con `[4,5]` como positivas usando UUID generados en PHP.
 
-- **App\Filament\Resources\ClientResource\Pages\Empleados**: Subpágina de un cliente que muestra sus empleados, permite a superadmin/distribuidor crearlos/borrarlos (delegando en `EmployeeResource`) y, para el rol cliente, actúa como vista de sólo lectura “Empleados de este cliente”.
+- **App\Filament\Resources\ClientResource\Pages\Empleados**: Subpágina de un cliente que muestra sus empleados y permite a superadmin/distribuidor crearlos/borrarlos (delegando en `EmployeeResource`) con alcance por cliente (`created_by` para distribuidor). El rol cliente no debe usar esta ruta: su acceso por URL queda bloqueado (`403`) y su vista oficial es `ClientEmpleados` en solo lectura.
 
 - **App\Filament\Resources\ClientResource\Pages\Llamadas**: Subpágina de un cliente que gestiona el historial de llamadas (`ClientCall`) y los campos `last_call_at`/`next_call_at`, con acciones para registrar la llamada de hoy, programar la próxima y editar notas.
 
