@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ClientResource\Pages;
 
+use App\Filament\Pages\ClientPuntosDeMejora;
 use App\Filament\Resources\ClientResource;
 use App\Models\Client;
 use Filament\Actions;
@@ -23,7 +24,7 @@ class ListClients extends ListRecords
         // El rol cliente no debe ver el listado; redirigir a su página Encuesta.
         $user = auth()->user();
         if ($user?->isClientOwner() && $user->ownedClient) {
-            $this->redirect(ClientResource::getUrl('puntos-de-mejora', ['record' => $user->ownedClient->id]));
+            $this->redirect(ClientPuntosDeMejora::getUrl());
         }
     }
 
