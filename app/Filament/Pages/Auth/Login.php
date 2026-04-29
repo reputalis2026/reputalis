@@ -47,6 +47,17 @@ class Login extends BaseLogin
             && ! $user->canAccessPanel(Filament::getCurrentPanel())
         ) {
             Filament::auth()->logout();
+
+            $ownedClient = $user->ownedClient;
+            $isInactiveClientUser = in_array($user->role, [User::ROLE_CLIENTE, User::ROLE_DISTRIBUIDOR], true)
+                && (! $ownedClient || ! $ownedClient->is_active);
+
+            if ($isInactiveClientUser) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'data.email' => __('panel.auth.inactive_user'),
+                ]);
+            }
+
             $this->throwFailureValidationException();
         }
 

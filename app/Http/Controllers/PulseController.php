@@ -11,6 +11,7 @@ use Illuminate\Http\Response;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -42,24 +43,43 @@ class PulseController extends Controller
             'password.required' => 'La contraseña es obligatoria.',
         ]);
 
-        $user = User::findByIdentifier($validated['email']);
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        $emailKey = strtolower(trim((string) $validated['email']));
+        $rateKey = 'pulse_login:' . $request->ip() . ':' . $emailKey;
+        $maxAttempts = 5;
+        $decaySeconds = 60;
+
+        if (RateLimiter::tooManyAttempts($rateKey, $maxAttempts)) {
             throw ValidationException::withMessages([
                 'email' => ['Credenciales incorrectas.'],
             ]);
         }
 
-        Auth::guard('web')->login($user, (bool) $request->boolean('remember'));
-        $request->session()->regenerate();
+        $user = User::findByIdentifier($validated['email']);
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            RateLimiter::hit($rateKey, $decaySeconds);
+            throw ValidationException::withMessages([
+                'email' => ['Credenciales incorrectas.'],
+            ]);
+        }
 
         if (! $user->isClientOwner() || ! $user->ownedClient) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            RateLimiter::hit($rateKey, $decaySeconds);
             throw ValidationException::withMessages([
                 'email' => ['Solo los propietarios de cliente pueden acceder a El Pulso del Día.'],
             ]);
         }
+
+        $client = $user->ownedClient;
+        if (! $client->is_active) {
+            RateLimiter::hit($rateKey, $decaySeconds);
+            throw ValidationException::withMessages([
+                'email' => ['Tu usuario está inactivo.'],
+            ]);
+        }
+
+        RateLimiter::clear($rateKey);
+        Auth::guard('web')->login($user, (bool) $request->boolean('remember'));
+        $request->session()->regenerate();
 
         $code = $user->ownedClient->code;
 
@@ -81,6 +101,9 @@ class PulseController extends Controller
         }
 
         $client = $user->ownedClient;
+        if (! $client->is_active) {
+            abort(403);
+        }
 
         return view('pulse', [
             'client' => $client,

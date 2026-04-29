@@ -7,6 +7,7 @@ return [
             'identifier_required' => 'The username or email is required.',
             'password_required' => 'The password is required.',
         ],
+        'inactive_user' => 'Your user is inactive.',
     ],
     'language' => [
         'es' => 'Español',

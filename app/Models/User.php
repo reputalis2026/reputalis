@@ -68,8 +68,24 @@ class User extends Authenticatable implements FilamentUser, HasName
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $panel->getId() === 'admin'
-            && in_array($this->role, [self::ROLE_SUPERADMIN, self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true);
+        if ($panel->getId() !== 'admin') {
+            return false;
+        }
+
+        if (! in_array($this->role, [self::ROLE_SUPERADMIN, self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true)) {
+            return false;
+        }
+
+        // Para cliente y distribuidor, solo permitir acceso si su cliente/distribuidor asociado está activo.
+        if (in_array($this->role, [self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true)) {
+            $client = $this->ownedClient;
+
+            if (! $client || ! $client->is_active) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

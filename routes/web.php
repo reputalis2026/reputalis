@@ -4,9 +4,11 @@ use App\Http\Controllers\PulseController;
 use App\Http\Controllers\SurveyController;
 use App\Models\User;
 use App\Support\PanelLocale;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -68,13 +70,42 @@ Route::post('/admin/login', function (Request $request) {
         'password.required' => __('panel.auth.validation.password_required'),
     ])->validate();
 
-    $user = User::findByIdentifier($validated['email']);
-    if (! $user || ! Hash::check($validated['password'], $user->password)) {
+    $emailKey = strtolower(trim((string) $validated['email']));
+    $rateKey = 'filament_admin_login:' . $request->ip() . ':' . $emailKey;
+    $maxAttempts = 5;
+    $decaySeconds = 60;
+
+    if (RateLimiter::tooManyAttempts($rateKey, $maxAttempts)) {
         return redirect()->route('filament.admin.auth.login')
             ->withInput($request->only('email', 'data'))
             ->withErrors(['email' => __('filament-panels::pages/auth/login.messages.failed')]);
     }
 
+    $user = User::findByIdentifier($validated['email']);
+    if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        RateLimiter::hit($rateKey, $decaySeconds);
+        return redirect()->route('filament.admin.auth.login')
+            ->withInput($request->only('email', 'data'))
+            ->withErrors(['email' => __('filament-panels::pages/auth/login.messages.failed')]);
+    }
+
+    if (! $user->canAccessPanel(Filament::getPanel('admin'))) {
+        RateLimiter::hit($rateKey, $decaySeconds);
+
+        $ownedClient = $user->ownedClient;
+        $isInactiveClientUser = in_array($user->role, [User::ROLE_CLIENTE, User::ROLE_DISTRIBUIDOR], true)
+            && (! $ownedClient || ! $ownedClient->is_active);
+
+        $errorMessage = $isInactiveClientUser
+            ? __('panel.auth.inactive_user')
+            : __('filament-panels::pages/auth/login.messages.failed');
+
+        return redirect()->route('filament.admin.auth.login')
+            ->withInput($request->only('email', 'data'))
+            ->withErrors(['email' => $errorMessage]);
+    }
+
+    RateLimiter::clear($rateKey);
     Auth::guard('web')->login($user, $remember);
     $request->session()->regenerate();
     $request->session()->save();
