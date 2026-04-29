@@ -14,15 +14,15 @@ class EditSector extends EditRecord
     {
         return [
             Actions\DeleteAction::make()
-                ->label('Eliminar')
+                ->label(__('common.actions.delete'))
                 ->before(function ($record) {
                     if (! $record->canDelete()) {
                         \Filament\Notifications\Notification::make()
                             ->danger()
-                            ->title('No se puede eliminar')
-                            ->body('Hay clientes usando este sector.')
+                            ->title(__('panel.sectors.cannot_delete_title'))
+                            ->body(__('panel.sectors.cannot_delete_body'))
                             ->send();
-                        throw new \Exception('No se puede eliminar.');
+                        throw new \Exception(__('panel.sectors.cannot_delete_title'));
                     }
                 }),
         ];

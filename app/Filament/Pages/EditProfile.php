@@ -11,7 +11,7 @@ class EditProfile extends BaseEditProfile
     {
         return $form
             ->schema([
-                Section::make('Información del Perfil')
+                Section::make(__('panel.profile.section'))
                     ->schema([
                         $this->getNameFormComponent(),
                         $this->getEmailFormComponent(),

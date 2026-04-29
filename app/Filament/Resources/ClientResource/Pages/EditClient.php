@@ -37,7 +37,7 @@ class EditClient extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Editar Cliente';
+        return __('client.pages.edit_title');
     }
 
     public function getBreadcrumbs(): array
@@ -213,8 +213,8 @@ class EditClient extends EditRecord
 
         Notification::make()
             ->success()
-            ->title('Cliente actualizado')
-            ->body('El cliente y los datos del propietario han sido actualizados exitosamente.')
+            ->title(__('client.notifications.updated_title'))
+            ->body(__('client.notifications.updated_body'))
             ->send();
     }
 
@@ -273,15 +273,15 @@ class EditClient extends EditRecord
     {
         return [
             Actions\DeleteAction::make()
-                ->label('Eliminar cliente')
+                ->label(__('client.actions.delete_client'))
                 ->requiresConfirmation()
-                ->modalHeading('Eliminar cliente')
-                ->modalDescription('¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.')
-                ->modalSubmitActionLabel('Eliminar')
-                ->modalCancelActionLabel('Cancelar')
+                ->modalHeading(__('client.actions.delete_client'))
+                ->modalDescription(__('client.actions.delete_confirm'))
+                ->modalSubmitActionLabel(__('common.actions.delete'))
+                ->modalCancelActionLabel(__('common.actions.cancel'))
                 ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
                 ->disabled(fn ($record) => $record->is_active)
-                ->tooltip(fn ($record) => $record->is_active ? '¡Cliente activo! Desactiva primero' : null),
+                ->tooltip(fn ($record) => $record->is_active ? __('client.actions.active_tooltip') : null),
         ];
     }
 

@@ -22,11 +22,20 @@ class ClientResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 
-    protected static ?string $navigationLabel = 'Clientes';
+    public static function getNavigationLabel(): string
+    {
+        return __('client.menu.clients');
+    }
 
-    protected static ?string $modelLabel = 'Cliente';
+    public static function getModelLabel(): string
+    {
+        return __('client.resource.model_label');
+    }
 
-    protected static ?string $pluralModelLabel = 'Clientes';
+    public static function getPluralModelLabel(): string
+    {
+        return __('client.resource.plural_model_label');
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -46,12 +55,12 @@ class ClientResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Logo')
+                Forms\Components\Section::make(__('client.sections.logo'))
                     ->icon('heroicon-o-photo')
-                    ->description('Se mostrará en la esquina superior izquierda del panel cuando el usuario del cliente inicie sesión.')
+                    ->description(__('client.descriptions.logo'))
                     ->schema([
                         Forms\Components\FileUpload::make('logo')
-                            ->label('Logo del cliente')
+                            ->label(__('client.form.logo'))
                             ->image()
                             ->disk('public')
                             ->directory('clients')
@@ -71,11 +80,11 @@ class ClientResource extends Resource
                     ->dehydrated(true),
 
                 // Bloque 2: Datos de Facturación
-                Forms\Components\Section::make('Datos de Facturación')
+                Forms\Components\Section::make(__('client.sections.billing'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\DatePicker::make('fecha_inicio_alta')
-                            ->label('Fecha de inicio de alta')
+                            ->label(__('client.form.start_date'))
                             ->default(now()->toDateString())
                             ->disabled()
                             ->dehydrated(true)
@@ -84,42 +93,42 @@ class ClientResource extends Resource
                                 $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                             ),
                         Forms\Components\TextInput::make('nif')
-                            ->label('NIF')
+                            ->label(__('client.form.nif'))
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
-                            ->placeholder('Ej: B12345678'),
+                            ->placeholder(__('client.placeholders.nif')),
                         Forms\Components\TextInput::make('razon_social')
-                            ->label('Razón Social')
+                            ->label(__('client.form.social_name'))
                             ->maxLength(255),
                         Forms\Components\TextInput::make('namecommercial')
-                            ->label('Nombre Comercial')
+                            ->label(__('client.form.commercial_name'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('calle')
-                            ->label('Calle')
+                            ->label(__('client.form.street'))
                             ->maxLength(255)
                             ->columnSpanFull(),
                         Forms\Components\Select::make('pais')
-                            ->label('País')
+                            ->label(__('client.form.country'))
                             ->default('España')
                             ->options([
-                                'España' => 'España',
-                                'Portugal' => 'Portugal',
-                                'Francia' => 'Francia',
-                                'Andorra' => 'Andorra',
-                                'Otro' => 'Otro',
+                                'España' => __('client.countries.spain'),
+                                'Portugal' => __('client.countries.portugal'),
+                                'Francia' => __('client.countries.france'),
+                                'Andorra' => __('client.countries.andorra'),
+                                'Otro' => __('client.countries.other'),
                             ])
                             ->searchable()
                             ->native(false),
                         Forms\Components\TextInput::make('codigo_postal')
-                            ->label('Código Postal')
+                            ->label(__('client.form.postal_code'))
                             ->maxLength(20)
-                            ->placeholder('Ej: 28001'),
+                            ->placeholder(__('client.placeholders.postal_code')),
                         Forms\Components\TextInput::make('ciudad')
-                            ->label('Ciudad')
+                            ->label(__('client.form.city'))
                             ->maxLength(100),
                         Forms\Components\Select::make('sector')
-                            ->label('Sector')
+                            ->label(__('client.form.sector'))
                             ->options(fn () => \App\Models\Sector::orderBy('sort_order')->orderBy('name')->pluck('name', 'name'))
                             ->default(fn () => \App\Models\Sector::orderBy('sort_order')->orderBy('name')->value('name'))
                             ->searchable()
@@ -128,13 +137,13 @@ class ClientResource extends Resource
                     ->columns(2),
 
                 // Bloque 3: Datos del Administrador
-                Forms\Components\Section::make('Datos del Administrador')
+                Forms\Components\Section::make(__('client.sections.admin'))
                     ->icon('heroicon-o-user-circle')
                     ->schema([
                         Forms\Components\TextInput::make('admin_dni')
-                            ->label('DNI Admin')
+                            ->label(__('client.form.admin_dni'))
                             ->maxLength(20)
-                            ->placeholder('Ej: 12345678A')
+                            ->placeholder(__('client.placeholders.dni'))
                             ->regex('/^[0-9]{8}[A-Za-z]$|^[XYZ][0-9]{7}[A-Za-z]$/')
                             ->validationAttribute('DNI')
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
@@ -143,7 +152,7 @@ class ClientResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('admin_name')
-                            ->label('Nombre y Apellidos')
+                            ->label(__('client.form.admin_name'))
                             ->maxLength(255)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
                                 if ($record?->owner?->fullname) {
@@ -151,7 +160,7 @@ class ClientResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('admin_email')
-                            ->label('Correo Admin')
+                            ->label(__('client.form.admin_email'))
                             ->email()
                             ->maxLength(255)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
@@ -160,15 +169,15 @@ class ClientResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('telefono_negocio')
-                            ->label('Teléfono Negocio')
+                            ->label(__('client.form.business_phone'))
                             ->tel()
                             ->maxLength(30)
-                            ->placeholder('Ej: 912345678'),
+                            ->placeholder(__('client.placeholders.business_phone')),
                         Forms\Components\TextInput::make('telefono_cliente')
-                            ->label('Teléfono Cliente')
+                            ->label(__('client.form.customer_phone'))
                             ->tel()
                             ->maxLength(30)
-                            ->placeholder('Ej: 612345678'),
+                            ->placeholder(__('client.placeholders.customer_phone')),
                     ])
                     ->columns(2)
                     ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
@@ -176,20 +185,20 @@ class ClientResource extends Resource
                     ),
 
                 // Bloque 4: Acceso Plataforma (al editar solo se puede cambiar la contraseña, no el usuario)
-                Forms\Components\Section::make('Acceso a Plataforma')
+                Forms\Components\Section::make(__('client.sections.access'))
                     ->icon('heroicon-o-key')
                     ->schema([
                         // Al crear: campo para escribir el usuario de acceso.
                         Forms\Components\TextInput::make('access_email')
-                            ->label('Usuario')
+                            ->label(__('client.form.platform_user'))
                             ->required()
                             ->unique('users', 'email')
                             ->maxLength(255)
-                            ->helperText('Usuario o correo para acceso a la plataforma (puede ser distinto del Correo Admin).')
-                            ->placeholder('Usuario o email')
+                            ->helperText(__('client.form.platform_user_help'))
+                            ->placeholder(__('client.placeholders.platform_user'))
                             ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient),
                         Forms\Components\TextInput::make('access_password')
-                            ->label('Contraseña')
+                            ->label(__('client.form.password'))
                             ->password()
                             ->required(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
@@ -198,9 +207,9 @@ class ClientResource extends Resource
                             ->visible(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             )
-                            ->helperText('Mínimo 8 caracteres'),
+                            ->helperText(__('client.form.password_help')),
                         Forms\Components\TextInput::make('access_password_confirmation')
-                            ->label('Confirmar')
+                            ->label(__('client.form.confirm_password'))
                             ->password()
                             ->required(fn ($livewire, $get) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
@@ -210,7 +219,7 @@ class ClientResource extends Resource
                                 ($livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient && $get('show_password'))
                             ),
                         Forms\Components\Toggle::make('show_password')
-                            ->label('Cambiar contraseña')
+                            ->label(__('client.form.show_password'))
                             ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient)
                             ->dehydrated(false)
                             ->reactive()
@@ -219,16 +228,16 @@ class ClientResource extends Resource
                     ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
                         $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
                     ),
-                Forms\Components\Section::make('Estado y vigencia')
+                Forms\Components\Section::make(__('client.sections.status_validity'))
                     ->icon('heroicon-o-calendar-days')
-                    ->description('Solo el SuperAdmin puede activar o desactivar el cliente y fijar la fecha de expiración.')
+                    ->description(__('client.descriptions.status_validity'))
                     ->schema([
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Cliente activo')
+                            ->label(__('client.form.active'))
                             ->default(false)
                             ->live()
                             ->disabled(fn () => ! auth()->user()?->isSuperAdmin())
-                            ->helperText('Solo superadmin puede activar/desactivar.')
+                            ->helperText(__('client.form.active_help'))
                             ->afterStateUpdated(function ($state, $set, $get): void {
                                 if ($state) {
                                     $set('activation_duration', 12);
@@ -239,18 +248,18 @@ class ClientResource extends Resource
                                 }
                             }),
                         Forms\Components\Select::make('activation_duration')
-                            ->label('Duración de activación')
+                            ->label(__('client.form.activation_duration'))
                             ->options([
                                 12 => '12 meses',
                                 24 => '24 meses',
                                 36 => '36 meses',
-                                'custom' => 'Otra fecha',
+                                'custom' => __('client.form.custom_date'),
                             ])
                             ->default(12)
                             ->live()
                             ->dehydrated(false)
                             ->required(fn ($get) => (bool) $get('is_active'))
-                            ->helperText('Obligatoria al activar el cliente. Elija un plazo o "Otra fecha" para indicar manualmente.')
+                            ->helperText(__('client.form.activation_duration_help'))
                             ->afterStateUpdated(function ($state, $set, $get): void {
                                 if (is_numeric($state)) {
                                     $base = $get('fecha_inicio_alta');
@@ -261,9 +270,9 @@ class ClientResource extends Resource
                             })
                             ->visible(fn ($get) => (bool) $get('is_active')),
                         Forms\Components\DatePicker::make('fecha_fin')
-                            ->label('Fecha de fin (expiración)')
+                            ->label(__('client.form.end_date'))
                             ->displayFormat('d/m/Y')
-                            ->helperText('Se calcula automáticamente con 12/24/36 meses, o elíjala manualmente con "Otra fecha".')
+                            ->helperText(__('client.form.end_date_help'))
                             ->required(fn ($get) => (bool) $get('is_active'))
                             ->disabled(fn ($get) => $get('activation_duration') !== 'custom')
                             ->visible(fn ($get) => (bool) $get('is_active')),
@@ -279,42 +288,42 @@ class ClientResource extends Resource
     {
         return $infolist
             ->schema([
-                InfolistSection::make('Datos de Facturación')
+                InfolistSection::make(__('client.sections.billing'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        TextEntry::make('code')->label('Código'),
-                        TextEntry::make('fecha_inicio_alta')->label('Fecha de inicio de alta')->date('d/m/Y')->placeholder('—'),
-                        TextEntry::make('fecha_fin')->label('Fecha de fin (expiración)')->date('d/m/Y')->placeholder('—')->visible(fn () => auth()->user()?->isSuperAdmin()),
-                        TextEntry::make('nif')->label('NIF')->placeholder('—'),
-                        TextEntry::make('razon_social')->label('Razón Social')->placeholder('—'),
-                        TextEntry::make('namecommercial')->label('Nombre Comercial'),
-                        TextEntry::make('calle')->label('Calle')->placeholder('—')->columnSpanFull(),
-                        TextEntry::make('pais')->label('País')->placeholder('—'),
-                        TextEntry::make('codigo_postal')->label('Código Postal')->placeholder('—'),
-                        TextEntry::make('ciudad')->label('Ciudad')->placeholder('—'),
-                        TextEntry::make('sector')->label('Sector')->placeholder('—'),
-                        TextEntry::make('telefono_negocio')->label('Teléfono Negocio')->placeholder('—'),
-                        TextEntry::make('telefono_cliente')->label('Teléfono Cliente')->placeholder('—'),
+                        TextEntry::make('code')->label(__('common.fields.code')),
+                        TextEntry::make('fecha_inicio_alta')->label(__('client.form.start_date'))->date('d/m/Y')->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('fecha_fin')->label(__('client.form.end_date'))->date('d/m/Y')->placeholder(__('common.placeholders.empty'))->visible(fn () => auth()->user()?->isSuperAdmin()),
+                        TextEntry::make('nif')->label(__('client.form.nif'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('razon_social')->label(__('client.form.social_name'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('namecommercial')->label(__('client.form.commercial_name')),
+                        TextEntry::make('calle')->label(__('client.form.street'))->placeholder(__('common.placeholders.empty'))->columnSpanFull(),
+                        TextEntry::make('pais')->label(__('client.form.country'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('codigo_postal')->label(__('client.form.postal_code'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('ciudad')->label(__('client.form.city'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('sector')->label(__('client.form.sector'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('telefono_negocio')->label(__('client.form.business_phone'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('telefono_cliente')->label(__('client.form.customer_phone'))->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Datos del Administrador')
+                InfolistSection::make(__('client.sections.admin'))
                     ->icon('heroicon-o-user-circle')
                     ->schema([
-                        TextEntry::make('owner.fullname')->label('Nombre y Apellidos')->placeholder('—'),
-                        TextEntry::make('owner.dni')->label('DNI Admin')->placeholder('—'),
-                        TextEntry::make('owner.admin_email')->label('Correo Admin')->placeholder('—'),
+                        TextEntry::make('owner.fullname')->label(__('client.form.admin_name'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.dni')->label(__('client.form.admin_dni'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.admin_email')->label(__('client.form.admin_email'))->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Acceso a Plataforma')
+                InfolistSection::make(__('client.sections.access'))
                     ->icon('heroicon-o-key')
                     ->schema([
-                        TextEntry::make('owner.email')->label('Usuario de acceso')->placeholder('—'),
-                        TextEntry::make('owner.id')->label('Contraseña')->formatStateUsing(fn () => '••••••••')->placeholder('—'),
+                        TextEntry::make('owner.email')->label(__('client.form.platform_user'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.id')->label(__('client.form.password'))->formatStateUsing(fn () => '••••••••')->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Estado')
+                InfolistSection::make(__('client.sections.status'))
                     ->schema([
-                        TextEntry::make('is_active')->label('Cliente activo')->badge()->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No')->color(fn ($state) => $state ? 'success' : 'gray'),
+                        TextEntry::make('is_active')->label(__('client.form.active'))->badge()->formatStateUsing(fn ($state) => $state ? __('common.status.yes') : __('common.status.no'))->color(fn ($state) => $state ? 'success' : 'gray'),
                     ])
                     ->visible(fn () => auth()->user()?->isSuperAdmin()),
             ]);
@@ -323,16 +332,16 @@ class ClientResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->emptyStateHeading('No hay clientes')
-            ->emptyStateDescription('Crea tu primer cliente para comenzar.')
+            ->emptyStateHeading(__('client.table.empty_heading'))
+            ->emptyStateDescription(__('client.table.empty_description'))
             ->emptyStateIcon('heroicon-o-building-storefront')
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
-                    ->label('Nombre Comercial')
+                    ->label(__('client.form.commercial_name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Estado')
+                    ->label(__('common.fields.status'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -340,43 +349,43 @@ class ClientResource extends Resource
                     ->falseColor('danger')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('last_call_at')
-                    ->label('Última llamada')
+                    ->label(__('client.table.last_call'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->placeholder('Sin llamadas aún'),
+                    ->placeholder(__('client.table.no_calls_yet')),
                 Tables\Columns\TextColumn::make('next_call_at')
-                    ->label('Próxima llamada')
+                    ->label(__('client.table.next_call'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->placeholder('—')
+                    ->placeholder(__('common.placeholders.empty'))
                     ->badge()
                     ->color(function ($state, Client $record): string {
                         return $record->next_call_at && $record->next_call_at->isPast() ? 'danger' : 'gray';
                     }),
                 Tables\Columns\TextColumn::make('createdBy.fullname')
-                    ->label('Creador')
-                    ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: '—')
+                    ->label(__('common.fields.creator'))
+                    ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: __('common.placeholders.empty'))
                     ->searchable(query: function ($query, $search) {
                         $search = addcslashes($search, '%_');
 
                         return $query->whereHas('createdBy', fn ($q) => $q->where('fullname', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
                     })
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Código')
+                    ->label(__('common.fields.code'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Estado')
-                    ->placeholder('Todos')
-                    ->trueLabel('Activos')
-                    ->falseLabel('Inactivos'),
+                    ->label(__('common.fields.status'))
+                    ->placeholder(__('client.table.all'))
+                    ->trueLabel(__('client.table.active'))
+                    ->falseLabel(__('client.table.inactive')),
                 Tables\Filters\SelectFilter::make('created_by')
-                    ->label('Creador')
+                    ->label(__('common.fields.creator'))
                     ->relationship('createdBy', 'fullname')
                     ->searchable()
                     ->preload()
@@ -384,11 +393,11 @@ class ClientResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->label('Ver'),
+                    ->label(__('common.actions.view')),
                 Tables\Actions\EditAction::make()
-                    ->label('Editar'),
+                    ->label(__('common.actions.edit')),
                 Tables\Actions\Action::make('llamadas')
-                    ->label('Llamadas')
+                    ->label(__('client.menu.calls'))
                     ->icon('heroicon-o-phone-arrow-up-right')
                     ->url(fn (Client $record): string => static::getUrl('llamadas', ['record' => $record]))
                     ->visible(function () {
@@ -398,36 +407,36 @@ class ClientResource extends Resource
                     })
                     ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('puntosDeMejora')
-                    ->label('Encuesta')
+                    ->label(__('client.menu.survey'))
                     ->icon('heroicon-o-light-bulb')
                     ->url(fn (Client $record): string => static::getUrl('puntos-de-mejora', ['record' => $record]))
                     ->visible(fn (Client $record): bool => static::canView($record))
                     ->openUrlInNewTab(false),
                 Tables\Actions\Action::make('empleados')
-                    ->label('Empleados')
+                    ->label(__('client.menu.employees'))
                     ->icon('heroicon-o-user-group')
                     ->url(fn (Client $record): string => static::getUrl('empleados', ['record' => $record]))
                     ->visible(fn (Client $record): bool => static::canView($record))
                     ->openUrlInNewTab(false),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar')
-                    ->modalHeading('Eliminar cliente')
-                    ->modalDescription('El cliente pasará a la pestaña "Clientes eliminados". No se borra de la base de datos.')
+                    ->label(__('common.actions.delete'))
+                    ->modalHeading(__('client.actions.delete_client'))
+                    ->modalDescription(__('client.actions.delete_description'))
                     ->visible(fn ($record) => ! $record->trashed() && static::canDelete($record)),
                 RestoreAction::make()
-                    ->label('Restaurar')
+                    ->label(__('common.actions.restore'))
                     ->icon('heroicon-o-arrow-uturn-left')
-                    ->modalHeading('Restaurar cliente')
-                    ->modalDescription('¿Restaurar este cliente? Se reactivará completamente.')
+                    ->modalHeading(__('client.actions.restore_heading'))
+                    ->modalDescription(__('client.actions.restore_description'))
                     ->visible(fn ($record) => $record->trashed() && static::canRestore($record)),
                 Tables\Actions\Action::make('forceDelete')
-                    ->label('Eliminar de la base de datos')
+                    ->label(__('client.actions.delete_database'))
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('Eliminar definitivamente')
-                    ->modalDescription('Se borrará el cliente y sus usuarios asociados de la base de datos. Esta acción no se puede deshacer.')
-                    ->modalSubmitActionLabel('Eliminar')
+                    ->modalHeading(__('client.actions.force_delete_heading'))
+                    ->modalDescription(__('client.actions.force_delete_description'))
+                    ->modalSubmitActionLabel(__('common.actions.delete'))
                     ->visible(fn ($record) => $record->trashed() && static::canDelete($record))
                     ->action(function (Client $record): void {
                         $ownerId = $record->owner_id;

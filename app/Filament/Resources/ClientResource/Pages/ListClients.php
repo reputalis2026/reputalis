@@ -29,7 +29,7 @@ class ListClients extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Clientes';
+        return __('client.pages.list_title');
     }
 
     public function getBreadcrumbs(): array
@@ -49,13 +49,13 @@ class ListClients extends ListRecords
         $user = auth()->user();
 
         $tabs = [
-            'todos' => Tab::make('Todos los clientes')
+            'todos' => Tab::make(__('client.table.all_clients'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed()),
         ];
 
         // Solo SuperAdmin debe ver la pestaña de eliminados/restauración.
         if ($user?->isSuperAdmin() === true) {
-            $tabs['eliminados'] = Tab::make('Clientes eliminados')
+            $tabs['eliminados'] = Tab::make(__('client.table.deleted_clients'))
                 ->modifyQueryUsing(fn (Builder $query) => $query->withTrashed()->onlyTrashed());
         }
 
@@ -66,7 +66,7 @@ class ListClients extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Crear')
+                ->label(__('common.actions.create'))
                 ->visible(fn () => auth()->user()?->isSuperAdmin() || auth()->user()?->isDistributor() ?? false),
         ];
     }
@@ -103,36 +103,36 @@ class ListClients extends ListRecords
             ->defaultSort('namecommercial')
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
-                    ->label('Nombre comercial')
+                    ->label(__('client.form.commercial_name'))
                     ->url(fn (Client $record): string => ClientResource::getUrl('view', ['record' => $record]))
                     ->wrap()
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->state(fn (Client $record): string => $record->trashed() ? 'Eliminado' : ($record->is_active ? 'Activo' : 'Inactivo'))
+                    ->label(__('common.fields.status'))
+                    ->state(fn (Client $record): string => $record->trashed() ? __('common.status.deleted') : ($record->is_active ? __('common.status.active') : __('common.status.inactive')))
                     ->badge()
                     ->color(fn (Client $record): string => $record->trashed() ? 'danger' : ($record->is_active ? 'success' : 'warning')),
                 Tables\Columns\TextColumn::make('createdBy.name')
-                    ->label('Creador')
-                    ->default('N/A')
-                    ->formatStateUsing(fn (?string $state, Client $record): string => $state ?: ($record->createdBy?->email ?: 'N/A'))
+                    ->label(__('common.fields.creator'))
+                    ->default(__('common.placeholders.not_available'))
+                    ->formatStateUsing(fn (?string $state, Client $record): string => $state ?: ($record->createdBy?->email ?: __('common.placeholders.not_available')))
                     ->wrap(),
             ]);
     }
 
     public function getTableHeading(): ?string
     {
-        return 'Lista de Clientes';
+        return __('client.pages.list_heading');
     }
 
     public function getTableEmptyStateHeading(): ?string
     {
-        return 'No hay clientes';
+        return __('client.table.empty_heading');
     }
 
     public function getTableEmptyStateDescription(): ?string
     {
-        return 'Crea tu primer cliente para comenzar.';
+        return __('client.table.empty_description');
     }
 }

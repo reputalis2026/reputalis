@@ -12,7 +12,7 @@
 
     @if (!$canEdit)
         <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-            Estos son los empleados configurados para tu cliente.
+            {{ __('employees.intro_read_only') }}
         </p>
     @endif
 
@@ -23,13 +23,13 @@
                     <x-filament::icon icon="heroicon-o-user-group" class="h-6 w-6 text-gray-500 dark:text-gray-400" />
                 </div>
                 <h3 class="fi-ta-empty-state-heading text-base font-semibold leading-6 text-gray-950 dark:text-white">
-                    No hay empleados
+                    {{ __('employees.empty.heading') }}
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     @if ($canEdit)
-                        Añade empleados a este cliente para poder asociarlos a encuestas más adelante.
+                        {{ __('employees.empty.editable') }}
                     @else
-                        No hay empleados configurados para este cliente.
+                        {{ __('employees.empty.read_only') }}
                     @endif
                 </p>
                 @if ($canEdit)
@@ -40,7 +40,7 @@
                             color="primary"
                             icon="heroicon-o-plus"
                         >
-                            Añadir empleado
+                            {{ __('employees.actions.add') }}
                         </x-filament::button>
                     </div>
                 @endif
@@ -49,7 +49,7 @@
     @else
         <div class="space-y-4">
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Empleados ({{ $employees->count() }})
+                {{ __('employees.count', ['count' => $employees->count()]) }}
             </p>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($employees as $employee)
@@ -99,7 +99,7 @@
                                     icon="heroicon-o-pencil-square"
                                     outlined
                                 >
-                                    Editar
+                                    {{ __('common.actions.edit') }}
                                 </x-filament::button>
                                 <x-filament::button
                                     size="sm"
@@ -107,9 +107,9 @@
                                     icon="heroicon-o-trash"
                                     outlined
                                     wire:click="deleteEmployee('{{ $employee->id }}')"
-                                    wire:confirm="¿Eliminar a {{ $employee->name }}? Esta acción no se puede deshacer."
+                                    wire:confirm="{{ __('employees.actions.delete_confirm', ['name' => $employee->name]) }}"
                                 >
-                                    Eliminar
+                                    {{ __('common.actions.delete') }}
                                 </x-filament::button>
 
                                 @if ($surveyUrl)
@@ -118,9 +118,9 @@
                                         color="gray"
                                         icon="heroicon-o-clipboard-document"
                                         outlined
-                                        onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: 'Enlace de encuesta copiado', status: 'success' } } })); });"
+                                        onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: @js(__('employees.actions.link_copied')), status: 'success' } } })); });"
                                     >
-                                        Copiar enlace
+                                        {{ __('common.actions.copy_link') }}
                                     </x-filament::button>
                                 @endif
                             </div>
@@ -134,9 +134,9 @@
                                     color="gray"
                                     icon="heroicon-o-clipboard-document"
                                     outlined
-                                    onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: 'Enlace de encuesta copiado', status: 'success' } } })); });"
+                                    onclick="navigator.clipboard.writeText(@json($surveyUrl)).then(() => { window.dispatchEvent(new CustomEvent('notificationSent', { detail: { notification: { title: @js(__('employees.actions.link_copied')), status: 'success' } } })); });"
                                 >
-                                    Copiar enlace
+                                    {{ __('common.actions.copy_link') }}
                                 </x-filament::button>
                             </div>
                         @endif
@@ -155,7 +155,7 @@
                 icon="heroicon-o-arrow-left"
                 outlined
             >
-                Volver al dashboard
+                {{ __('common.actions.back_to_dashboard') }}
             </x-filament::button>
         </div>
     @endif

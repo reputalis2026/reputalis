@@ -15,7 +15,7 @@ class CreateEmployee extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Nuevo empleado';
+        return __('employees.title.create');
     }
 
     /**

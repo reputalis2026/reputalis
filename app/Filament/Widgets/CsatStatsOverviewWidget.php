@@ -14,7 +14,12 @@ class CsatStatsOverviewWidget extends BaseStatsOverviewWidget
 
     protected int | string | array $columnSpan = 'full';
 
-    protected ?string $heading = 'Métricas CSAT';
+    protected ?string $heading = null;
+
+    public function getHeading(): ?string
+    {
+        return __('dashboard.stats.heading');
+    }
 
     /**
      * Filtros del dashboard (period, client_id). Pasados desde la página.
@@ -69,28 +74,28 @@ class CsatStatsOverviewWidget extends BaseStatsOverviewWidget
             : 'gray';
 
         return [
-            Stat::make('Nota media', $avgScore)
-                ->description('Promedio de puntuación')
+            Stat::make(__('dashboard.stats.avg_score'), $avgScore)
+                ->description(__('dashboard.stats.avg_score_description'))
                 ->descriptionIcon('heroicon-m-star')
                 ->color($avgColor)
                 ->url($baseUrl . '?' . http_build_query(['tableFilters' => $tableFilters])),
 
-            Stat::make('Encuestas totales', (string) $metrics['total'])
-                ->description('En el periodo seleccionado')
+            Stat::make(__('dashboard.stats.total_surveys'), (string) $metrics['total'])
+                ->description(__('dashboard.stats.total_surveys_description'))
                 ->descriptionIcon('heroicon-m-clipboard-document-list')
                 ->color($metrics['total'] > 0 ? 'success' : 'gray')
                 ->url($baseUrl . '?' . http_build_query(['tableFilters' => $tableFilters])),
 
-            Stat::make('% satisfechos', $satisfiedPct)
-                ->description('Puntuación 4–5')
+            Stat::make(__('dashboard.stats.satisfied_percent'), $satisfiedPct)
+                ->description(__('dashboard.stats.satisfied_percent_description'))
                 ->descriptionIcon('heroicon-m-face-smile')
                 ->color($satisfiedColor)
                 ->url($baseUrl . '?' . http_build_query([
                     'tableFilters' => array_merge($tableFilters, ['score' => '4-5']),
                 ])),
 
-            Stat::make('Encuestas hoy', (string) $metrics['today_count'])
-                ->description('Creadas hoy')
+            Stat::make(__('dashboard.stats.surveys_today'), (string) $metrics['today_count'])
+                ->description(__('dashboard.stats.surveys_today_description'))
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color($metrics['today_count'] > 0 ? 'success' : 'gray')
                 ->url($baseUrl . '?' . http_build_query([

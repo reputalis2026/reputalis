@@ -12,13 +12,13 @@ class ViewEmployee extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Ver Empleado';
+        return __('employees.title.view');
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()->label('Editar'),
+            Actions\EditAction::make()->label(__('common.actions.edit')),
         ];
     }
 

@@ -11,13 +11,19 @@ class ClientEmpleados extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationLabel = 'Empleados';
-
     protected static ?int $navigationSort = 3;
 
     protected static string $view = 'filament.pages.client-empleados';
 
-    protected static ?string $title = 'Tus empleados';
+    public static function getNavigationLabel(): string
+    {
+        return __('employees.navigation_label');
+    }
+
+    public function getTitle(): string
+    {
+        return __('employees.title.own');
+    }
 
     public ?Client $client = null;
 

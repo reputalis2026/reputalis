@@ -16,40 +16,52 @@ class SectorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
-    protected static ?string $navigationLabel = 'Ajustes';
+    public static function getNavigationLabel(): string
+    {
+        return __('panel.sectors.navigation_label');
+    }
 
-    protected static ?string $modelLabel = 'Sector';
+    public static function getModelLabel(): string
+    {
+        return __('panel.sectors.model_label');
+    }
 
-    protected static ?string $pluralModelLabel = 'Sectores';
+    public static function getPluralModelLabel(): string
+    {
+        return __('panel.sectors.plural_model_label');
+    }
 
-    protected static ?string $navigationGroup = 'Configuración';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('panel.navigation_groups.configuration');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Nombre del sector')
+                    ->label(__('panel.sectors.name'))
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(100)
-                    ->placeholder('Ej: Farmacia, Herbolario...'),
+                    ->placeholder(__('panel.sectors.placeholder')),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->emptyStateHeading('No hay sectores')
-            ->emptyStateDescription('Añade sectores para que aparezcan en el formulario de alta de clientes.')
+            ->emptyStateHeading(__('panel.sectors.empty_heading'))
+            ->emptyStateDescription(__('panel.sectors.empty_description'))
             ->emptyStateIcon('heroicon-o-adjustments-horizontal')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Sector')
+                    ->label(__('common.fields.sector'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('clients_count')
-                    ->label('Clientes')
+                    ->label(__('client.menu.clients'))
                     ->getStateUsing(fn (Sector $record) => $record->clientsCount())
                     ->badge()
                     ->color(fn (Sector $record) => $record->clientsCount() > 0 ? 'gray' : 'success'),
@@ -57,31 +69,31 @@ class SectorResource extends Resource
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->label('Editar'),
+                    ->label(__('common.actions.edit')),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar')
+                    ->label(__('common.actions.delete'))
                     ->before(function (Sector $record) {
                         if (! $record->canDelete()) {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
-                                ->title('No se puede eliminar')
-                                ->body('Hay clientes usando este sector. Elimina primero ese sector de los clientes.')
+                                ->title(__('panel.sectors.cannot_delete_title'))
+                                ->body(__('panel.sectors.cannot_delete_body'))
                                 ->send();
-                            throw new \Exception('No se puede eliminar: hay clientes con este sector.');
+                            throw new \Exception(__('panel.sectors.cannot_delete_exception'));
                         }
                     }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
+                        ->label(__('common.actions.delete_selected'))
                         ->action(function ($records) {
                             foreach ($records as $record) {
                                 if (! $record->canDelete()) {
                                     \Filament\Notifications\Notification::make()
                                         ->danger()
-                                        ->title('No se puede eliminar')
-                                        ->body("El sector \"{$record->name}\" tiene clientes asignados.")
+                                        ->title(__('panel.sectors.cannot_delete_title'))
+                                        ->body(__('panel.sectors.cannot_delete_assigned', ['sector' => $record->name]))
                                         ->send();
                                     return;
                                 }

@@ -18,13 +18,22 @@ class ClientCalls extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-phone-arrow-up-right';
 
-    protected static ?string $navigationLabel = 'Llamadas';
-
-    protected static ?string $navigationGroup = 'Clientes';
-
     protected static string $view = 'filament.pages.client-calls';
 
-    protected static ?string $title = 'Llamadas pendientes';
+    public static function getNavigationLabel(): string
+    {
+        return __('client.menu.calls');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('client.menu.clients');
+    }
+
+    public function getTitle(): string
+    {
+        return __('client.calls.pending_title');
+    }
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -46,19 +55,19 @@ class ClientCalls extends Page implements HasTable
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
                 TextColumn::make('namecommercial')
-                    ->label('Cliente')
+                    ->label(__('common.fields.client'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('last_call_at')
-                    ->label('Última llamada')
+                    ->label(__('client.table.last_call'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->placeholder('Sin llamadas aún'),
+                    ->placeholder(__('client.table.no_calls_yet')),
                 TextColumn::make('next_call_at')
-                    ->label('Próxima llamada')
+                    ->label(__('client.table.next_call'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->placeholder('—')
+                    ->placeholder(__('common.placeholders.empty'))
                     ->badge()
                     ->color(function ($state, Client $record): string {
                         if (! $record->next_call_at) {
@@ -70,13 +79,13 @@ class ClientCalls extends Page implements HasTable
             ])
             ->actions([
                 Action::make('ver')
-                    ->label('Ver')
+                    ->label(__('common.actions.view'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->url(fn (Client $record): string => ClientResource::getUrl('llamadas', ['record' => $record]))
                     ->openUrlInNewTab(false),
             ])
-            ->emptyStateHeading('No hay llamadas pendientes')
-            ->emptyStateDescription('Cuando registres llamadas, verás aquí la última y la próxima llamada.')
+            ->emptyStateHeading(__('client.calls.pending_empty_heading'))
+            ->emptyStateDescription(__('client.calls.pending_empty_description'))
             ->emptyStateIcon('heroicon-o-phone-arrow-up-right');
     }
 

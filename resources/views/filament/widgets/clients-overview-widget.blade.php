@@ -1,12 +1,12 @@
 @php
-    $heading = 'Clientes';
+    $heading = __('dashboard.clients_overview.heading');
     $tabs = [
-        'activos' => 'Clientes activos',
-        'inactivos' => 'Clientes inactivos',
-        'baja_proxima' => 'Clientes baja próxima',
+        'activos' => __('dashboard.clients_overview.tabs.active'),
+        'inactivos' => __('dashboard.clients_overview.tabs.inactive'),
+        'baja_proxima' => __('dashboard.clients_overview.tabs.ending_soon'),
     ];
     if ($showDistributorsTab ?? false) {
-        $tabs['distribuidores'] = 'Distribuidores';
+        $tabs['distribuidores'] = __('dashboard.clients_overview.tabs.distributors');
     }
     $isActivos = ($activeTab ?? 'activos') === 'activos';
     $isInactivos = ($activeTab ?? '') === 'inactivos';
@@ -50,11 +50,11 @@
                         class="grid items-center border-b border-gray-200 bg-gray-50/80 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
                         style="grid-template-columns: {{ $gridColsDistribuidores }}; gap: 1rem;"
                     >
-                        <span>Distribuidor</span>
-                        <span>Fecha inicio</span>
-                        <span>Fecha fin</span>
-                        <span>Estado</span>
-                        <span>Teléfono</span>
+                        <span>{{ __('dashboard.clients_overview.columns.distributor') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.start_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.end_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.status') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.phone') }}</span>
                     </div>
                     @foreach ($distributors as $dist)
                         <a
@@ -67,9 +67,9 @@
                             <span class="min-w-0 text-sm text-gray-600 dark:text-gray-300">{{ $dist->fecha_fin ?? '—' }}</span>
                             <span class="min-w-0 text-sm">
                                 @if ($dist->is_active)
-                                    <span class="text-success-600 dark:text-success-400">Activo</span>
+                                    <span class="text-success-600 dark:text-success-400">{{ __('common.status.active') }}</span>
                                 @else
-                                    <span class="text-gray-500 dark:text-gray-400">Inactivo</span>
+                                    <span class="text-gray-500 dark:text-gray-400">{{ __('common.status.inactive') }}</span>
                                 @endif
                             </span>
                             <span class="min-w-0 text-sm text-gray-600 dark:text-gray-300">{{ $dist->telefono ?? '—' }}</span>
@@ -77,7 +77,7 @@
                     @endforeach
                 @else
                     <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                        No hay distribuidores.
+                        {{ __('dashboard.clients_overview.empty.distributors') }}
                     </div>
                 @endif
             @elseif ($clients->isNotEmpty())
@@ -87,11 +87,11 @@
                         class="grid items-center border-b border-gray-200 bg-gray-50/80 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
                         style="grid-template-columns: {{ $gridColsActivos }}; gap: 1rem;"
                     >
-                        <span>Cliente</span>
-                        <span>Fecha inicio</span>
-                        <span>Fecha fin</span>
-                        <span>Encuestas hoy</span>
-                        <span>% satisfechos</span>
+                        <span>{{ __('dashboard.clients_overview.columns.client') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.start_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.end_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.surveys_today') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.satisfied_percent') }}</span>
                     </div>
                     @foreach ($clients as $client)
                         <a
@@ -112,10 +112,10 @@
                         class="grid items-center border-b border-gray-200 bg-gray-50/80 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
                         style="grid-template-columns: {{ $gridColsInactivos }}; gap: 1rem;"
                     >
-                        <span>Fecha inicio</span>
-                        <span>Fecha fin</span>
-                        <span>Cliente</span>
-                        <span>Teléfono</span>
+                        <span>{{ __('dashboard.clients_overview.columns.start_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.end_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.client') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.phone') }}</span>
                     </div>
                     @foreach ($clients as $client)
                         <a
@@ -135,10 +135,10 @@
                         class="grid items-center border-b border-gray-200 bg-gray-50/80 px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
                         style="grid-template-columns: {{ $gridColsBajaProxima }}; gap: 1rem;"
                     >
-                        <span>Cliente</span>
-                        <span>Fecha inicio</span>
-                        <span>Fecha fin</span>
-                        <span>Teléfono</span>
+                        <span>{{ __('dashboard.clients_overview.columns.client') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.start_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.end_date') }}</span>
+                        <span>{{ __('dashboard.clients_overview.columns.phone') }}</span>
                     </div>
                     @foreach ($clients as $client)
                         <a
@@ -155,7 +155,7 @@
                 @endif
             @else
                 <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No hay clientes en esta sección.
+                    {{ __('dashboard.clients_overview.empty.clients') }}
                 </div>
             @endif
         </div>

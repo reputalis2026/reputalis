@@ -19,11 +19,20 @@ class AdminNotifications extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-bell';
 
-    protected static ?string $navigationLabel = 'Notificaciones';
+    public static function getNavigationLabel(): string
+    {
+        return __('panel.notifications.navigation_label');
+    }
 
-    protected static ?string $title = 'Bandeja de notificaciones';
+    public function getTitle(): string
+    {
+        return __('panel.notifications.title');
+    }
 
-    protected static ?string $navigationGroup = 'Sistema';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('panel.navigation_groups.system');
+    }
 
     protected static string $view = 'filament.pages.admin-notifications';
 
@@ -53,21 +62,21 @@ class AdminNotifications extends Page implements HasTable
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
                 TextColumn::make('panelMessage.created_at')
-                    ->label('Fecha')
+                    ->label(__('common.fields.date'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
                 TextColumn::make('panelMessage.type')
-                    ->label('Tipo')
-                    ->formatStateUsing(fn (?string $state) => $state ? self::typeLabel($state) : '—'),
+                    ->label(__('common.fields.type'))
+                    ->formatStateUsing(fn (?string $state) => $state ? self::typeLabel($state) : __('common.placeholders.empty')),
                 TextColumn::make('panelMessage.client.namecommercial')
-                    ->label('Cliente')
-                    ->placeholder('—'),
+                    ->label(__('common.fields.client'))
+                    ->placeholder(__('common.placeholders.empty')),
                 TextColumn::make('panelMessage.sender.fullname')
-                    ->label('Remitente')
-                    ->formatStateUsing(fn ($state, PanelMessageRecipient $record) => $record->panelMessage?->sender?->getFilamentName() ?? '—')
-                    ->placeholder('—'),
+                    ->label(__('panel.notifications.sender'))
+                    ->formatStateUsing(fn ($state, PanelMessageRecipient $record) => $record->panelMessage?->sender?->getFilamentName() ?? __('common.placeholders.empty'))
+                    ->placeholder(__('common.placeholders.empty')),
                 IconColumn::make('read_at')
-                    ->label('Leído')
+                    ->label(__('panel.notifications.read'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -76,28 +85,28 @@ class AdminNotifications extends Page implements HasTable
             ])
             ->actions([
                 Action::make('ver')
-                    ->label('Ver')
-                    ->modalHeading(fn (PanelMessageRecipient $record) => $record->panelMessage?->title ?? 'Mensaje')
+                    ->label(__('common.actions.view'))
+                    ->modalHeading(fn (PanelMessageRecipient $record) => $record->panelMessage?->title ?? __('panel.notifications.message'))
                     ->modalContent(fn (PanelMessageRecipient $record) => view('filament.pages.partials.message-modal', [
                         'recipient' => $record,
                         'message' => $record->panelMessage,
                     ]))
                     ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar')
+                    ->modalCancelActionLabel(__('common.actions.close'))
                     ->action(function (PanelMessageRecipient $record): void {
                         $record->markAsRead();
                     }),
             ])
-            ->emptyStateHeading('No hay notificaciones')
-            ->emptyStateDescription('Cuando un distribuidor cree un cliente pendiente de activación, aparecerá aquí.')
+            ->emptyStateHeading(__('panel.notifications.empty_heading'))
+            ->emptyStateDescription(__('panel.notifications.empty_description'))
             ->emptyStateIcon('heroicon-o-bell');
     }
 
     public static function typeLabel(string $type): string
     {
         return match ($type) {
-            PanelMessage::TYPE_CLIENT_PENDING_ACTIVATION => 'Cliente pendiente de activación',
-            PanelMessage::TYPE_CLIENT_ACTIVATED => 'Cliente activado',
+            PanelMessage::TYPE_CLIENT_PENDING_ACTIVATION => __('panel.notifications.types.client_pending_activation'),
+            PanelMessage::TYPE_CLIENT_ACTIVATED => __('panel.notifications.types.client_activated'),
             default => $type,
         };
     }

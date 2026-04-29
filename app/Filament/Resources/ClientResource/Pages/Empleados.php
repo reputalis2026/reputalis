@@ -19,9 +19,10 @@ class Empleados extends Page
 
     protected static string $view = 'filament.resources.client-resource.pages.empleados';
 
-    protected static ?string $title = 'Empleados';
-
-    protected static ?string $navigationLabel = 'Empleados';
+    public static function getNavigationLabel(): string
+    {
+        return __('client.menu.employees');
+    }
 
     public function mount(int|string $record): void
     {
@@ -69,17 +70,17 @@ class Empleados extends Page
     {
         $employee = Employee::find($id);
         if (! $employee || $employee->client_id !== $this->getRecord()->id) {
-            Notification::make()->danger()->title('No autorizado')->send();
+            Notification::make()->danger()->title(__('common.messages.not_authorized'))->send();
 
             return;
         }
         if (! EmployeeResource::canDelete($employee)) {
-            Notification::make()->danger()->title('No puedes eliminar este empleado')->send();
+            Notification::make()->danger()->title(__('employees.actions.delete_forbidden'))->send();
 
             return;
         }
         $employee->delete();
-        Notification::make()->success()->title('Empleado eliminado')->send();
+        Notification::make()->success()->title(__('employees.actions.deleted'))->send();
     }
 
     protected function getHeaderActions(): array
@@ -88,7 +89,7 @@ class Empleados extends Page
         if ($this->canEditEmpleados()) {
             $client = $this->getRecord();
             $actions[] = Actions\Action::make('create')
-                ->label('Añadir empleado')
+                ->label(__('employees.actions.add'))
                 ->icon('heroicon-o-plus')
                 ->url(EmployeeResource::getUrl('create').'?client_id='.$client->id)
                 ->color('primary');
@@ -101,15 +102,15 @@ class Empleados extends Page
     {
         $user = auth()->user();
         if ($user && $user->isClientOwner()) {
-            return 'Tus empleados';
+            return __('employees.title.own');
         }
 
-        return 'Empleados: '.$this->getRecord()->namecommercial;
+        return __('employees.title.record', ['client' => $this->getRecord()->namecommercial]);
     }
 
     public function getBreadcrumb(): string
     {
-        return 'Empleados';
+        return __('client.menu.employees');
     }
 
     /**

@@ -8,9 +8,15 @@ use Filament\Widgets\Widget;
 
 class Dashboard extends BaseDashboard
 {
-    protected static ?string $navigationLabel = 'Dashboard';
+    public static function getNavigationLabel(): string
+    {
+        return __('dashboard.navigation_label');
+    }
 
-    protected static ?string $title = 'Dashboard';
+    public function getTitle(): string
+    {
+        return __('dashboard.title');
+    }
 
     /**
      * @return array<class-string<Widget> | WidgetConfiguration>

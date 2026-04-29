@@ -4,7 +4,7 @@
     @endphp
 
     <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-        Estos son los empleados configurados para tu cliente.
+        {{ __('employees.intro_read_only') }}
     </p>
 
     @if ($employees->isEmpty())
@@ -14,17 +14,17 @@
                     <x-filament::icon icon="heroicon-o-user-group" class="h-6 w-6 text-gray-500 dark:text-gray-400" />
                 </div>
                 <h3 class="fi-ta-empty-state-heading text-base font-semibold leading-6 text-gray-950 dark:text-white">
-                    No hay empleados
+                    {{ __('employees.empty.heading') }}
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    No hay empleados configurados para este cliente.
+                    {{ __('employees.empty.read_only') }}
                 </p>
             </div>
         </x-filament::section>
     @else
         <div class="space-y-4">
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Empleados ({{ $employees->count() }})
+                {{ __('employees.count', ['count' => $employees->count()]) }}
             </p>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($employees as $employee)

@@ -26,7 +26,7 @@ class CreateDistributor extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Nuevo Distribuidor';
+        return __('panel.distributors.create_title');
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -89,8 +89,8 @@ class CreateDistributor extends CreateRecord
 
         Notification::make()
             ->success()
-            ->title('Distribuidor creado')
-            ->body('El distribuidor y el usuario administrador han sido creados.')
+            ->title(__('panel.distributors.notifications.created_title'))
+            ->body(__('panel.distributors.notifications.created_body'))
             ->send();
     }
 
@@ -102,8 +102,8 @@ class CreateDistributor extends CreateRecord
     protected function getFormActions(): array
     {
         return [
-            $this->getCreateFormAction()->label('Crear'),
-            $this->getCancelFormAction()->label('Cancelar'),
+            $this->getCreateFormAction()->label(__('common.actions.create')),
+            $this->getCancelFormAction()->label(__('common.actions.cancel')),
         ];
     }
 

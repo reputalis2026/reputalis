@@ -3,6 +3,7 @@
 use App\Http\Controllers\PulseController;
 use App\Http\Controllers\SurveyController;
 use App\Models\User;
+use App\Support\PanelLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,15 @@ Route::get('/survey/{client_code}/sw.js', [SurveyController::class, 'sw'])->name
 Route::get('/survey/{client_code}', [SurveyController::class, 'show'])->name('survey.client');
 Route::get('/manifest/{client_code}.json', [SurveyController::class, 'manifest'])->name('survey.manifest');
 
+Route::get('/admin/language/{locale}', function (Request $request, string $locale) {
+    abort_unless(array_key_exists($locale, PanelLocale::supported()), 404);
+
+    $request->session()->put(PanelLocale::SESSION_KEY, $locale);
+    app()->setLocale($locale);
+
+    return redirect()->back(fallback: url('/admin'));
+})->middleware(['web', 'auth'])->name('panel.language.switch');
+
 /*
  * Ruta POST para el login del panel Filament.
  * El formulario de Filament usa method="post"; si el envío no es interceptado por
@@ -54,8 +64,8 @@ Route::post('/admin/login', function (Request $request) {
         'email' => ['required', 'string', 'max:255'],
         'password' => ['required', 'string'],
     ], [
-        'email.required' => 'El usuario o correo es obligatorio.',
-        'password.required' => 'La contraseña es obligatoria.',
+        'email.required' => __('panel.auth.validation.identifier_required'),
+        'password.required' => __('panel.auth.validation.password_required'),
     ])->validate();
 
     $user = User::findByIdentifier($validated['email']);

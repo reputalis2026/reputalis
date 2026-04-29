@@ -11,7 +11,7 @@ class CreateNfcToken extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Nuevo token NFC';
+        return __('panel.nfc_tokens.create_title');
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

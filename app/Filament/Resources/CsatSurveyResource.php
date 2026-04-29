@@ -18,13 +18,25 @@ class CsatSurveyResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationLabel = 'Encuestas CSAT';
+    public static function getNavigationLabel(): string
+    {
+        return __('survey.resource.navigation_label');
+    }
 
-    protected static ?string $modelLabel = 'Encuesta CSAT';
+    public static function getModelLabel(): string
+    {
+        return __('survey.resource.model_label');
+    }
 
-    protected static ?string $pluralModelLabel = 'Encuestas CSAT';
+    public static function getPluralModelLabel(): string
+    {
+        return __('survey.resource.plural_model_label');
+    }
 
-    protected static ?string $navigationGroup = 'Encuestas';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('survey.resource.navigation_group');
+    }
 
     public static function table(Table $table): Table
     {
@@ -32,22 +44,22 @@ class CsatSurveyResource extends Resource
         $isSuperAdmin = $user?->isSuperAdmin() ?? false;
 
         return $table
-            ->emptyStateHeading('No hay encuestas')
-            ->emptyStateDescription('Las encuestas enviadas desde los dispositivos aparecerán aquí.')
+            ->emptyStateHeading(__('survey.resource.empty_heading'))
+            ->emptyStateDescription(__('survey.resource.empty_description'))
             ->emptyStateIcon('heroicon-o-clipboard-document-list')
             ->columns([
                 Tables\Columns\TextColumn::make('client.namecommercial')
-                    ->label('Cliente')
-                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : '-')
+                    ->label(__('common.fields.client'))
+                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : __('common.placeholders.empty'))
                     ->searchable(['clients.namecommercial', 'clients.code'])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('employee.name')
-                    ->label('Empleado')
-                    ->placeholder('Sin asignar')
+                    ->label(__('common.fields.employee'))
+                    ->placeholder(__('survey.resource.unassigned_employee'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('score')
-                    ->label('Puntuación')
+                    ->label(__('common.fields.score'))
                     ->badge()
                     ->color(fn ($state) => match (true) {
                         $state >= 4 => 'success',
@@ -56,37 +68,37 @@ class CsatSurveyResource extends Resource
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('improvementReason.code')
-                    ->label('Motivo mejora')
+                    ->label(__('survey.resource.improvement_reason_short'))
                     ->state(function ($record) {
                         return $record->improvementOption?->labelForLocale($record->locale_used)
                             ?? $record->improvementReason?->code
-                            ?? 'Sin motivo';
+                            ?? __('survey.resource.no_reason');
                     })
                     ->wrap()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('locale_used')
-                    ->label('Idioma')
-                    ->placeholder('-')
+                    ->label(__('common.fields.language'))
+                    ->placeholder(__('common.placeholders.empty'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('device_hash')
-                    ->label('Dispositivo')
-                    ->formatStateUsing(fn ($state) => $state ? substr($state, 0, 8) : '-')
+                    ->label(__('common.fields.device'))
+                    ->formatStateUsing(fn ($state) => $state ? substr($state, 0, 8) : __('common.placeholders.empty'))
                     ->copyable()
-                    ->copyMessage('Copiado')
-                    ->placeholder('-'),
+                    ->copyMessage(__('common.messages.copied'))
+                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Fecha')
+                    ->label(__('common.fields.date'))
                     ->dateTime('d/m/Y H:i')
                     ->timezone('Europe/Madrid')
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('score')
-                    ->label('Puntuación')
+                    ->label(__('common.fields.score'))
                     ->options([
-                        '1-2' => '1–2 (bajo)',
-                        '3' => '3 (neutral)',
-                        '4-5' => '4–5 (alto)',
+                        '1-2' => __('survey.resource.filters.low'),
+                        '3' => __('survey.resource.filters.neutral'),
+                        '4-5' => __('survey.resource.filters.high'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         $value = $data['value'] ?? null;
@@ -104,9 +116,9 @@ class CsatSurveyResource extends Resource
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('created_from')
-                            ->label('Desde'),
+                            ->label(__('survey.resource.filters.from')),
                         \Filament\Forms\Components\DatePicker::make('created_until')
-                            ->label('Hasta'),
+                            ->label(__('survey.resource.filters.until')),
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
@@ -115,7 +127,7 @@ class CsatSurveyResource extends Resource
                     }),
                 ...($isSuperAdmin ? [
                     Tables\Filters\SelectFilter::make('client_id')
-                        ->label('Cliente')
+                        ->label(__('common.fields.client'))
                         ->relationship('client', 'namecommercial')
                         ->searchable()
                         ->preload()
@@ -123,7 +135,7 @@ class CsatSurveyResource extends Resource
                 ] : []),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Ver'),
+                Tables\Actions\ViewAction::make()->label(__('common.actions.view')),
             ])
             ->bulkActions([]);
     }
@@ -132,10 +144,10 @@ class CsatSurveyResource extends Resource
     {
         return $infolist
             ->schema([
-                InfolistSection::make('Encuesta')
+                InfolistSection::make(__('survey.resource.section'))
                     ->schema([
                         TextEntry::make('score')
-                            ->label('Puntuación')
+                            ->label(__('common.fields.score'))
                             ->badge()
                             ->color(fn ($state) => match (true) {
                                 $state >= 4 => 'success',
@@ -144,25 +156,25 @@ class CsatSurveyResource extends Resource
                             })
                             ->size('lg'),
                         TextEntry::make('client')
-                            ->label('Cliente')
-                            ->formatStateUsing(fn ($state) => $state ? $state->namecommercial.' ('.$state->code.')' : '-'),
+                            ->label(__('common.fields.client'))
+                            ->formatStateUsing(fn ($state) => $state ? $state->namecommercial.' ('.$state->code.')' : __('common.placeholders.empty')),
                         TextEntry::make('employee.name')
-                            ->label('Empleado')
-                            ->placeholder('Sin asignar'),
+                            ->label(__('common.fields.employee'))
+                            ->placeholder(__('survey.resource.unassigned_employee')),
                         TextEntry::make('improvementReason')
-                            ->label('Motivo de mejora')
+                            ->label(__('survey.resource.improvement_reason'))
                             ->formatStateUsing(fn ($state, $record) => $record->improvementOption?->labelForLocale($record->locale_used)
                                 ?? $record->improvementReason?->code
-                                ?? 'Sin motivo'),
+                                ?? __('survey.resource.no_reason')),
                         TextEntry::make('locale_used')
-                            ->label('Idioma')
-                            ->placeholder('-'),
+                            ->label(__('common.fields.language'))
+                            ->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('device_hash')
-                            ->label('Hash dispositivo')
+                            ->label(__('survey.resource.device_hash'))
                             ->copyable()
-                            ->placeholder('-'),
+                            ->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('created_at')
-                            ->label('Fecha y hora')
+                            ->label(__('common.fields.date_time'))
                             ->dateTime('d/m/Y H:i')
                             ->timezone('Europe/Madrid'),
                     ]),

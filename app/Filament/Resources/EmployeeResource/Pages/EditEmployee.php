@@ -14,13 +14,13 @@ class EditEmployee extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Editar Empleado';
+        return __('employees.title.edit');
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make()->label('Ver'),
+            Actions\ViewAction::make()->label(__('common.actions.view')),
         ];
     }
 

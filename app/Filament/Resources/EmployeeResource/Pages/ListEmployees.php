@@ -18,14 +18,14 @@ class ListEmployees extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Empleados';
+        return __('employees.navigation_label');
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\CreateAction::make()
-                ->label('Nuevo Empleado'),
+                ->label(__('employees.title.create')),
         ];
     }
 

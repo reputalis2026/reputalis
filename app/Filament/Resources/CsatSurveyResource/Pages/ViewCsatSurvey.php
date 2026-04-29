@@ -11,7 +11,7 @@ class ViewCsatSurvey extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Ver encuesta CSAT';
+        return __('survey.resource.view_title');
     }
 
     protected function getRedirectUrl(): string

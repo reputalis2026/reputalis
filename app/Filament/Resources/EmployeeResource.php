@@ -18,11 +18,20 @@ class EmployeeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationLabel = 'Empleados';
+    public static function getNavigationLabel(): string
+    {
+        return __('employees.navigation_label');
+    }
 
-    protected static ?string $modelLabel = 'Empleado';
+    public static function getModelLabel(): string
+    {
+        return __('employees.resource.model_label');
+    }
 
-    protected static ?string $pluralModelLabel = 'Empleados';
+    public static function getPluralModelLabel(): string
+    {
+        return __('employees.resource.plural_model_label');
+    }
 
     public static function form(Form $form): Form
     {
@@ -33,25 +42,25 @@ class EmployeeResource extends Resource
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Datos del empleado')
+                Forms\Components\Section::make(__('employees.form.section_data'))
                     ->schema([
                         Forms\Components\Hidden::make('client_id')
                             ->default(fn () => request()->query('client_id'))
                             ->required(),
                         Forms\Components\Placeholder::make('client_display')
-                            ->label('Nombre del cliente')
-                            ->content(fn ($get): string => (string) (\App\Models\Client::find($get('client_id'))?->namecommercial ?? '—'))
+                            ->label(__('employees.form.client_name'))
+                            ->content(fn ($get): string => (string) (\App\Models\Client::find($get('client_id'))?->namecommercial ?? __('common.placeholders.empty')))
                             ->visible(fn ($get): bool => filled($get('client_id'))),
                         Forms\Components\TextInput::make('name')
-                            ->label('Nombre')
+                            ->label(__('employees.form.name'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('alias')
-                            ->label('Alias / identificador')
+                            ->label(__('employees.form.alias'))
                             ->maxLength(100)
-                            ->helperText('Identificador corto para usar en encuestas o como código.'),
+                            ->helperText(__('employees.form.alias_help')),
                         Forms\Components\FileUpload::make('photo')
-                            ->label('Foto')
+                            ->label(__('employees.form.photo'))
                             ->image()
                             ->disk('public')
                             ->directory('employees')
@@ -61,30 +70,30 @@ class EmployeeResource extends Resource
                             ->imagePreviewHeight(120)
                             ->maxSize(1024),
                         Forms\Components\TextInput::make('position')
-                            ->label('Puesto')
+                            ->label(__('employees.form.position'))
                             ->maxLength(255)
                             ->nullable(),
                         Forms\Components\Toggle::make('is_active')
-                            ->label('Activo')
+                            ->label(__('employees.form.active'))
                             ->default(true),
                     ]),
-                Forms\Components\Section::make('Token NFC')
+                Forms\Components\Section::make(__('employees.form.section_nfc'))
                     ->icon('heroicon-o-credit-card')
-                    ->description('Token NFC 1–1 por empleado. No editable.')
+                    ->description(__('employees.form.section_nfc_description'))
                     ->schema([
                         Forms\Components\TextInput::make('nfc_token')
-                            ->label('Token NFC')
+                            ->label(__('employees.form.nfc_token'))
                             ->disabled()
                             ->dehydrated(false)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
                                 if ($record?->nfcTokens?->token) {
                                     $component->state($record->nfcTokens->token);
                                 } else {
-                                    $component->state('Se generará al guardar');
+                                    $component->state(__('employees.form.nfc_generated_on_save'));
                                 }
                             }),
                         Forms\Components\TextInput::make('nfc_survey_url')
-                            ->label('Copiar enlace de encuesta')
+                            ->label(__('employees.form.nfc_survey_url'))
                             ->disabled()
                             ->dehydrated(false)
                             // En esta versión de Filament no existe TextInput::copyable().
@@ -93,7 +102,7 @@ class EmployeeResource extends Resource
                                 if ($record?->nfcTokens?->token) {
                                     $component->state(url('/survey/nfc/'.$record->nfcTokens->token));
                                 } else {
-                                    $component->state('—');
+                                    $component->state(__('common.placeholders.empty'));
                                 }
                             }),
                         Forms\Components\Placeholder::make('copy_nfc_survey_url')
@@ -111,7 +120,7 @@ class EmployeeResource extends Resource
                                 $onclick = '(async () => {'.
                                     'try {'.
                                         'await navigator.clipboard.writeText('.$urlJsLiteral.');'.
-                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));'.
+                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.actions.link_copied')).'\', status: \'success\' } } }));'.
                                     '} catch (e) {'.
                                         'const ta = document.createElement(\'textarea\');'.
                                         'ta.value = '.$urlJsLiteral.';'.
@@ -123,9 +132,9 @@ class EmployeeResource extends Resource
                                         'const ok = document.execCommand(\'copy\');'.
                                         'document.body.removeChild(ta);'.
                                         'if (ok) {'.
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'Enlace de encuesta copiado\', status: \'success\' } } }));'.
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.actions.link_copied')).'\', status: \'success\' } } }));'.
                                         '} else {'.
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \'No se pudo copiar\', status: \'danger\' } } }));'.
+                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.form.copy_failed')).'\', status: \'danger\' } } }));'.
                                         '}'.
                                     '}'.
                                 '})()';
@@ -133,7 +142,7 @@ class EmployeeResource extends Resource
                                 return new \Illuminate\Support\HtmlString(
                                     '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined '.
                                     'onclick="'.$onclick.'"'.
-                                    '>Copiar enlace</x-filament::button>'
+                                    '>'.__('common.actions.copy_link').'</x-filament::button>'
                                 );
                             }),
                     ])
@@ -163,40 +172,40 @@ class EmployeeResource extends Resource
         $isSuperAdmin = $user?->isSuperAdmin() ?? false;
 
         return $table
-            ->emptyStateHeading('No hay empleados')
-            ->emptyStateDescription('Añade el primer empleado para comenzar.')
+            ->emptyStateHeading(__('employees.table.empty_heading'))
+            ->emptyStateDescription(__('employees.table.empty_description'))
             ->emptyStateIcon('heroicon-o-user-group')
             ->columns([
                 Tables\Columns\TextColumn::make('client.namecommercial')
-                    ->label('Cliente')
-                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : '-')
+                    ->label(__('common.fields.client'))
+                    ->formatStateUsing(fn ($record) => $record->client ? $record->client->namecommercial.' ('.$record->client->code.')' : __('common.placeholders.empty'))
                     ->searchable(['clients.namecommercial', 'clients.code'])
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\ImageColumn::make('photo')
-                    ->label('Foto')
+                    ->label(__('common.fields.photo'))
                     ->disk('public')
                     ->circular()
                     ->toggleable(isToggledHiddenByDefault: false),
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nombre')
+                    ->label(__('common.fields.name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('alias')
-                    ->label('Alias')
+                    ->label(__('common.fields.alias'))
                     ->searchable()
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\TextColumn::make('position')
-                    ->label('Puesto')
+                    ->label(__('common.fields.position'))
                     ->searchable()
                     ->sortable()
-                    ->placeholder('-'),
+                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\ToggleColumn::make('is_active')
-                    ->label('Activo')
+                    ->label(__('common.fields.active'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Creado')
+                    ->label(__('common.fields.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -205,7 +214,7 @@ class EmployeeResource extends Resource
                 $isSuperAdmin
                     ? [
                         Tables\Filters\SelectFilter::make('client_id')
-                            ->label('Cliente')
+                            ->label(__('common.fields.client'))
                             ->relationship('client', 'namecommercial')
                             ->searchable()
                             ->preload()
@@ -214,20 +223,20 @@ class EmployeeResource extends Resource
                     : []
             )
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Ver'),
-                Tables\Actions\EditAction::make()->label('Editar'),
+                Tables\Actions\ViewAction::make()->label(__('common.actions.view')),
+                Tables\Actions\EditAction::make()->label(__('common.actions.edit')),
             ])
             ->bulkActions(
                 $isSuperAdmin
                     ? [
                         Tables\Actions\BulkActionGroup::make([
                             Tables\Actions\DeleteBulkAction::make()
-                                ->label('Eliminar seleccionados')
+                                ->label(__('common.actions.delete_selected'))
                                 ->requiresConfirmation()
-                                ->modalHeading('Eliminar empleados seleccionados')
-                                ->modalDescription('¿Estás seguro de que deseas eliminar estos empleados? Esta acción no se puede deshacer.')
-                                ->modalSubmitActionLabel('Eliminar')
-                                ->modalCancelActionLabel('Cancelar'),
+                                ->modalHeading(__('employees.table.delete_selected_heading'))
+                                ->modalDescription(__('employees.table.delete_selected_description'))
+                                ->modalSubmitActionLabel(__('common.actions.delete'))
+                                ->modalCancelActionLabel(__('common.actions.cancel')),
                         ]),
                     ]
                     : []

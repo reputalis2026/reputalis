@@ -13,14 +13,14 @@ class ListNfcTokens extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Tokens NFC';
+        return __('panel.nfc_tokens.navigation_label');
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\CreateAction::make()
-                ->label('Nuevo token NFC'),
+                ->label(__('panel.nfc_tokens.create_title')),
         ];
     }
 

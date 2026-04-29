@@ -12,7 +12,7 @@ class ListCsatSurveys extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Encuestas CSAT';
+        return __('survey.resource.navigation_label');
     }
 
     protected function getTableQuery(): Builder

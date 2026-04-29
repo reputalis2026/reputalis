@@ -35,7 +35,7 @@ class CreateClient extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Nuevo Cliente';
+        return __('client.pages.create_title');
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -110,8 +110,8 @@ class CreateClient extends CreateRecord
 
         Notification::make()
             ->success()
-            ->title('Cliente creado')
-            ->body('El cliente y el usuario administrador han sido creados exitosamente.')
+            ->title(__('client.notifications.created_title'))
+            ->body(__('client.notifications.created_body'))
             ->send();
     }
 
@@ -175,9 +175,9 @@ class CreateClient extends CreateRecord
     {
         return [
             $this->getCreateFormAction()
-                ->label('Crear'),
+                ->label(__('common.actions.create')),
             $this->getCancelFormAction()
-                ->label('Cancelar'),
+                ->label(__('common.actions.cancel')),
         ];
     }
 

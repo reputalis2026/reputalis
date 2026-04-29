@@ -25,9 +25,10 @@ class PuntosDeMejora extends Page
 
     protected static string $view = 'filament.resources.client-resource.pages.puntos-de-mejora';
 
-    protected static ?string $title = 'Encuesta';
-
-    protected static ?string $navigationLabel = 'Encuesta';
+    public static function getNavigationLabel(): string
+    {
+        return __('client.menu.survey');
+    }
 
     /**
      * @var array<string, mixed>|null
@@ -158,36 +159,36 @@ class PuntosDeMejora extends Page
 
         return $form
             ->schema([
-                \Filament\Forms\Components\Section::make('Encuesta')
+                \Filament\Forms\Components\Section::make(__('client.menu.survey'))
                     ->description($readOnly
-                        ? 'Modo de puntuación, título y respuestas que verá el usuario (solo lectura).'
-                        : 'Escala visual de la encuesta (1–5), título y respuestas cuando la puntuación sea baja (1–3). Mínimo 2 respuestas.')
+                        ? __('client.survey.read_only_description')
+                        : __('client.survey.edit_description'))
                     ->schema([
                         \Filament\Forms\Components\Radio::make('display_mode')
-                            ->label('Modo de puntuación en la encuesta')
+                            ->label(__('client.survey.display_mode_form'))
                             ->options([
-                                ClientImprovementConfig::DISPLAY_MODE_NUMBERS => 'Números',
-                                ClientImprovementConfig::DISPLAY_MODE_FACES => 'Caritas',
+                                ClientImprovementConfig::DISPLAY_MODE_NUMBERS => __('client.survey.display_modes.numbers'),
+                                ClientImprovementConfig::DISPLAY_MODE_FACES => __('client.survey.display_modes.faces'),
                             ])
                             ->default(ClientImprovementConfig::DISPLAY_MODE_NUMBERS)
                             ->required()
                             ->disabled($readOnly),
                         \Filament\Forms\Components\Select::make('default_locale')
-                            ->label('Idioma por defecto de la encuesta pública')
+                            ->label(__('client.survey.default_public_locale'))
                             ->options([
-                                'es' => 'Español',
-                                'pt' => 'Portugués',
-                                'en' => 'Inglés',
+                                'es' => __('survey.language_names.es'),
+                                'pt' => __('survey.language_names.pt'),
+                                'en' => __('survey.language_names.en'),
                             ])
                             ->native(false)
                             ->default(ClientImprovementConfig::DEFAULT_LOCALE)
                             ->required()
                             ->disabled($readOnly),
-                        \Filament\Forms\Components\Section::make('Valoraciones positivas')
-                            ->description('Las valoraciones no marcadas irán al punto de mejora.')
+                        \Filament\Forms\Components\Section::make(__('client.survey.positive_scores'))
+                            ->description(__('client.survey.positive_scores_help'))
                             ->schema([
                                 \Filament\Forms\Components\CheckboxList::make('positive_scores')
-                                    ->label('Marca las valoraciones positivas')
+                                    ->label(__('client.survey.positive_scores_label'))
                                     ->options([
                                         1 => '1',
                                         2 => '2',
@@ -201,14 +202,14 @@ class PuntosDeMejora extends Page
                                     ->required()
                                     ->disabled($readOnly),
                             ]),
-                        \Filament\Forms\Components\Section::make('Pregunta principal de la encuesta')
+                        \Filament\Forms\Components\Section::make(__('client.survey.main_question_section'))
                             ->schema($this->localizedTextInputs('survey_question_text', [
                                 'es' => '¿Cómo le hemos atendido hoy?',
                                 'pt' => 'Como fomos no seu atendimento hoje?',
                                 'en' => 'How was your experience today?',
                             ], $readOnly))
                             ->columns(3),
-                        \Filament\Forms\Components\Section::make('Título del bloque (pregunta de mejora)')
+                        \Filament\Forms\Components\Section::make(__('client.survey.block_title_section'))
                             ->schema($this->localizedTextInputs('title', [
                                 'es' => '¿En qué podemos mejorar?',
                                 'pt' => 'Em que podemos melhorar?',
@@ -216,27 +217,27 @@ class PuntosDeMejora extends Page
                             ], $readOnly))
                             ->columns(3),
                         \Filament\Forms\Components\Repeater::make('options')
-                            ->label('Respuestas / opciones')
+                            ->label(__('client.survey.answers_options'))
                             ->schema([
                                 \Filament\Forms\Components\TextInput::make('label_es')
-                                    ->label('Español')
+                                    ->label(__('survey.language_names.es'))
                                     ->required()
                                     ->maxLength(255)
                                     ->disabled($readOnly),
                                 \Filament\Forms\Components\TextInput::make('label_pt')
-                                    ->label('Portugués')
+                                    ->label(__('survey.language_names.pt'))
                                     ->required()
                                     ->maxLength(255)
                                     ->disabled($readOnly),
                                 \Filament\Forms\Components\TextInput::make('label_en')
-                                    ->label('Inglés')
+                                    ->label(__('survey.language_names.en'))
                                     ->required()
                                     ->maxLength(255)
                                     ->disabled($readOnly),
                             ])
                             ->columns(3)
                             ->defaultItems(0)
-                            ->addActionLabel('Añadir respuesta')
+                            ->addActionLabel(__('client.survey.add_answer'))
                             ->minItems(2)
                             ->addable(! $readOnly)
                             ->deletable(! $readOnly)
@@ -257,19 +258,19 @@ class PuntosDeMejora extends Page
     {
         return [
             \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_es")
-                ->label('Español')
+                ->label(__('survey.language_names.es'))
                 ->required()
                 ->maxLength(255)
                 ->placeholder($placeholders['es'])
                 ->disabled($readOnly),
             \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_pt")
-                ->label('Portugués')
+                ->label(__('survey.language_names.pt'))
                 ->required()
                 ->maxLength(255)
                 ->placeholder($placeholders['pt'])
                 ->disabled($readOnly),
             \Filament\Forms\Components\TextInput::make("{$fieldPrefix}_en")
-                ->label('Inglés')
+                ->label(__('survey.language_names.en'))
                 ->required()
                 ->maxLength(255)
                 ->placeholder($placeholders['en'])
@@ -293,21 +294,21 @@ class PuntosDeMejora extends Page
         if (! ClientImprovementConfig::positiveScoresAreValid($positiveScores)) {
             Notification::make()
                 ->danger()
-                ->title('Configura un bloque final de valoraciones positivas')
-                ->body('Debe haber al menos una valoración positiva, no pueden ser las cinco y deben ser consecutivas hasta 5. Ejemplos válidos: 5, 4-5, 3-5.')
+                ->title(__('client.survey.validation.positive_scores_title'))
+                ->body(__('client.survey.validation.positive_scores_body'))
                 ->send();
 
             return;
         }
 
         if (! $this->allLocalizedValuesFilled($surveyQuestionTexts)) {
-            Notification::make()->danger()->title('La pregunta principal debe estar completa en todos los idiomas')->send();
+            Notification::make()->danger()->title(__('client.survey.validation.main_question_complete'))->send();
 
             return;
         }
 
         if (! $this->allLocalizedValuesFilled($titles)) {
-            Notification::make()->danger()->title('El título del bloque debe estar completo en todos los idiomas')->send();
+            Notification::make()->danger()->title(__('client.survey.validation.block_title_complete'))->send();
 
             return;
         }
@@ -315,14 +316,14 @@ class PuntosDeMejora extends Page
         $labels = array_values(array_map(fn (array $option): array => $this->trimLocalizedState($option, 'label'), $optionsData));
 
         if (count($labels) < 2) {
-            Notification::make()->danger()->title('Mínimo 2 respuestas')->send();
+            Notification::make()->danger()->title(__('client.survey.validation.min_answers'))->send();
 
             return;
         }
 
         foreach ($labels as $label) {
             if (! $this->allLocalizedValuesFilled($label)) {
-                Notification::make()->danger()->title('Todas las respuestas deben estar completas en todos los idiomas')->send();
+                Notification::make()->danger()->title(__('client.survey.validation.answers_complete'))->send();
 
                 return;
             }
@@ -364,7 +365,7 @@ class PuntosDeMejora extends Page
 
         Notification::make()
             ->success()
-            ->title('Encuesta guardada')
+            ->title(__('client.survey.saved'))
             ->send();
     }
 
@@ -396,7 +397,7 @@ class PuntosDeMejora extends Page
 
         return [
             \Filament\Actions\Action::make('save')
-                ->label('Guardar')
+                ->label(__('common.actions.save'))
                 ->submit('save'),
         ];
     }
@@ -405,10 +406,10 @@ class PuntosDeMejora extends Page
     {
         $user = auth()->user();
         if ($user?->isClientOwner()) {
-            return 'Tu encuesta';
+            return __('client.survey.title.own');
         }
 
-        return 'Encuesta: '.$this->getRecord()->namecommercial;
+        return __('client.survey.title.record', ['client' => $this->getRecord()->namecommercial]);
     }
 
     /**
@@ -439,7 +440,9 @@ class PuntosDeMejora extends Page
                 'pt' => $config?->title_pt ?: $defaultTitles['pt'],
                 'en' => $config?->title_en ?: $defaultTitles['en'],
             ],
-            'display_mode_label' => $mode === ClientImprovementConfig::DISPLAY_MODE_FACES ? 'Caritas' : 'Números',
+            'display_mode_label' => $mode === ClientImprovementConfig::DISPLAY_MODE_FACES
+                ? __('client.survey.display_modes.faces')
+                : __('client.survey.display_modes.numbers'),
             'options' => $options->map(fn (ClientImprovementOption $option): array => [
                 'es' => $option->label_es ?: $option->label,
                 'pt' => $option->label_pt ?: ($option->label_es ?: $option->label),
@@ -450,7 +453,7 @@ class PuntosDeMejora extends Page
 
     public function getBreadcrumb(): string
     {
-        return 'Encuesta';
+        return __('client.survey.breadcrumb');
     }
 
     public function getFormStatePath(): ?string

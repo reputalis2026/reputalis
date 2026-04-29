@@ -12,14 +12,14 @@ class ListSectors extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Ajustes - Sectores';
+        return __('panel.sectors.list_title');
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\CreateAction::make()
-                ->label('Añadir sector'),
+                ->label(__('panel.sectors.add')),
         ];
     }
 }

@@ -19,7 +19,7 @@ class EditDistributor extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Editar Distribuidor';
+        return __('panel.distributors.edit_title');
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -84,8 +84,8 @@ class EditDistributor extends EditRecord
     {
         Notification::make()
             ->success()
-            ->title('Distribuidor actualizado')
-            ->body('El distribuidor y los datos del propietario han sido actualizados exitosamente.')
+            ->title(__('panel.distributors.notifications.updated_title'))
+            ->body(__('panel.distributors.notifications.updated_body'))
             ->send();
     }
 
@@ -97,17 +97,17 @@ class EditDistributor extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make()->label('Ver'),
+            Actions\ViewAction::make()->label(__('common.actions.view')),
             Actions\DeleteAction::make()
-                ->label('Eliminar')
+                ->label(__('common.actions.delete'))
                 ->requiresConfirmation()
-                ->modalHeading('Eliminar distribuidor')
-                ->modalDescription('¿Estás seguro de que deseas eliminar este distribuidor? Esta acción no se puede deshacer.')
-                ->modalSubmitActionLabel('Eliminar')
-                ->modalCancelActionLabel('Cancelar')
+                ->modalHeading(__('panel.distributors.delete'))
+                ->modalDescription(__('panel.distributors.delete_confirm'))
+                ->modalSubmitActionLabel(__('common.actions.delete'))
+                ->modalCancelActionLabel(__('common.actions.cancel'))
                 ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
                 ->disabled(fn ($record) => $record->is_active)
-                ->tooltip(fn ($record) => $record->is_active ? 'Desactiva primero' : null),
+                ->tooltip(fn ($record) => $record->is_active ? __('panel.distributors.active_tooltip') : null),
         ];
     }
 }

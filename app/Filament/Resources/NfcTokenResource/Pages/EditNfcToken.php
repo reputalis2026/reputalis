@@ -11,7 +11,7 @@ class EditNfcToken extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Editar token NFC';
+        return __('panel.nfc_tokens.edit_title');
     }
 
     protected function getRedirectUrl(): string

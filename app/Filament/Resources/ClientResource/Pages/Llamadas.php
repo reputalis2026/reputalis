@@ -28,7 +28,10 @@ class Llamadas extends Page implements HasTable
 
     protected static string $view = 'filament.resources.client-resource.pages.llamadas';
 
-    protected static ?string $navigationLabel = 'Llamadas';
+    public static function getNavigationLabel(): string
+    {
+        return __('client.menu.calls');
+    }
 
     public function mount(int|string $record): void
     {
@@ -97,12 +100,12 @@ class Llamadas extends Page implements HasTable
         /** @var Client $client */
         $client = $this->getRecord();
 
-        return 'Llamadas';
+        return __('client.calls.title');
     }
 
     public function getBreadcrumb(): string
     {
-        return 'Llamadas';
+        return __('client.calls.title');
     }
 
     public static function shouldRegisterNavigation(array $parameters = []): bool
@@ -136,12 +139,12 @@ class Llamadas extends Page implements HasTable
 
         return [
             HeaderAction::make('registrar_llamada')
-                ->label('Registrar llamada de hoy')
+                ->label(__('client.calls.register_today'))
                 ->icon('heroicon-o-phone-arrow-up-right')
-                ->modalHeading('Observaciones de la llamada')
+                ->modalHeading(__('client.calls.register_heading'))
                 ->form([
                     Textarea::make('notes')
-                        ->label('Notas')
+                        ->label(__('client.calls.notes'))
                         ->rows(5)
                         ->nullable(),
                 ])
@@ -164,17 +167,17 @@ class Llamadas extends Page implements HasTable
 
                     Notification::make()
                         ->success()
-                        ->title('Llamada registrada')
+                        ->title(__('client.calls.registered'))
                         ->send();
                 }),
 
             HeaderAction::make('programar_proxima_llamada')
-                ->label('Programar próxima llamada')
+                ->label(__('client.calls.schedule_next'))
                 ->icon('heroicon-o-calendar-days')
-                ->modalHeading('Programar próxima llamada')
+                ->modalHeading(__('client.calls.schedule_heading'))
                 ->form([
                     DateTimePicker::make('next_call_at')
-                        ->label('Fecha y hora')
+                        ->label(__('client.calls.date_time'))
                         ->required()
                         ->default(fn () => $this->getRecord()->next_call_at ?? now()->addDays(30)),
                 ])
@@ -187,7 +190,7 @@ class Llamadas extends Page implements HasTable
 
                     Notification::make()
                         ->success()
-                        ->title('Próxima llamada programada')
+                        ->title(__('client.calls.next_scheduled'))
                         ->send();
                 }),
         ];
@@ -209,23 +212,23 @@ class Llamadas extends Page implements HasTable
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
                 TextColumn::make('called_at')
-                    ->label('Fecha')
+                    ->label(__('common.fields.date'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
                 TextColumn::make('notes')
-                    ->label('Observaciones')
+                    ->label(__('client.calls.observations'))
                     ->wrap()
                     ->limit(80)
-                    ->placeholder('—'),
+                    ->placeholder(__('common.placeholders.empty')),
             ])
             ->actions([
                 Action::make('editar_notas')
-                    ->label('Editar notas')
+                    ->label(__('client.calls.edit_notes'))
                     ->icon('heroicon-o-pencil-square')
-                    ->modalHeading('Editar observaciones de la llamada')
+                    ->modalHeading(__('client.calls.edit_notes_heading'))
                     ->form([
                         Textarea::make('notes')
-                            ->label('Observaciones')
+                            ->label(__('client.calls.observations'))
                             ->rows(5)
                             ->default(fn (ClientCall $record) => $record->notes),
                     ])
@@ -235,12 +238,12 @@ class Llamadas extends Page implements HasTable
 
                         Notification::make()
                             ->success()
-                            ->title('Notas actualizadas')
+                            ->title(__('client.calls.notes_updated'))
                             ->send();
                     }),
             ])
-            ->emptyStateHeading('Sin llamadas registradas')
-            ->emptyStateDescription('Registra tu primera llamada para ver el historial aquí.')
+            ->emptyStateHeading(__('client.calls.empty_heading'))
+            ->emptyStateDescription(__('client.calls.empty_description'))
             ->emptyStateIcon('heroicon-o-phone-arrow-up-right');
     }
 

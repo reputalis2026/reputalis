@@ -12,14 +12,14 @@ class ListDistributors extends ListRecords
 
     public function getTitle(): string
     {
-        return 'Distribuidores';
+        return __('panel.distributors.navigation_label');
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\CreateAction::make()
-                ->label('Crear distribuidor')
+                ->label(__('panel.distributors.create_action'))
                 ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false),
         ];
     }
@@ -31,11 +31,11 @@ class ListDistributors extends ListRecords
 
     public function getTableEmptyStateHeading(): ?string
     {
-        return 'No hay distribuidores';
+        return __('panel.distributors.empty_heading');
     }
 
     public function getTableEmptyStateDescription(): ?string
     {
-        return 'Crea tu primer distribuidor para comenzar.';
+        return __('panel.distributors.empty_description');
     }
 }

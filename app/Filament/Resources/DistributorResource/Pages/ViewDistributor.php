@@ -21,25 +21,25 @@ class ViewDistributor extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Ver Distribuidor';
+        return __('panel.distributors.view_title');
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\EditAction::make()
-                ->label('Ir a Editar')
+                ->label(__('common.actions.go_to_edit'))
                 ->url(fn () => DistributorResource::getUrl('edit', ['record' => $this->record])),
             Actions\DeleteAction::make()
-                ->label('Eliminar')
+                ->label(__('common.actions.delete'))
                 ->requiresConfirmation()
-                ->modalHeading('Eliminar distribuidor')
-                ->modalDescription('¿Estás seguro de que deseas eliminar este distribuidor? Esta acción no se puede deshacer.')
-                ->modalSubmitActionLabel('Eliminar')
-                ->modalCancelActionLabel('Cancelar')
+                ->modalHeading(__('panel.distributors.delete'))
+                ->modalDescription(__('panel.distributors.delete_confirm'))
+                ->modalSubmitActionLabel(__('common.actions.delete'))
+                ->modalCancelActionLabel(__('common.actions.cancel'))
                 ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
                 ->disabled(fn ($record) => $record->is_active)
-                ->tooltip(fn ($record) => $record->is_active ? 'Desactiva primero' : null),
+                ->tooltip(fn ($record) => $record->is_active ? __('panel.distributors.active_tooltip') : null),
         ];
     }
 }

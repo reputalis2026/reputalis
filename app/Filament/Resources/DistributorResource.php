@@ -21,13 +21,22 @@ class DistributorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationLabel = 'Distribuidores';
-
-    protected static ?string $modelLabel = 'Distribuidor';
-
-    protected static ?string $pluralModelLabel = 'Distribuidores';
-
     protected static ?string $slug = 'distribuidores';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('panel.distributors.navigation_label');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('panel.distributors.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('panel.distributors.plural_model_label');
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -39,12 +48,12 @@ class DistributorResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Logo')
+                Forms\Components\Section::make(__('client.sections.logo'))
                     ->icon('heroicon-o-photo')
-                    ->description('Se mostrará en la esquina superior izquierda del panel cuando el usuario del distribuidor inicie sesión.')
+                    ->description(__('panel.distributors.logo_description'))
                     ->schema([
                         Forms\Components\FileUpload::make('logo')
-                            ->label('Logo del distribuidor')
+                            ->label(__('panel.distributors.logo_label'))
                             ->image()
                             ->disk('public')
                             ->directory('clients')
@@ -62,11 +71,11 @@ class DistributorResource extends Resource
                     ->default('CLIEN000001')
                     ->dehydrated(true),
 
-                Forms\Components\Section::make('Datos de Facturación')
+                Forms\Components\Section::make(__('client.sections.billing'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\DatePicker::make('fecha_inicio_alta')
-                            ->label('Fecha de inicio de alta')
+                            ->label(__('client.form.start_date'))
                             ->default(now()->toDateString())
                             ->disabled()
                             ->dehydrated(true)
@@ -76,42 +85,42 @@ class DistributorResource extends Resource
                                 $livewire instanceof Pages\EditDistributor
                             ),
                         Forms\Components\TextInput::make('nif')
-                            ->label('NIF')
+                            ->label(__('client.form.nif'))
                             ->unique(ignoreRecord: true)
                             ->maxLength(20)
-                            ->placeholder('Ej: B12345678'),
+                            ->placeholder(__('client.placeholders.nif')),
                         Forms\Components\TextInput::make('razon_social')
-                            ->label('Razón Social')
+                            ->label(__('client.form.social_name'))
                             ->maxLength(255),
                         Forms\Components\TextInput::make('namecommercial')
-                            ->label('Nombre Comercial')
+                            ->label(__('client.form.commercial_name'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('calle')
-                            ->label('Calle')
+                            ->label(__('client.form.street'))
                             ->maxLength(255)
                             ->columnSpanFull(),
                         Forms\Components\Select::make('pais')
-                            ->label('País')
+                            ->label(__('client.form.country'))
                             ->default('España')
                             ->options([
-                                'España' => 'España',
-                                'Portugal' => 'Portugal',
-                                'Francia' => 'Francia',
-                                'Andorra' => 'Andorra',
-                                'Otro' => 'Otro',
+                                'España' => __('client.countries.spain'),
+                                'Portugal' => __('client.countries.portugal'),
+                                'Francia' => __('client.countries.france'),
+                                'Andorra' => __('client.countries.andorra'),
+                                'Otro' => __('client.countries.other'),
                             ])
                             ->searchable()
                             ->native(false),
                         Forms\Components\TextInput::make('codigo_postal')
-                            ->label('Código Postal')
+                            ->label(__('client.form.postal_code'))
                             ->maxLength(20)
-                            ->placeholder('Ej: 28001'),
+                            ->placeholder(__('client.placeholders.postal_code')),
                         Forms\Components\TextInput::make('ciudad')
-                            ->label('Ciudad')
+                            ->label(__('client.form.city'))
                             ->maxLength(100),
                         Forms\Components\Select::make('sector')
-                            ->label('Sector')
+                            ->label(__('client.form.sector'))
                             ->options(fn () => \App\Models\Sector::orderBy('sort_order')->orderBy('name')->pluck('name', 'name'))
                             ->default(fn () => \App\Models\Sector::orderBy('sort_order')->orderBy('name')->value('name'))
                             ->searchable()
@@ -119,13 +128,13 @@ class DistributorResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Datos del Administrador')
+                Forms\Components\Section::make(__('client.sections.admin'))
                     ->icon('heroicon-o-user-circle')
                     ->schema([
                         Forms\Components\TextInput::make('admin_dni')
-                            ->label('DNI Admin')
+                            ->label(__('client.form.admin_dni'))
                             ->maxLength(20)
-                            ->placeholder('Ej: 12345678A')
+                            ->placeholder(__('client.placeholders.dni'))
                             ->regex('/^[0-9]{8}[A-Za-z]$|^[XYZ][0-9]{7}[A-Za-z]$/')
                             ->validationAttribute('DNI')
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
@@ -134,7 +143,7 @@ class DistributorResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('admin_name')
-                            ->label('Nombre y Apellidos')
+                            ->label(__('client.form.admin_name'))
                             ->maxLength(255)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
                                 if ($record?->owner?->fullname) {
@@ -142,7 +151,7 @@ class DistributorResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('admin_email')
-                            ->label('Correo Admin')
+                            ->label(__('client.form.admin_email'))
                             ->email()
                             ->maxLength(255)
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
@@ -151,15 +160,15 @@ class DistributorResource extends Resource
                                 }
                             }),
                         Forms\Components\TextInput::make('telefono_negocio')
-                            ->label('Teléfono Negocio')
+                            ->label(__('client.form.business_phone'))
                             ->tel()
                             ->maxLength(30)
-                            ->placeholder('Ej: 912345678'),
+                            ->placeholder(__('client.placeholders.business_phone')),
                         Forms\Components\TextInput::make('telefono_cliente')
-                            ->label('Teléfono Cliente')
+                            ->label(__('client.form.customer_phone'))
                             ->tel()
                             ->maxLength(30)
-                            ->placeholder('Ej: 612345678'),
+                            ->placeholder(__('client.placeholders.customer_phone')),
                     ])
                     ->columns(2)
                     ->visible(fn ($livewire) =>
@@ -167,19 +176,19 @@ class DistributorResource extends Resource
                         $livewire instanceof Pages\EditDistributor
                     ),
 
-                Forms\Components\Section::make('Acceso a Plataforma')
+                Forms\Components\Section::make(__('client.sections.access'))
                     ->icon('heroicon-o-key')
                     ->schema([
                         Forms\Components\TextInput::make('access_email')
-                            ->label('Usuario')
+                            ->label(__('client.form.platform_user'))
                             ->required()
                             ->unique('users', 'email')
                             ->maxLength(255)
-                            ->helperText('Usuario o correo para acceso a la plataforma.')
-                            ->placeholder('Usuario o email')
+                            ->helperText(__('panel.distributors.platform_user_help'))
+                            ->placeholder(__('client.placeholders.platform_user'))
                             ->visible(fn ($livewire) => $livewire instanceof Pages\CreateDistributor),
                         Forms\Components\TextInput::make('access_password')
-                            ->label('Contraseña')
+                            ->label(__('client.form.password'))
                             ->password()
                             ->required(fn ($livewire, $get) =>
                                 $livewire instanceof Pages\CreateDistributor ||
@@ -190,9 +199,9 @@ class DistributorResource extends Resource
                                 $livewire instanceof Pages\CreateDistributor ||
                                 ($livewire instanceof Pages\EditDistributor && $get('show_password'))
                             )
-                            ->helperText('Mínimo 8 caracteres'),
+                            ->helperText(__('client.form.password_help')),
                         Forms\Components\TextInput::make('access_password_confirmation')
-                            ->label('Confirmar')
+                            ->label(__('client.form.confirm_password'))
                             ->password()
                             ->required(fn ($livewire, $get) =>
                                 $livewire instanceof Pages\CreateDistributor ||
@@ -204,7 +213,7 @@ class DistributorResource extends Resource
                                 ($livewire instanceof Pages\EditDistributor && $get('show_password'))
                             ),
                         Forms\Components\Toggle::make('show_password')
-                            ->label('Cambiar contraseña')
+                            ->label(__('client.form.show_password'))
                             ->visible(fn ($livewire) => $livewire instanceof Pages\EditDistributor)
                             ->dehydrated(false)
                             ->live()
@@ -215,16 +224,16 @@ class DistributorResource extends Resource
                         $livewire instanceof Pages\EditDistributor
                     ),
                 Forms\Components\Toggle::make('is_active')
-                    ->label('Cliente activo')
+                    ->label(__('panel.distributors.active_label'))
                     ->default(false)
                     ->live()
                     ->visible(fn ($livewire) => $livewire instanceof Pages\EditDistributor)
                     ->disabled(fn () => ! auth()->user()?->isSuperAdmin())
-                    ->helperText(fn () => auth()->user()?->isSuperAdmin() ? 'Solo superadmin puede activar/desactivar.' : null),
+                    ->helperText(fn () => auth()->user()?->isSuperAdmin() ? __('client.form.active_help') : null),
                 Forms\Components\DatePicker::make('fecha_fin')
-                    ->label('Fecha de fin (expiración)')
+                    ->label(__('client.form.end_date'))
                     ->displayFormat('d/m/Y')
-                    ->helperText('Obligatoria al activar el cliente: fecha hasta la que estará activo.')
+                    ->helperText(__('panel.distributors.end_date_help'))
                     ->required(fn ($get) => (bool) $get('is_active'))
                     ->visible(fn ($livewire, $get) =>
                         $livewire instanceof Pages\EditDistributor && $get('is_active')
@@ -236,42 +245,42 @@ class DistributorResource extends Resource
     {
         return $infolist
             ->schema([
-                InfolistSection::make('Datos de Facturación')
+                InfolistSection::make(__('client.sections.billing'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        TextEntry::make('code')->label('Código'),
-                        TextEntry::make('fecha_inicio_alta')->label('Fecha de inicio de alta')->date('d/m/Y')->placeholder('—'),
-                        TextEntry::make('fecha_fin')->label('Fecha de fin (expiración)')->date('d/m/Y')->placeholder('—'),
-                        TextEntry::make('nif')->label('NIF')->placeholder('—'),
-                        TextEntry::make('razon_social')->label('Razón Social')->placeholder('—'),
-                        TextEntry::make('namecommercial')->label('Nombre Comercial'),
-                        TextEntry::make('calle')->label('Calle')->placeholder('—')->columnSpanFull(),
-                        TextEntry::make('pais')->label('País')->placeholder('—'),
-                        TextEntry::make('codigo_postal')->label('Código Postal')->placeholder('—'),
-                        TextEntry::make('ciudad')->label('Ciudad')->placeholder('—'),
-                        TextEntry::make('sector')->label('Sector')->placeholder('—'),
-                        TextEntry::make('telefono_negocio')->label('Teléfono Negocio')->placeholder('—'),
-                        TextEntry::make('telefono_cliente')->label('Teléfono Cliente')->placeholder('—'),
+                        TextEntry::make('code')->label(__('common.fields.code')),
+                        TextEntry::make('fecha_inicio_alta')->label(__('client.form.start_date'))->date('d/m/Y')->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('fecha_fin')->label(__('client.form.end_date'))->date('d/m/Y')->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('nif')->label(__('client.form.nif'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('razon_social')->label(__('client.form.social_name'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('namecommercial')->label(__('client.form.commercial_name')),
+                        TextEntry::make('calle')->label(__('client.form.street'))->placeholder(__('common.placeholders.empty'))->columnSpanFull(),
+                        TextEntry::make('pais')->label(__('client.form.country'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('codigo_postal')->label(__('client.form.postal_code'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('ciudad')->label(__('client.form.city'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('sector')->label(__('client.form.sector'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('telefono_negocio')->label(__('client.form.business_phone'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('telefono_cliente')->label(__('client.form.customer_phone'))->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Datos del Administrador')
+                InfolistSection::make(__('client.sections.admin'))
                     ->icon('heroicon-o-user-circle')
                     ->schema([
-                        TextEntry::make('owner.fullname')->label('Nombre y Apellidos')->placeholder('—'),
-                        TextEntry::make('owner.dni')->label('DNI Admin')->placeholder('—'),
-                        TextEntry::make('owner.admin_email')->label('Correo Admin')->placeholder('—')->formatStateUsing(fn ($state, $record) => $state ?? $record?->owner?->email ?? '—'),
+                        TextEntry::make('owner.fullname')->label(__('client.form.admin_name'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.dni')->label(__('client.form.admin_dni'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.admin_email')->label(__('client.form.admin_email'))->placeholder(__('common.placeholders.empty'))->formatStateUsing(fn ($state, $record) => $state ?? $record?->owner?->email ?? __('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Acceso a Plataforma')
+                InfolistSection::make(__('client.sections.access'))
                     ->icon('heroicon-o-key')
                     ->schema([
-                        TextEntry::make('owner.email')->label('Usuario de acceso')->placeholder('—'),
-                        TextEntry::make('owner.id')->label('Contraseña')->formatStateUsing(fn () => '••••••')->placeholder('—'),
+                        TextEntry::make('owner.email')->label(__('client.form.platform_user'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('owner.id')->label(__('client.form.password'))->formatStateUsing(fn () => '••••••')->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
-                InfolistSection::make('Estado')
+                InfolistSection::make(__('client.sections.status'))
                     ->schema([
-                        TextEntry::make('is_active')->label('Activo')->badge()->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No')->color(fn ($state) => $state ? 'success' : 'gray'),
+                        TextEntry::make('is_active')->label(__('common.fields.active'))->badge()->formatStateUsing(fn ($state) => $state ? __('common.status.yes') : __('common.status.no'))->color(fn ($state) => $state ? 'success' : 'gray'),
                     ]),
             ]);
     }
@@ -279,16 +288,16 @@ class DistributorResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->emptyStateHeading('No hay distribuidores')
-            ->emptyStateDescription('Crea tu primer distribuidor para comenzar.')
+            ->emptyStateHeading(__('panel.distributors.empty_heading'))
+            ->emptyStateDescription(__('panel.distributors.empty_description'))
             ->emptyStateIcon('heroicon-o-truck')
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
-                    ->label('Nombre Comercial')
+                    ->label(__('client.form.commercial_name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Estado')
+                    ->label(__('common.fields.status'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
@@ -296,36 +305,36 @@ class DistributorResource extends Resource
                     ->falseColor('danger')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('createdBy.fullname')
-                    ->label('Creador')
-                    ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: '—')
+                    ->label(__('common.fields.creator'))
+                    ->formatStateUsing(fn ($state, $record) => $record->createdBy?->fullname ?: $record->createdBy?->name ?: $record->createdBy?->email ?: __('common.placeholders.empty'))
                     ->searchable(query: function ($query, $search) {
                         $search = addcslashes($search, '%_');
                         return $query->whereHas('createdBy', fn ($q) => $q->where('fullname', 'like', "%{$search}%")->orWhere('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
                     })
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\TextColumn::make('code')
-                    ->label('Código')
+                    ->label(__('common.fields.code'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Estado')
-                    ->placeholder('Todos')
-                    ->trueLabel('Activos')
-                    ->falseLabel('Inactivos'),
+                    ->label(__('common.fields.status'))
+                    ->placeholder(__('client.table.all'))
+                    ->trueLabel(__('client.table.active'))
+                    ->falseLabel(__('client.table.inactive')),
                 Tables\Filters\SelectFilter::make('created_by')
-                    ->label('Creador')
+                    ->label(__('common.fields.creator'))
                     ->relationship('createdBy', 'fullname')
                     ->searchable()
                     ->preload()
                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->fullname ?: $record->email),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Ver'),
-                Tables\Actions\EditAction::make()->label('Editar'),
+                Tables\Actions\ViewAction::make()->label(__('common.actions.view')),
+                Tables\Actions\EditAction::make()->label(__('common.actions.edit')),
             ])
             ->bulkActions([]);
     }

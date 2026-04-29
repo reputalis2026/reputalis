@@ -44,7 +44,13 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Support\ImprovementReasonLabelResolver**: Servicio que resuelve el texto final de los motivos de mejora combinando las etiquetas personalizadas por cliente (`ClientImprovementReasonLabel`) con un conjunto de textos por defecto, y devuelve listados completos para usarlos en encuestas o APIs.
 
+- **App\Support\PanelLocale**: Helper de traducciones del panel autenticado; define locales soportados (`es`, `en`, `pt`), textos nativos para el selector y la clave de sesión `panel_locale`, resolviendo siempre con fallback seguro a `config('app.locale')` o `es`. No usa base de datos ni modifica el idioma por defecto de encuestas públicas. En fase 2 la cobertura se amplio dentro de los archivos existentes `panel.php`, `dashboard.php`, `client.php`, `survey.php`, `employees.php` y `common.php`.
+
+- **App\Http\SetPanelLocale**: Middleware registrado en `AdminPanelProvider` después de `StartSession`; aplica `app()->setLocale()` para el panel Filament a partir de la sesión del usuario autenticado. Mantiene separado el idioma del panel autenticado de `ClientImprovementConfig::default_locale` y de la detección `Accept-Language` de la encuesta pública/NFC.
+
 - **App\Filament\Resources\ClientResource**: Recurso Filament que define formularios, tablas, permisos y navegación para gestionar clientes en el panel (`/admin`), incluyendo bloques de facturación, administrador, acceso a plataforma, estado y vigencia, acciones para **Encuesta** (subpágina `PuntosDeMejora`), empleados, llamadas, soft deletes y control de acceso según rol.
+
+- **Traducciones del panel autenticado (fase 2-3):** `ClientResource`, `DistributorResource`, `EmployeeResource`, `CsatSurveyResource`, `SectorResource`, `NfcTokenResource`, `AdminNotifications`, `DistributorMessages`, `Dashboard`, `ClientCalls`, `CsatStatsOverviewWidget`, `ClientsOverviewWidget`, `EditProfile` y páginas cliente usan `__()` con claves de `lang/`. El panel autenticado queda cubierto todo lo posible sin base de datos; quedan fuera textos persistidos/dinámicos, Pulse y encuesta pública.
 
 - **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina activa de **Encuesta** por cliente dentro de `ClientResource`; permite edición (superadmin/distribuidor) y vista de solo lectura (cliente). Mantiene `display_mode`, añade selector `default_locale`, sección “Valoraciones positivas” con checkboxes 1..5, edita pregunta principal/título/opciones en `es`, `pt`, `en` y valida que ningún idioma quede vacío. Las valoraciones positivas deben formar un bloque final consecutivo hasta 5 y no pueden estar vacías ni incluir las cinco. La creación por defecto rellena los tres idiomas, `positive_scores = [4,5]` y genera UUIDs en PHP para config y opciones.
 
@@ -112,6 +118,6 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 ## Nota operativa reciente
 
-- El panel admin usa `App\Providers\Filament\AdminPanelProvider` con `->spa()` y overlay global de carga mediante hooks `BODY_START` y `SCRIPTS_BEFORE`.
+- El panel admin usa `App\Providers\Filament\AdminPanelProvider` con `->spa()` y overlay global de carga mediante hooks `BODY_START` y `SCRIPTS_BEFORE`; tambien registra el middleware de locale de panel y tres entradas de idioma en el user menu.
 - **Despliegue:** tras cambios en BD, ejecutar migraciones (incl. `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`) en cada entorno.
 

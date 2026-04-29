@@ -23,26 +23,41 @@ class NfcTokenResource extends Resource
     protected static ?string $model = NfcToken::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-    protected static ?string $navigationLabel = 'Tokens NFC';
-    protected static ?string $modelLabel = 'Token NFC';
-    protected static ?string $pluralModelLabel = 'Tokens NFC';
-    protected static ?string $navigationGroup = 'Configuración';
+    public static function getNavigationLabel(): string
+    {
+        return __('panel.nfc_tokens.navigation_label');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('panel.nfc_tokens.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('panel.nfc_tokens.plural_model_label');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('panel.navigation_groups.configuration');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Placeholder::make('info')
-                    ->label('Token NFC')
-                    ->content('La gestión de tokens NFC se realiza desde “Empleados” (1–1 por empleado).'),
+                    ->label(__('panel.nfc_tokens.model_label'))
+                    ->content(__('panel.nfc_tokens.management_note')),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->emptyStateHeading('Tokens NFC')
-            ->emptyStateDescription('La gestión se realiza desde “Empleados”.');
+            ->emptyStateHeading(__('panel.nfc_tokens.empty_heading'))
+            ->emptyStateDescription(__('panel.nfc_tokens.empty_description'));
     }
 
     public static function getPages(): array

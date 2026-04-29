@@ -36,6 +36,9 @@ Siempre se actualizan, nunca se eliminan.
 - Agregado overlay global de carga/navegacion para Filament (hooks + script + markup).
 - Añadido `canAccess()` en paginas críticas (`AdminNotifications`, `ClientCalls`, `DistributorMessages`) para bloquear URL directa.
 - Añadida internacionalización mínima de la encuesta pública por cliente: columnas `es/pt/en`, `default_locale`, resolución por `Accept-Language` y fallback `idioma detectado -> default_locale -> es`.
+- Añadida fase 1 de traducción del panel cliente por archivos `lang/es|en|pt` y helpers `__()`: locale del panel autenticado por sesión, ruta `/admin/language/{locale}` y selector en el user menu de Filament. No toca base de datos ni la lógica de idioma de la encuesta pública.
+- Fase 2 de traducciones: panel cliente completado en sus pantallas principales (dashboard, encuesta, empleados, perfil y empleado alcanzable); inicio de cobertura para superadmin/distribuidor en ClientResource, EmployeeResource, CSAT, sectores, llamadas, notificaciones y mensajes.
+- Fase 3 de traducciones: completados `DistributorResource`, `NfcTokenResource` oculto/compatibilidad, `ClientCalls`, `ViewEmployee` y auditoria final de hardcodes visibles del panel autenticado. Sin BD ni overrides.
 
 ### Implementado y funcional
 
@@ -61,6 +64,7 @@ Siempre se actualizan, nunca se eliminan.
 - **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados). Alta/baja de empleado mantiene token NFC 1:1 (cascade en BD al eliminar).
 - **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, `default_locale`, `positive_scores`, pregunta/título por idioma) + **ClientImprovementOption** (`label_es`, `label_pt`, `label_en`, mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en modo lectura. Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
 - **Notificaciones/mensajes del panel:** AdminNotifications (SuperAdmin), DistributorMessages (distribuidor). Flujo: distribuidor crea cliente inactivo → notificación a SuperAdmin y distribuidor; SuperAdmin activa → notificación al distribuidor (PanelMessageService).
+- **Idioma del panel autenticado:** basado solo en archivos PHP de `lang/` (`panel`, `dashboard`, `client`, `survey`, `employees`, `common`). El selector de idioma vive en el user menu de Filament y persiste en sesión (`panel_locale`); es independiente del idioma por defecto del cliente y de la encuesta pública/NFC. Cobertura actual: panel autenticado localizado todo lo posible con archivos `lang/`; no se traducen datos persistidos.
 
 #### 5. Encuestas CSAT
 - **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` si el score no está configurado como positivo, `employee_code`, etc. Límites por IP y por dispositivo. El contrato no cambia; la validación interna consulta `client_improvement_configs.positive_scores`.
@@ -97,10 +101,10 @@ Siempre se actualizan, nunca se eliminan.
 - **UUID** en tablas principales; PostgreSQL `gen_random_uuid()`.
 - Clientes y distribuidores comparten **Client**; se distinguen por `users.role` del `owner_id`.
 - Código de cliente (`Client.code`) en URLs públicas (Pulse, encuesta, API).
-- La internacionalización actual se limita a la encuesta pública por cliente; no traduce aún todo el panel ni mueve textos globales a archivos de idioma.
+- La internacionalización del panel autenticado está cerrada a nivel de código propio visible. Quedan fuera Pulse, encuesta pública y textos persistidos/dinámicos que requerirían otra estrategia (por ejemplo overrides o campos traducibles en BD).
 - **CONTEXTO_PARA_IA.md** es la referencia actual; este resumen puede quedar desactualizado antes que aquel.
 
 ---
 
-**Última actualización:** 28 abril 2026 (documentado: encuesta pública multidioma por cliente, textos genéricos de cierre traducidos, layout de opciones negativas y valoraciones positivas configurables).  
-**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente multidioma con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos.
+**Última actualización:** 28 abril 2026 (documentado: encuesta pública multidioma por cliente y fases 1-3 de traducción del panel autenticado por sesión/lang).  
+**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente multidioma con `display_mode` en escala pública, estado y vigencia con confirmación). Pendiente: Google, alertas, contratos, documentos y posible estrategia futura para traducciones persistidas/overrides.
