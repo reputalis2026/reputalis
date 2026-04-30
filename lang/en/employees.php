@@ -3,12 +3,13 @@
 return [
     'navigation_label' => 'Employees',
     'title' => [
-        'own' => 'Your employees',
+        'own' => 'Employees',
         'record' => 'Employees: :client',
         'create' => 'New employee',
         'edit' => 'Edit employee',
         'view' => 'View employee',
     ],
+    'subtitle' => 'Your configured employees',
     'intro_read_only' => 'These are the employees configured for your client.',
     'count' => 'Employees (:count)',
     'empty' => [

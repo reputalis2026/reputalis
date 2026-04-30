@@ -3,12 +3,13 @@
 return [
     'navigation_label' => 'Funcionários',
     'title' => [
-        'own' => 'Os seus funcionários',
+        'own' => 'Funcionários',
         'record' => 'Funcionários: :client',
         'create' => 'Novo funcionário',
         'edit' => 'Editar funcionário',
         'view' => 'Ver funcionário',
     ],
+    'subtitle' => 'Seus funcionários configurados',
     'intro_read_only' => 'Estes são os funcionários configurados para o seu cliente.',
     'count' => 'Funcionários (:count)',
     'empty' => [

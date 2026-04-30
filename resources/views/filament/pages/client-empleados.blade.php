@@ -4,7 +4,7 @@
     @endphp
 
     <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-        {{ __('employees.intro_read_only') }}
+        {{ __('employees.subtitle') }}
     </p>
 
     @if ($employees->isEmpty())
