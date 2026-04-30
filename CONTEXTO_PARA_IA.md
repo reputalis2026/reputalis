@@ -168,7 +168,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Fillable:** `id`, `client_id`, `called_at`, `notes`
 - **Campos:** `called_at` (fecha/hora de la llamada); `notes` (texto libre, nullable)
 - **Relaciones:** `client()` BelongsTo Client
-- **Integración con `clients`:** al registrar una llamada se actualizan `clients.last_call_at` y `clients.next_call_at = now() + 30 días`. El histórico se consulta vía `Client::calls()`.
+- **Integración con `clients`:** al crear un `ClientCall` se actualizan `clients.last_call_at` y `clients.next_call_at = called_at + 30 días`. El histórico se consulta vía `Client::calls()`.
 
 ### 2.7 ImprovementReason (`App\Models\ImprovementReason`)
 
@@ -239,7 +239,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **NfcTokenResource:** **oculto** (sin menú global y sin CRUD accesible). La gestión del token se hace **desde** `EmployeeResource` dentro de la sección **“Token NFC”**.
 - **CsatSurveyResource:** listado/consulta de encuestas CSAT (no creación desde panel; se crean por API).
 - **SectorResource:** CRUD de sectores (nombre, orden).
-- **ClientCalls (página global “Llamadas”):** listado de clientes ordenado por `next_call_at` ascendente (nulls al final). Visible para SuperAdmin y Distribuidor. Muestra “Última llamada” y “Próxima llamada”; si `next_call_at` está vencida se resalta en rojo. Acción “Ver” abre la subpágina del cliente `ClientResource → Llamadas`.
+- **ClientCalls (página global “Llamadas”):** listado de clientes reales (`owner.role = cliente`) ordenado por `next_call_at` ascendente (nulls al final). Visible para SuperAdmin y Distribuidor; el distribuidor solo ve clientes creados por él. Muestra “Última llamada”, “Próxima llamada” y estado vencido; si `next_call_at` está vencida se resalta en rojo. Acción “Ver” abre la subpágina del cliente `ClientResource → Llamadas`.
 
 **Nota:** No existe recurso Filament para **ImprovementReason** (motivos base). Los códigos se gestionan por datos/seeders; la configuración visible al usuario es por cliente en **Encuesta** (ClientResource → página `PuntosDeMejora`, ruta/clase sin renombrar).
 

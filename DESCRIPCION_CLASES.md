@@ -36,7 +36,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Models\PanelMessageRecipient**: Asociación entre un mensaje de panel y un usuario receptor; registra si el mensaje ha sido leído (`read_at`) y ofrece helpers para marcarlo como leído.
 
-- **App\Models\ClientCall**: Registro de una llamada realizada a un cliente; guarda cliente, fecha de llamada y notas, y se usa para el historial de llamadas y para campos `last_call_at`/`next_call_at` en `Client`.
+- **App\Models\ClientCall**: Registro de una llamada realizada a un cliente; guarda cliente, fecha de llamada y notas, y al crearse actualiza `last_call_at` y `next_call_at` en `Client`.
 
 - **App\Support\CsatMetrics**: Servicio de dominio que calcula métricas agregadas de CSAT (media, porcentaje satisfechos, total, encuestas de hoy) para un cliente o globalmente, aplicando ventanas temporales (hoy, 7, 30 días, todo), caché de 5 minutos y el snapshot histórico `positive_scores_used` de cada encuesta.
 

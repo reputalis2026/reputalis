@@ -39,7 +39,6 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `email_verified_at`: fecha de verificacion de email.
 - `password_reset_token`: token de recuperacion de contrasena.
 - `last_login_at`: ultimo acceso.
-- `is_active`: indicador de cuenta activa/inactiva.
 - `created_at`: fecha/hora de alta del registro.
 - `updated_at`: fecha/hora de ultima actualizacion.
 - `remember_token`: token de sesion persistente ("recordarme").
@@ -88,6 +87,7 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `client_id`: cliente propietario de la encuesta.
 - `improvement_point_option_id`: opcion de mejora seleccionada (modelo intermedio legacy).
 - `improvement_option_id`: opcion de mejora seleccionada (modelo actual).
+- `positive_scores_used`: snapshot historico JSONB de las valoraciones positivas aplicadas cuando se creo la encuesta.
 
 ### `client_calls`
 **Para que sirve:** registro de llamadas de seguimiento por cliente.
@@ -149,6 +149,14 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `updated_at`: fecha de actualizacion.
 - `display_mode`: modo de visualizacion de opciones (UI).
 - `survey_question_text`: pregunta principal mostrada en encuesta.
+- `default_locale`: idioma por defecto de la encuesta publica.
+- `title_es`: titulo del bloque en espanol.
+- `title_pt`: titulo del bloque en portugues.
+- `title_en`: titulo del bloque en ingles.
+- `survey_question_text_es`: pregunta principal en espanol.
+- `survey_question_text_pt`: pregunta principal en portugues.
+- `survey_question_text_en`: pregunta principal en ingles.
+- `positive_scores`: JSONB/array de puntuaciones que siguen el flujo positivo.
 
 ### `client_improvement_options`
 **Para que sirve:** opciones activas de mejora vinculadas a la configuracion actual por cliente.
@@ -156,6 +164,9 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `id`: identificador.
 - `client_improvement_config_id`: configuracion padre.
 - `label`: texto de opcion.
+- `label_es`: texto de opcion en espanol.
+- `label_pt`: texto de opcion en portugues.
+- `label_en`: texto de opcion en ingles.
 - `sort_order`: orden de aparicion.
 - `created_at`: fecha de creacion.
 - `updated_at`: fecha de actualizacion.

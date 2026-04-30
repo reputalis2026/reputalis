@@ -11,10 +11,10 @@
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Última llamada
+                    {{ __('calls.last_call') }}
                 </p>
                 <p class="mt-1 text-base font-semibold text-gray-900 dark:text-white">
-                    {{ $lastCallAt ? $lastCallAt->format('d/m/Y H:i') : 'Sin llamadas aún' }}
+                    {{ $lastCallAt ? $lastCallAt->format('d/m/Y H:i') : __('calls.no_calls_yet') }}
                 </p>
             </div>
 
@@ -23,11 +23,11 @@
             >
                 <div class="flex items-center justify-between gap-2">
                     <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Próxima llamada
+                        {{ __('calls.next_call') }}
                     </p>
                     @if($nextOverdue)
                         <span class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-red-200">
-                            Vencida
+                            {{ __('calls.overdue') }}
                         </span>
                     @endif
                 </div>

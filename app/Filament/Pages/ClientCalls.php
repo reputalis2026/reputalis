@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\User;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -76,6 +77,18 @@ class ClientCalls extends Page implements HasTable
 
                         return $record->next_call_at->isPast() ? 'danger' : 'gray';
                     }),
+                TextColumn::make('next_call_status')
+                    ->label(__('calls.status'))
+                    ->state(function (Client $record): ?string {
+                        if (! $record->next_call_at || ! $record->next_call_at->isPast()) {
+                            return null;
+                        }
+
+                        return __('calls.overdue');
+                    })
+                    ->badge()
+                    ->color('danger')
+                    ->placeholder('—'),
             ])
             ->actions([
                 Action::make('ver')
@@ -93,6 +106,8 @@ class ClientCalls extends Page implements HasTable
     {
         $query = Client::query()
             ->withoutTrashed()
+            ->whereHas('owner', fn (Builder $q) => $q->where('role', User::ROLE_CLIENTE))
+            ->with(['owner', 'calls' => fn ($q) => $q->latest('called_at')])
             ->select(['id', 'namecommercial', 'last_call_at', 'next_call_at', 'created_by']);
 
         $user = auth()->user();
@@ -101,6 +116,8 @@ class ClientCalls extends Page implements HasTable
         }
 
         // Los que no tengan próxima llamada al final.
-        return $query->orderByRaw('next_call_at IS NULL, next_call_at ASC');
+        return $query
+            ->orderByRaw('next_call_at IS NULL, next_call_at ASC')
+            ->orderBy('namecommercial');
     }
 }
