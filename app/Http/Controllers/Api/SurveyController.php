@@ -20,10 +20,12 @@ class SurveyController extends Controller
      */
     public function store(StoreSurveyRequest $request): JsonResponse
     {
-        $client = Client::where('code', $request->input('client_code'))->first();
+        $client = Client::where('code', $request->input('client_code'))
+            ->where('is_active', true)
+            ->first();
 
         if (! $client) {
-            return response()->json(['message' => 'Cliente no encontrado.'], 404);
+            return response()->json(['message' => 'Cliente no encontrado o inactivo.'], 404);
         }
 
         $employee = null;
@@ -35,6 +37,8 @@ class SurveyController extends Controller
 
         $client->loadMissing('improvementConfig');
         $score = (int) $request->input('score');
+        $positiveScoresUsed = $client->improvementConfig?->positiveScores()
+            ?? ClientImprovementConfig::defaultPositiveScores();
         $isPositiveScore = $client->improvementConfig?->isPositiveScore($score)
             ?? in_array($score, ClientImprovementConfig::defaultPositiveScores(), true);
         $improvementReason = null;
@@ -87,6 +91,7 @@ class SurveyController extends Controller
             'score' => $score,
             'improvementreason_id' => $improvementReason?->id,
             'improvement_option_id' => $improvementOptionId,
+            'positive_scores_used' => $positiveScoresUsed,
             'locale_used' => $request->input('locale_used'),
             'device_hash' => $deviceHash,
         ]);

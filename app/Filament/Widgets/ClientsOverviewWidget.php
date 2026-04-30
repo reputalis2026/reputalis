@@ -105,7 +105,9 @@ class ClientsOverviewWidget extends Widget
             ->where('is_active', true)
             ->withCount([
                 'csatSurveys as surveys_today' => fn (Builder $q) => $q->whereDate('created_at', Carbon::today()),
-                'csatSurveys as satisfied_today' => fn (Builder $q) => $q->whereDate('created_at', Carbon::today())->whereIn('score', [4, 5]),
+                'csatSurveys as satisfied_today' => fn (Builder $q) => $q
+                    ->whereDate('created_at', Carbon::today())
+                    ->whereRaw("COALESCE(positive_scores_used, '[4,5]'::jsonb) @> to_jsonb(score)"),
             ])
             ->orderBy('namecommercial')
             ->get()

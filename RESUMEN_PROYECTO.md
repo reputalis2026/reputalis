@@ -67,12 +67,12 @@ Siempre se actualizan, nunca se eliminan.
 - **Idioma del panel autenticado:** basado solo en archivos PHP de `lang/` (`panel`, `dashboard`, `client`, `survey`, `employees`, `common`). El selector de idioma vive en el user menu de Filament y persiste en sesión (`panel_locale`); es independiente del idioma por defecto del cliente y de la encuesta pública/NFC. Cobertura actual: panel autenticado localizado todo lo posible con archivos `lang/`; no se traducen datos persistidos.
 
 #### 5. Encuestas CSAT
-- **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` si el score no está configurado como positivo, `employee_code`, etc. Límites por IP y por dispositivo. El contrato no cambia; la validación interna consulta `client_improvement_configs.positive_scores`.
+- **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` si el score no está configurado como positivo, `employee_code`, etc. Límites por IP y por dispositivo. El contrato no cambia; la validación interna consulta `client_improvement_configs.positive_scores` y guarda el snapshot en `csat_surveys.positive_scores_used`.
 - **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío; score siempre 1–5). Resuelve idioma del cliente final por `Accept-Language`, normaliza `pt-BR`/`en-US`, usa traducción configurada si está completa, cae al `default_locale` de la encuesta y finalmente a español. Escala 1–5 con `data-score`; el JS decide flujo positivo vs punto de mejora con `surveyPositiveScores` en lugar de `score >= 4`; tras puntuación baja, `improvementBlock` muestra textos traducidos en botones/cards verticales de ancho completo y envía siempre `improvement_option_id`. Los mensajes genéricos de cierre (agradecimientos, subtítulos, CTA Google y envío) usan el mismo `surveyLocale`.
 - **Encuesta por NFC (token):** `GET /survey/nfc/{token}` resuelve `NfcToken` activo y renderiza la encuesta preasignando el empleado (crea `CsatSurvey` con `employee_id`).
 
 #### 6. PWA “El Pulso del Día”
-- `/pulse`: login para propietarios de cliente. Dashboard por `client_code` con métricas de satisfacción (CsatMetrics).
+- `/pulse`: login para propietarios de cliente. Dashboard por `client_code` con métricas de satisfacción (CsatMetrics, usando el snapshot histórico `positive_scores_used`).
 
 #### 7. Otros modelos y soporte
 - **Sector** (catálogo), **ImprovementReason** (legacy), **PanelMessage / PanelMessageRecipient**. Servicios: **CsatMetrics**, **PanelMessageService**, **ImprovementReasonLabelResolver** (legacy).

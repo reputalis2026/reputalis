@@ -24,6 +24,7 @@ class CsatSurvey extends Model
         'score',
         'improvementreason_id',
         'improvement_option_id',
+        'positive_scores_used',
         'locale_used',
         'device_hash',
     ];
@@ -41,6 +42,7 @@ class CsatSurvey extends Model
             'employee_id' => 'string',
             'improvementreason_id' => 'string',
             'improvement_option_id' => 'string',
+            'positive_scores_used' => 'array',
         ];
     }
 

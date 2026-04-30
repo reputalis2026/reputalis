@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\CsatSurveyResource;
+use App\Models\Client;
 use App\Support\CsatMetrics;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseStatsOverviewWidget;
@@ -48,16 +49,25 @@ class CsatStatsOverviewWidget extends BaseStatsOverviewWidget
         $user = auth()->user();
         $filters = $this->getCurrentFilters();
         $period = $filters['period'];
-        // Superadmin: puede elegir cliente o "todos". Rol cliente: solo su cliente.
-        $clientId = $user?->isSuperAdmin()
-            ? ($filters['client_id'] ?? null)
-            : ($user?->ownedClient?->id ?? null);
-        $clientId = ($clientId !== null && $clientId !== '') ? $clientId : null;
+        $selectedClientId = filled($filters['client_id'] ?? null) ? (string) $filters['client_id'] : null;
+        $metricsScope = null;
 
-        $metrics = CsatMetrics::getMetrics($clientId, $period);
+        if ($user?->isSuperAdmin()) {
+            $metricsScope = $selectedClientId;
+        } elseif ($user?->isClientOwner()) {
+            $metricsScope = $user->ownedClient?->id;
+        } elseif ($user?->isDistributor()) {
+            $metricsScope = Client::query()
+                ->where('created_by', $user->id)
+                ->pluck('id')
+                ->all();
+        }
+
+        $metrics = CsatMetrics::getMetrics($metricsScope, $period);
 
         $baseUrl = CsatSurveyResource::getUrl('index');
-        $tableFilters = $this->buildTableFiltersForPeriod($period, $clientId);
+        $tableClientId = $user?->isSuperAdmin() ? $selectedClientId : null;
+        $tableFilters = $this->buildTableFiltersForPeriod($period, $tableClientId);
 
         $avgScore = $metrics['avg_score'] !== null
             ? number_format($metrics['avg_score'], 1, ',', ' ')
@@ -99,7 +109,7 @@ class CsatStatsOverviewWidget extends BaseStatsOverviewWidget
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color($metrics['today_count'] > 0 ? 'success' : 'gray')
                 ->url($baseUrl . '?' . http_build_query([
-                    'tableFilters' => $this->buildTableFiltersForPeriod(CsatMetrics::PERIOD_TODAY, $clientId),
+                    'tableFilters' => $this->buildTableFiltersForPeriod(CsatMetrics::PERIOD_TODAY, $tableClientId),
                 ])),
         ];
     }

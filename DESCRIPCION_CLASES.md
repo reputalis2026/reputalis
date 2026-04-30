@@ -20,7 +20,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Models\NfcToken**: Token NFC asignado a un empleado y un cliente; almacena el identificador (`token`) y si está activo. La FK **`employee_id` → `employees.id`** está en **ON DELETE CASCADE** (migración `2026_04_08_161000_...`); antes era SET NULL e incompatible con `employee_id` NOT NULL.
 
-- **App\Models\CsatSurvey**: Encuesta CSAT registrada por el sistema; guarda cliente, empleado (opcional), puntuación 1–5, motivo de mejora clásico (`ImprovementReason`) u opción configurada en la encuesta del cliente (`ClientImprovementOption`), idioma y `device_hash` para limitar abusos.
+- **App\Models\CsatSurvey**: Encuesta CSAT registrada por el sistema; guarda cliente, empleado (opcional), puntuación 1–5, motivo de mejora clásico (`ImprovementReason`) u opción configurada en la encuesta del cliente (`ClientImprovementOption`), snapshot histórico de valoraciones positivas (`positive_scores_used`), idioma y `device_hash` para limitar abusos.
 
 - **App\Models\Sector**: Catálogo simple de sectores con nombre y orden; expone métodos para contar clientes en un sector y determinar si se puede eliminar (solo cuando no tiene clientes).
 
@@ -38,7 +38,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Models\ClientCall**: Registro de una llamada realizada a un cliente; guarda cliente, fecha de llamada y notas, y se usa para el historial de llamadas y para campos `last_call_at`/`next_call_at` en `Client`.
 
-- **App\Support\CsatMetrics**: Servicio de dominio que calcula métricas agregadas de CSAT (media, porcentaje satisfechos, total, encuestas de hoy) para un cliente o globalmente, aplicando ventanas temporales (hoy, 7, 30 días, todo) y caché de 5 minutos.
+- **App\Support\CsatMetrics**: Servicio de dominio que calcula métricas agregadas de CSAT (media, porcentaje satisfechos, total, encuestas de hoy) para un cliente o globalmente, aplicando ventanas temporales (hoy, 7, 30 días, todo), caché de 5 minutos y el snapshot histórico `positive_scores_used` de cada encuesta.
 
 - **App\Support\PanelMessageService**: Servicio que centraliza la creación de mensajes de panel relacionados con la activación de clientes: notifica a superadmins cuando un distribuidor crea un cliente pendiente de activar y avisa al distribuidor cuando el superadmin lo activa.
 
@@ -56,7 +56,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre, como vista amigable dentro del menú del cliente.
 
-- **App\Http\Controllers\Api\SurveyController**: Controlador API que recibe y valida las encuestas CSAT (`POST /api/surveys/create`), resuelve cliente y empleado, consulta `positive_scores` para saber si el score requiere punto de mejora, valida que los motivos/opciones de mejora sean válidos para ese cliente, aplica límites por dispositivo y persiste la encuesta registrando logs.
+- **App\Http\Controllers\Api\SurveyController**: Controlador API que recibe y valida las encuestas CSAT (`POST /api/surveys/create`), resuelve cliente activo y empleado, consulta `positive_scores` para saber si el score requiere punto de mejora, guarda ese set en `positive_scores_used`, valida que los motivos/opciones de mejora sean válidos para ese cliente, aplica límites por dispositivo y persiste la encuesta registrando logs.
 
 ---
 
@@ -102,9 +102,9 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **App\Filament\Widgets\CsatStatsOverviewWidget**: Widget de dashboard que muestra cuatro métricas clave de CSAT (nota media, encuestas totales, porcentaje de satisfechos y encuestas de hoy) usando `CsatMetrics`, con enlaces directos a los listados filtrados de encuestas.
 
-- **App\Filament\Widgets\ClientsOverviewWidget**: Widget de dashboard que ofrece una visión rápida de clientes por pestañas (activos, inactivos, con baja próxima y distribuidores), mostrando fechas, teléfonos, actividad diaria de encuestas y filtros según el rol del usuario.
+- **App\Filament\Widgets\ClientsOverviewWidget**: Widget de dashboard que ofrece una visión rápida de clientes por pestañas (activos, inactivos, con baja próxima y distribuidores), mostrando fechas, teléfonos, actividad diaria de encuestas y filtros según el rol del usuario; el porcentaje diario de satisfechos usa `positive_scores_used`.
 
-- **database/migrations/2026_04_07_110000_add_high_priority_dashboard_indexes.php**: Migración de rendimiento para panel/dasboard que añade índices en `csat_surveys` (`created_at`, `client_id + created_at`, `client_id + created_at + score`) y `clients` (`is_active + namecommercial`, `is_active + fecha_fin`) para acelerar navegación y métricas.
+- **database/migrations/2026_04_30_112300_add_positive_scores_used_to_csat_surveys_table.php**: Migración que añade `csat_surveys.positive_scores_used` (JSONB nullable) y realiza backfill con la configuración aplicable o `[4,5]` como fallback.
 
 ---
 

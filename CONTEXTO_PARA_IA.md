@@ -93,7 +93,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Nginx:** único sitio habilitado típico: `/etc/nginx/sites-enabled/reputalis` → `/etc/nginx/sites-available/reputalis` (Certbot suele añadir `ssl_certificate` y redirección HTTP→HTTPS).
 - **Firewall (UFW):** política por defecto suele ser **deny incoming**; deben existir reglas **ALLOW** para **TCP 80** y **TCP 443**. Si solo está abierto el **80**, desde fuera **HTTPS no carga** aunque `curl` en el propio servidor funcione.
 - **Laravel:** conviene `APP_URL=https://reputalis.org` en `.env` del servidor para URLs y cookies coherentes (no obligatorio para que Nginx sirva TLS).
-- **Guía operativa detallada / backup del vhost:** `docs/GUIA_SSL_CERTBOT_PROGRESO.md`.
+- **Guía operativa detallada / backup del vhost:** referencia legacy no disponible (`docs/GUIA_SSL_CERTBOT_PROGRESO.md`).
 
 ---
 
@@ -141,15 +141,15 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **PK:** UUID
 - **Fillable:** `client_id`, `name`, `alias`, `photo`, `position`, `is_active`
 - **Campos:** `name` (nombre completo o visible), `alias` (identificador corto para encuestas o como código), `photo` (ruta de imagen subida, disco `public`, directorio `employees`). Se usa como **catálogo de empleados por cliente** para poder asociar encuestas a un empleado concreto (`employee_id` en CsatSurvey) en el futuro.
-- **Relaciones:** `client()` BelongsTo Client; `csatSurveys()` HasMany CsatSurvey; `nfcTokens()` HasOne NfcToken.
+- **Relaciones:** `client()` BelongsTo Client; `nfcTokens()` HasOne NfcToken.
 - **Regla NFC (refactor):** cada `Employee` tiene **exactamente 1 token lógico NFC** (aunque se puedan imprimir/cargar varias tarjetas con el mismo token). La URL pública usa ese token: `/survey/nfc/{token}`.
 
 ### 2.4 CsatSurvey (`App\Models\CsatSurvey`)
 
 - **Tabla:** `csat_surveys`
 - **PK:** UUID
-- **Fillable:** `client_id`, `employee_id`, `score`, `improvementreason_id`, `improvement_option_id`, `locale_used`, `device_hash`
-- **Score:** entero 1–5. Si score 1–3: puede ir `improvement_option_id` (opción elegida del bloque Encuesta / `ClientImprovementConfig` del cliente) y/o `improvementreason_id` (compatibilidad).
+- **Fillable:** `client_id`, `employee_id`, `score`, `improvementreason_id`, `improvement_option_id`, `positive_scores_used`, `locale_used`, `device_hash`
+- **Score:** entero 1–5. Si el score no está en las valoraciones positivas de la encuesta en ese momento, puede ir `improvement_option_id` (opción elegida del bloque Encuesta / `ClientImprovementConfig` del cliente) y/o `improvementreason_id` (compatibilidad). `positive_scores_used` guarda el snapshot histórico de `positive_scores` usado al crear la encuesta para que las métricas no cambien si el cliente modifica su configuración después.
 - **Relaciones:** `client()` BelongsTo Client; `employee()` BelongsTo Employee (nullable); `improvementReason()` BelongsTo ImprovementReason (nullable); `improvementOption()` BelongsTo ClientImprovementOption (nullable).
 
 ### 2.5 NfcToken (`App\Models\NfcToken`)
@@ -159,7 +159,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - **Fillable:** `client_id`, `employee_id`, `token`, `is_active`
 - **Restricción 1–1:** `employee_id` está en `NOT NULL` y tiene `UNIQUE` (un empleado no puede tener 2 tokens distintos).
 - **Relaciones:** `client()` BelongsTo Client; `employee()` BelongsTo Employee.
-- **Borrado de empleados (importante PostgreSQL):** al eliminar un `Employee`, la app elimina primero su `NfcToken` asociado (hook `Employee::deleting`) para evitar violaciones por `NOT NULL` cuando la FK intenta aplicar `ON DELETE SET NULL`.
+- **Borrado de empleados (importante PostgreSQL):** al eliminar un `Employee`, el `NfcToken` asociado se elimina por FK `ON DELETE CASCADE`.
 
 ### 2.6 ClientCall (`App\Models\ClientCall`)
 
@@ -304,15 +304,14 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 
 ### 5.3 Scripts de assets
 
-- **`scripts/process_survey_faces.py`:** convierte/corta/normaliza PNG de caritas (fondo casi blanco → transparencia, canvas 512×512). Requiere Pillow (`scripts/requirements-faces.txt`). Uso: cinco rutas de entrada en orden 1…5.
+- **Scripts legacy no disponibles:** `scripts/process_survey_faces.py` y `scripts/requirements-faces.txt`.
 - **`public/survey-rating/`:** `faces/` y `numbers/`; convención de nombres `cara1.png`…`cara5.png`, `1.png`…`5.png`, y opcionalmente `.webp` junto a cada PNG.
 
 ---
 
 ## 6. Soporte / servicios
 
-- **App\Support\CsatMetrics:** métricas para dashboard (media de score, total, % satisfechos 4–5, cuenta “hoy”). Métodos estáticos: `getMetrics(?clientId, period)` con periodos `today`, `7`, `30`, `all`; cache 5 min por usuario/cliente/periodo. `dateRangeForPeriod(period)`. Los no-SuperAdmin solo ven su cliente.
-- **Optimización dashboard (abril 2026):** migración `2026_04_07_110000_add_high_priority_dashboard_indexes` crea índices en `csat_surveys(created_at)`, `csat_surveys(client_id, created_at)`, `csat_surveys(client_id, created_at, score)` y en `clients(is_active, namecommercial)` + `clients(is_active, fecha_fin)` para acelerar tabs y métricas.
+- **App\Support\CsatMetrics:** métricas para dashboard (media de score, total, % satisfechos según `csat_surveys.positive_scores_used`, cuenta “hoy”). Métodos estáticos: `getMetrics(string|array|null $clientScope, period)` con periodos `today`, `7`, `30`, `all`; cache 5 min por usuario/cliente/periodo. `dateRangeForPeriod(period)`. Los no-SuperAdmin solo ven su cliente.
 
 - **App\Support\PanelMessageService:** creación de mensajes del panel. `notifyClientPendingActivation(Client $client)`: crea mensaje tipo `client_pending_activation`, destinatarios = todos los SuperAdmin + el distribuidor que creó el cliente (se llama desde `CreateClient::afterCreate()` cuando el usuario es distribuidor). `notifyClientActivated(Client $client)`: crea mensaje tipo `client_activated` para el distribuidor (`created_by` del cliente); se llama desde `EditClient::afterSave()` cuando el cliente pasa de inactivo a activo. **Importante:** al crear `PanelMessage` se genera el UUID en PHP (`Str::uuid()`) y se pasa en `create(['id' => $messageId, ...])` para que `$message->id` esté disponible al crear los `PanelMessageRecipient` (PostgreSQL no siempre devuelve el default a Eloquent).
 
@@ -328,7 +327,7 @@ En resumen: la aplicación sirve para **dar de alta clientes (farmacias/distribu
 - Ajustes clients: `add_client_details_fields`, `create_sectors_table`, `add_created_by_to_clients_table`, `add_admin_email_to_users_table`, `add_fecha_inicio_alta_to_clients_table`, `add_fecha_fin_to_clients_table`, `migrate_pharmacy_owner_role_to_cliente`, `add_deleted_at_to_clients_table`, `add_logo_to_clients_table`.
 - **Mensajes del panel:** `2026_02_24_100000_create_panel_messages_tables` (panel_messages, panel_message_recipients).
 - **Etiquetas motivos de mejora por cliente (legacy):** `2026_02_24_100001_create_client_improvement_reason_labels_table`.
-- **Encuesta por cliente / ClientImprovementConfig (modelo actual):** `2026_02_24_200000_create_client_improvement_configs_table` (client_id unique, title). `2026_02_24_200001_create_client_improvement_options_table` (client_improvement_config_id, label, sort_order; FK cascade). `2026_02_24_200002_switch_csat_surveys_to_improvement_option` (añade improvement_option_id FK a client_improvement_options, elimina improvement_point_option_id). `2026_02_24_200003_drop_old_improvement_point_tables` (elimina client_improvement_point_options y client_improvement_points). **`2026_04_02_120000_add_display_mode_to_client_improvement_configs_table`:** columna `display_mode` (string, default `numbers`). **`2026_04_28_080500_add_multilingual_fields_to_client_improvement_tables`:** añade `default_locale`, `title_es/pt/en`, `survey_question_text_es/pt/en` y `label_es/pt/en`; backfill de español desde columnas antiguas, traducciones base para valores estándar y copia del texto original para opciones personalizadas no inferibles. **`2026_04_28_100500_add_positive_scores_to_client_improvement_configs_table`:** añade `positive_scores` JSONB y backfill `[4,5]` para conservar el comportamiento histórico. Las tablas antiguas por “motivo base” (improvement_reason_code) ya no se usan.
+- **Encuesta por cliente / ClientImprovementConfig (modelo actual):** `2026_02_24_200000_create_client_improvement_configs_table` (client_id unique, title). `2026_02_24_200001_create_client_improvement_options_table` (client_improvement_config_id, label, sort_order; FK cascade). `2026_02_24_200002_switch_csat_surveys_to_improvement_option` (añade improvement_option_id FK a client_improvement_options, elimina improvement_point_option_id). `2026_02_24_200003_drop_old_improvement_point_tables` (elimina client_improvement_point_options y client_improvement_points). **`2026_04_02_120000_add_display_mode_to_client_improvement_configs_table`:** columna `display_mode` (string, default `numbers`). **`2026_04_28_080500_add_multilingual_fields_to_client_improvement_tables`:** añade `default_locale`, `title_es/pt/en`, `survey_question_text_es/pt/en` y `label_es/pt/en`; backfill de español desde columnas antiguas, traducciones base para valores estándar y copia del texto original para opciones personalizadas no inferibles. **`2026_04_28_100500_add_positive_scores_to_client_improvement_configs_table`:** añade `positive_scores` JSONB y backfill `[4,5]` para conservar el comportamiento histórico. **`2026_04_30_112300_add_positive_scores_used_to_csat_surveys_table`:** añade `csat_surveys.positive_scores_used` como snapshot histórico de las valoraciones positivas usadas por cada encuesta. Las tablas antiguas por “motivo base” (improvement_reason_code) ya no se usan.
 - **NFC / empleados (integridad):** `2026_03_23_120500_unique_employee_id_on_nfctokens` (employee_id NOT NULL + indice unico). **`2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`:** sustituye `ON DELETE SET NULL` por **`ON DELETE CASCADE`** en `nfctokens.employee_id` → `employees.id` (obligatorio tras NOT NULL en employee_id).
 
 ---

@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\Client;
 use App\Models\CsatSurvey;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CsatMetrics
 {
@@ -18,16 +20,16 @@ class CsatMetrics
     /**
      * Devuelve las métricas CSAT para el dashboard (con cache de 5 min).
      *
-     * @param  string|null  $clientId  null = todos los clientes (solo superadmin)
+     * @param  string|array<int, string>|null  $clientScope  UUID cliente, lista de UUIDs, o null
      * @param  string  $period  today|7|30|all
      * @return array{avg_score: float|null, total: int, satisfied_pct: float|null, today_count: int}
      */
-    public static function getMetrics(?string $clientId, string $period): array
+    public static function getMetrics(string|array|null $clientScope, string $period): array
     {
-        $clientId = filled($clientId) ? trim((string) $clientId) : null;
         $user = auth()->user();
-        // Propietarios de cliente solo ven su cliente; si no tienen cliente, métricas vacías (nunca global)
-        if ($user && ! $user->isSuperAdmin() && $clientId === null) {
+
+        $resolvedClientIds = self::resolveScopedClientIds($clientScope, $user);
+        if (is_array($resolvedClientIds) && count($resolvedClientIds) === 0) {
             return [
                 'avg_score' => null,
                 'total' => 0,
@@ -35,12 +37,15 @@ class CsatMetrics
                 'today_count' => 0,
             ];
         }
-        $cacheKey = 'csat_dashboard_' . auth()->id() . '_' . ($clientId ?? 'all') . '_' . $period;
+        $scopeKey = $resolvedClientIds === null
+            ? 'all'
+            : implode(',', $resolvedClientIds);
+        $cacheKey = 'csat_dashboard_v3_' . auth()->id() . '_' . $scopeKey . '_' . $period;
 
-        return Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($clientId, $period) {
+        return Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($resolvedClientIds, $period) {
             $baseQuery = CsatSurvey::query();
-            if ($clientId !== null && $clientId !== '') {
-                $baseQuery->where('client_id', $clientId);
+            if (is_array($resolvedClientIds)) {
+                $baseQuery->whereIn('client_id', $resolvedClientIds);
             }
 
             $periodQuery = (clone $baseQuery)->when($period !== self::PERIOD_ALL, function ($q) use ($period) {
@@ -50,9 +55,7 @@ class CsatMetrics
 
             $total = $periodQuery->count();
             $avgScore = $total > 0 ? (float) $periodQuery->avg('score') : null;
-            $satisfiedCount = $total > 0
-                ? (clone $periodQuery)->whereIn('score', [4, 5])->count()
-                : 0;
+            $satisfiedCount = $total > 0 ? self::countSatisfiedSurveys(clone $periodQuery) : 0;
             $satisfiedPct = $total > 0 ? round(($satisfiedCount / $total) * 100, 1) : null;
 
             $todayCount = (clone $baseQuery)
@@ -66,6 +69,103 @@ class CsatMetrics
                 'today_count' => $todayCount,
             ];
         });
+    }
+
+    private static function countSatisfiedSurveys(\Illuminate\Database\Eloquent\Builder $periodQuery): int
+    {
+        $counts = $periodQuery
+            ->select('score', 'positive_scores_used', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('score', 'positive_scores_used')
+            ->get();
+
+        if ($counts->isEmpty()) {
+            return 0;
+        }
+
+        return (int) $counts->sum(function ($row): int {
+            $positiveScores = is_array($row->positive_scores_used)
+                ? $row->positive_scores_used
+                : (json_decode((string) $row->positive_scores_used, true) ?: [4, 5]);
+
+            return in_array((int) $row->score, $positiveScores, true)
+                ? (int) $row->aggregate
+                : 0;
+        });
+    }
+
+    /**
+     * @param  string|array<int, string>|null  $clientScope
+     * @param  mixed  $user
+     * @return array<int, string>|null
+     */
+    private static function resolveScopedClientIds(string|array|null $clientScope, mixed $user): ?array
+    {
+        $requestedIds = self::normalizeScopeIds($clientScope);
+
+        if (! $user) {
+            return [];
+        }
+
+        if ($user->isSuperAdmin()) {
+            return $requestedIds;
+        }
+
+        if ($user->isClientOwner()) {
+            $ownedId = $user->ownedClient?->id;
+            if (! $ownedId) {
+                return [];
+            }
+
+            return [$ownedId];
+        }
+
+        if ($user->isDistributor()) {
+            $allowedIds = Client::query()
+                ->where('created_by', $user->id)
+                ->pluck('id')
+                ->all();
+            if (count($allowedIds) === 0) {
+                return [];
+            }
+
+            if ($requestedIds === null) {
+                sort($allowedIds);
+
+                return $allowedIds;
+            }
+
+            $scoped = array_values(array_intersect($allowedIds, $requestedIds));
+            sort($scoped);
+
+            return $scoped;
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  string|array<int, string>|null  $clientScope
+     * @return array<int, string>|null
+     */
+    private static function normalizeScopeIds(string|array|null $clientScope): ?array
+    {
+        if ($clientScope === null) {
+            return null;
+        }
+
+        $values = is_array($clientScope) ? $clientScope : [$clientScope];
+        $ids = [];
+        foreach ($values as $value) {
+            $id = trim((string) $value);
+            if ($id !== '') {
+                $ids[] = $id;
+            }
+        }
+
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+
+        return $ids;
     }
 
     /**
