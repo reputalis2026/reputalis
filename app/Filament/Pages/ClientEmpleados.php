@@ -25,6 +25,11 @@ class ClientEmpleados extends Page
         return __('employees.title.own');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     public ?Client $client = null;
 
     public function mount(): void

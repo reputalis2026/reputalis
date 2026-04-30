@@ -14,6 +14,11 @@ class CreateNfcToken extends CreateRecord
         return __('panel.nfc_tokens.create_title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         if (auth()->user()?->isClientOwner() && auth()->user()->ownedClient) {

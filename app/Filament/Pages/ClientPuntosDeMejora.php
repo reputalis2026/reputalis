@@ -20,6 +20,11 @@ class ClientPuntosDeMejora extends Page
         return __('client.menu.survey');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     public function getTitle(): string
     {
         return __('client.survey.title.own');

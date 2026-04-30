@@ -22,6 +22,16 @@ class EditDistributor extends EditRecord
         return __('panel.distributors.edit_title');
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $this->record->loadMissing('owner');

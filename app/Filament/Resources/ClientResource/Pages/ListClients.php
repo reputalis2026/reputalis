@@ -8,7 +8,6 @@ use App\Models\Client;
 use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,10 +38,9 @@ class ListClients extends ListRecords
         return [];
     }
 
-    public function getMaxContentWidth(): MaxWidth|string|null
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
     {
-        // Reduce separación visual entre sidebar y tabla
-        return MaxWidth::Full;
+        return \Filament\Support\Enums\MaxWidth::Full;
     }
 
     public function getTabs(): array

@@ -38,6 +38,11 @@ class CreateClient extends CreateRecord
         return __('client.pages.create_title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Prioridad: snapshot al inicio de create() > $this->data > $data de getState()

@@ -10,7 +10,6 @@ use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Filament\Support\Enums\MaxWidth;
 
 class EditClient extends EditRecord
 {
@@ -45,9 +44,9 @@ class EditClient extends EditRecord
         return [];
     }
 
-    public function getMaxContentWidth(): MaxWidth | string | null
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
     {
-        return MaxWidth::Full;
+        return \Filament\Support\Enums\MaxWidth::Full;
     }
 
     protected function mutateFormDataBeforeFill(array $data): array

@@ -24,6 +24,16 @@ class ViewDistributor extends ViewRecord
         return __('panel.distributors.view_title');
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

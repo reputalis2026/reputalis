@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Support\Enums\MaxWidth;
 use Illuminate\Database\Eloquent\Model;
 
 class ViewClient extends ViewRecord
@@ -36,9 +35,9 @@ class ViewClient extends ViewRecord
         return (string) ($this->record?->namecommercial ?? __('client.resource.model_label'));
     }
 
-    public function getMaxContentWidth(): MaxWidth | string | null
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
     {
-        return MaxWidth::Full;
+        return \Filament\Support\Enums\MaxWidth::Full;
     }
 
     protected function getHeaderActions(): array

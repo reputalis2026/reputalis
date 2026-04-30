@@ -29,6 +29,16 @@ class CreateDistributor extends CreateRecord
         return __('panel.distributors.create_title');
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $state = $this->formStateSnapshot ?? (is_array($this->data) ? $this->data : []);

@@ -17,6 +17,11 @@ class EditEmployee extends EditRecord
         return __('employees.title.edit');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

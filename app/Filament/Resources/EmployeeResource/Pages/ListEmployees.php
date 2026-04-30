@@ -21,6 +21,11 @@ class ListEmployees extends ListRecords
         return __('employees.navigation_label');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

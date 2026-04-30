@@ -7,6 +7,11 @@ use Filament\Forms\Components\Section;
 
 class EditProfile extends BaseEditProfile
 {
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     public function form(\Filament\Forms\Form $form): \Filament\Forms\Form
     {
         return $form

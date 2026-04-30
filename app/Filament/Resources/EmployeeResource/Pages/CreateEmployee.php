@@ -18,6 +18,11 @@ class CreateEmployee extends CreateRecord
         return __('employees.title.create');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     /**
      * La creación llega casi siempre con ?client_id=... desde Cliente → Empleados.
      * Autorizar con la misma regla que la ficha del cliente (canEdit), no solo canCreate(),

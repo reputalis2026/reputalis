@@ -36,6 +36,11 @@ class ClientCalls extends Page implements HasTable
         return __('client.calls.pending_title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         $user = auth()->user();

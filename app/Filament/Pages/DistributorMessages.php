@@ -29,6 +29,11 @@ class DistributorMessages extends Page implements HasTable
         return __('panel.messages.title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('panel.navigation_groups.communication');

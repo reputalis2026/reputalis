@@ -14,6 +14,11 @@ class EditNfcToken extends EditRecord
         return __('panel.nfc_tokens.edit_title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

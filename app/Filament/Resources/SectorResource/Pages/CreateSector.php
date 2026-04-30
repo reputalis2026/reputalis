@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateSector extends CreateRecord
 {
     protected static string $resource = SectorResource::class;
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
 }

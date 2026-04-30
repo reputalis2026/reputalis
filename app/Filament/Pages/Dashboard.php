@@ -18,6 +18,11 @@ class Dashboard extends BaseDashboard
         return __('dashboard.title');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     /**
      * @return array<class-string<Widget> | WidgetConfiguration>
      */

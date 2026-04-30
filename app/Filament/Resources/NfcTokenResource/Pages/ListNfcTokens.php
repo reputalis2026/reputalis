@@ -16,6 +16,11 @@ class ListNfcTokens extends ListRecords
         return __('panel.nfc_tokens.navigation_label');
     }
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

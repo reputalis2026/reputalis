@@ -10,9 +10,19 @@ class ListDistributors extends ListRecords
 {
     protected static string $resource = DistributorResource::class;
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     public function getTitle(): string
     {
         return __('panel.distributors.navigation_label');
+    }
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
+    {
+        return \Filament\Support\Enums\MaxWidth::Full;
     }
 
     protected function getHeaderActions(): array
