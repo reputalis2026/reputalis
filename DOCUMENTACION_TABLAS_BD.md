@@ -54,10 +54,10 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `updated_at`: fecha de actualizacion.
 - `pharmacy_id`: relacion legacy con farmacia.
 - `name`: nombre del empleado.
-- `position`: puesto/cargo.
-- `is_active`: estado del empleado.
+- `position`: puesto/cargo; se muestra bajo el nombre en las tarjetas del panel si tiene valor.
+- `is_active`: estado funcional del empleado. Si pasa a `false`, su token NFC asociado queda inactivo y no debe poder abrir la encuesta NFC ni asociarse por API mediante `employee_code`.
 - `client_id`: cliente al que pertenece.
-- `alias`: nombre mostrado alternativo.
+- `alias`: nombre mostrado alternativo. Se conserva en BD y logica historica, pero ya no se muestra ni edita en el formulario Create/Edit de empleados.
 - `photo`: foto del empleado.
 
 ### `nfctokens`
@@ -66,8 +66,8 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `id`: identificador del token.
 - `pharmacy_id`: relacion legacy con farmacia.
 - `employee_id`: empleado asociado al token.
-- `token`: valor unico del token NFC.
-- `is_active`: estado activo/inactivo del token.
+- `token`: valor unico del token NFC. Debe ser estable y permanente: no se regenera al editar, activar o desactivar un empleado.
+- `is_active`: estado activo/inactivo del token. Se sincroniza con `employees.is_active`; un empleado inactivo implica token inactivo.
 - `created_at`: fecha de creacion.
 - `updated_at`: fecha de actualizacion.
 - `client_id`: cliente asociado.

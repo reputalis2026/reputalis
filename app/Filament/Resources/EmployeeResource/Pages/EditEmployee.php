@@ -17,6 +17,11 @@ class EditEmployee extends EditRecord
         return __('employees.title.edit');
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
     {
         return \Filament\Support\Enums\MaxWidth::Full;
@@ -58,7 +63,7 @@ class EditEmployee extends EditRecord
         $employee->nfcTokens()->create([
             'client_id' => $employee->client_id,
             'token' => $token,
-            'is_active' => true,
+            'is_active' => (bool) $employee->is_active,
         ]);
     }
 

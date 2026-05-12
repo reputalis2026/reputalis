@@ -25,6 +25,16 @@ class Employee extends Model
                 $employee->setAttribute($employee->getKeyName(), (string) Str::uuid());
             }
         });
+
+        static::saved(function (Employee $employee): void {
+            if (! $employee->wasChanged('is_active')) {
+                return;
+            }
+
+            $employee->nfcTokens()->update([
+                'is_active' => (bool) $employee->is_active,
+            ]);
+        });
     }
 
     /**

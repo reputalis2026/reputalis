@@ -18,6 +18,8 @@ class Empleados extends Page
 
     protected static string $view = 'filament.resources.client-resource.pages.empleados';
 
+    public string $employeeStatusTab = 'active';
+
     public static function getNavigationLabel(): string
     {
         return __('client.menu.employees');
@@ -27,6 +29,7 @@ class Empleados extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+        $this->employeeStatusTab = request()->query('employee_status') === 'inactive' ? 'inactive' : 'active';
     }
 
     public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
@@ -76,7 +79,20 @@ class Empleados extends Page
 
     public function getEmployees()
     {
-        return $this->getRecord()->employees()->orderBy('name')->get();
+        return $this->getRecord()->employees()
+            ->where('is_active', $this->employeeStatusTab === 'active')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getEmployeesCount(): int
+    {
+        return $this->getRecord()->employees()->count();
+    }
+
+    public function switchEmployeeStatusTab(string $tab): void
+    {
+        $this->employeeStatusTab = $tab === 'inactive' ? 'inactive' : 'active';
     }
 
     public function deleteEmployee(string $id): void
@@ -84,6 +100,11 @@ class Empleados extends Page
         $employee = Employee::find($id);
         if (! $employee || $employee->client_id !== $this->getRecord()->id) {
             Notification::make()->danger()->title(__('common.messages.not_authorized'))->send();
+
+            return;
+        }
+        if ($employee->is_active) {
+            Notification::make()->danger()->title(__('employees.actions.delete_active_forbidden'))->send();
 
             return;
         }

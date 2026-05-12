@@ -12,6 +12,10 @@ return [
     'subtitle' => 'Your configured employees',
     'intro_read_only' => 'These are the employees configured for your client.',
     'count' => 'Employees (:count)',
+    'tabs' => [
+        'active' => 'Active employees',
+        'inactive' => 'Inactive employees',
+    ],
     'empty' => [
         'heading' => 'No employees',
         'editable' => 'Add employees to this client so they can be linked to surveys later.',
@@ -22,6 +26,7 @@ return [
         'delete_confirm' => 'Delete :name? This action cannot be undone.',
         'link_copied' => 'Survey link copied',
         'delete_forbidden' => 'You cannot delete this employee',
+        'delete_active_forbidden' => 'Deactivate the employee before deleting them',
         'deleted' => 'Employee deleted',
     ],
     'resource' => [

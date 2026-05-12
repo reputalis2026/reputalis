@@ -55,10 +55,6 @@ class EmployeeResource extends Resource
                             ->label(__('employees.form.name'))
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('alias')
-                            ->label(__('employees.form.alias'))
-                            ->maxLength(100)
-                            ->helperText(__('employees.form.alias_help')),
                         Forms\Components\FileUpload::make('photo')
                             ->label(__('employees.form.photo'))
                             ->image()
@@ -77,76 +73,6 @@ class EmployeeResource extends Resource
                             ->label(__('employees.form.active'))
                             ->default(true),
                     ]),
-                Forms\Components\Section::make(__('employees.form.section_nfc'))
-                    ->icon('heroicon-o-credit-card')
-                    ->description(__('employees.form.section_nfc_description'))
-                    ->schema([
-                        Forms\Components\TextInput::make('nfc_token')
-                            ->label(__('employees.form.nfc_token'))
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
-                                if ($record?->nfcTokens?->token) {
-                                    $component->state($record->nfcTokens->token);
-                                } else {
-                                    $component->state(__('employees.form.nfc_generated_on_save'));
-                                }
-                            }),
-                        Forms\Components\TextInput::make('nfc_survey_url')
-                            ->label(__('employees.form.nfc_survey_url'))
-                            ->disabled()
-                            ->dehydrated(false)
-                            // En esta versión de Filament no existe TextInput::copyable().
-                            // El copiado se realiza con un botón JS debajo.
-                            ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, ?\App\Models\Employee $record): void {
-                                if ($record?->nfcTokens?->token) {
-                                    $component->state(url('/survey/nfc/'.$record->nfcTokens->token));
-                                } else {
-                                    $component->state(__('common.placeholders.empty'));
-                                }
-                            }),
-                        Forms\Components\Placeholder::make('copy_nfc_survey_url')
-                            ->label('')
-                            ->content(function (?\App\Models\Employee $record): ?\Illuminate\Support\HtmlString {
-                                $token = $record?->nfcTokens?->token;
-                                if (! $token) {
-                                    return null;
-                                }
-
-                                $url = url('/survey/nfc/'.$token);
-
-                                // Evitamos json_encode() porque mete comillas dobles dentro de un atributo double-quoted.
-                                $urlJsLiteral = "'".addslashes($url)."'";
-                                $onclick = '(async () => {'.
-                                    'try {'.
-                                        'await navigator.clipboard.writeText('.$urlJsLiteral.');'.
-                                        'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.actions.link_copied')).'\', status: \'success\' } } }));'.
-                                    '} catch (e) {'.
-                                        'const ta = document.createElement(\'textarea\');'.
-                                        'ta.value = '.$urlJsLiteral.';'.
-                                        'ta.setAttribute(\'readonly\', \'\');'.
-                                        'ta.style.position = \'fixed\';'.
-                                        'ta.style.left = \'-9999px\';'.
-                                        'document.body.appendChild(ta);'.
-                                        'ta.select();'.
-                                        'const ok = document.execCommand(\'copy\');'.
-                                        'document.body.removeChild(ta);'.
-                                        'if (ok) {'.
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.actions.link_copied')).'\', status: \'success\' } } }));'.
-                                        '} else {'.
-                                            'window.dispatchEvent(new CustomEvent(\'notificationSent\', { detail: { notification: { title: \''.addslashes(__('employees.form.copy_failed')).'\', status: \'danger\' } } }));'.
-                                        '}'.
-                                    '}'.
-                                '})()';
-
-                                return new \Illuminate\Support\HtmlString(
-                                    '<x-filament::button size="sm" color="gray" icon="heroicon-o-clipboard-document" outlined '.
-                                    'onclick="'.$onclick.'"'.
-                                    '>'.__('common.actions.copy_link').'</x-filament::button>'
-                                );
-                            }),
-                    ])
-                    ->columns(1),
             ]);
     }
 
@@ -191,11 +117,6 @@ class EmployeeResource extends Resource
                     ->label(__('common.fields.name'))
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('alias')
-                    ->label(__('common.fields.alias'))
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder(__('common.placeholders.empty')),
                 Tables\Columns\TextColumn::make('position')
                     ->label(__('common.fields.position'))
                     ->searchable()
@@ -370,6 +291,9 @@ class EmployeeResource extends Resource
         if (! $user || ! $record instanceof Employee) {
             return false;
         }
+        if ($record->is_active) {
+            return false;
+        }
         if ($user->isSuperAdmin()) {
             return true;
         }
@@ -384,6 +308,6 @@ class EmployeeResource extends Resource
 
     public static function canDeleteAny(): bool
     {
-        return static::canCreate();
+        return false;
     }
 }

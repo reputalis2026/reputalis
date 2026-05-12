@@ -18,6 +18,11 @@ class CreateEmployee extends CreateRecord
         return __('employees.title.create');
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null
     {
         return \Filament\Support\Enums\MaxWidth::Full;
@@ -78,6 +83,14 @@ class CreateEmployee extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getCreateFormAction()->label(__('common.actions.create')),
+            $this->getCancelFormAction()->label(__('common.actions.cancel')),
+        ];
+    }
+
     protected function afterCreate(): void
     {
         $employee = $this->getRecord();
@@ -89,7 +102,7 @@ class CreateEmployee extends CreateRecord
         $employee->nfcTokens()->create([
             'client_id' => $employee->client_id,
             'token' => $token,
-            'is_active' => true,
+            'is_active' => (bool) $employee->is_active,
         ]);
     }
 

@@ -12,6 +12,10 @@ return [
     'subtitle' => 'Seus funcionários configurados',
     'intro_read_only' => 'Estes são os funcionários configurados para o seu cliente.',
     'count' => 'Funcionários (:count)',
+    'tabs' => [
+        'active' => 'Funcionários ativos',
+        'inactive' => 'Funcionários inativos',
+    ],
     'empty' => [
         'heading' => 'Não há funcionários',
         'editable' => 'Adicione funcionários a este cliente para os associar a inquéritos mais tarde.',
@@ -22,6 +26,7 @@ return [
         'delete_confirm' => 'Eliminar :name? Esta ação não pode ser desfeita.',
         'link_copied' => 'Link do inquérito copiado',
         'delete_forbidden' => 'Não pode eliminar este funcionário',
+        'delete_active_forbidden' => 'Desative o funcionário antes de o eliminar',
         'deleted' => 'Funcionário eliminado',
     ],
     'resource' => [

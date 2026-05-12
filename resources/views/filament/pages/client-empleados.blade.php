@@ -54,11 +54,6 @@
                             <h3 class="mt-3 text-base font-semibold text-gray-950 dark:text-white sm:mt-3">
                                 {{ $employee->name }}
                             </h3>
-                            @if ($employee->alias)
-                                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ $employee->alias }}
-                                </p>
-                            @endif
                         </div>
                     </div>
                 @endforeach

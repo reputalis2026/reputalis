@@ -12,6 +12,10 @@ return [
     'subtitle' => 'Tus empleados configurados',
     'intro_read_only' => 'Estos son los empleados configurados para tu cliente.',
     'count' => 'Empleados (:count)',
+    'tabs' => [
+        'active' => 'Empleados activos',
+        'inactive' => 'Empleados inactivos',
+    ],
     'empty' => [
         'heading' => 'No hay empleados',
         'editable' => 'Añade empleados a este cliente para poder asociarlos a encuestas más adelante.',
@@ -22,6 +26,7 @@ return [
         'delete_confirm' => '¿Eliminar a :name? Esta acción no se puede deshacer.',
         'link_copied' => 'Enlace de encuesta copiado',
         'delete_forbidden' => 'No puedes eliminar este empleado',
+        'delete_active_forbidden' => 'Desactiva el empleado antes de eliminarlo',
         'deleted' => 'Empleado eliminado',
     ],
     'resource' => [

@@ -85,7 +85,6 @@ class SurveyController extends Controller
     {
         $nfcToken = NfcToken::query()
             ->where('token', $token)
-            ->where('is_active', true)
             ->with(['client', 'employee'])
             ->first();
 
@@ -99,6 +98,18 @@ class SurveyController extends Controller
         $client = $nfcToken->client;
         /** @var Employee $employee */
         $employee = $nfcToken->employee;
+
+        if (! $employee->is_active) {
+            return response()->view('survey-nfc-invalid', [
+                'message' => 'El empleado asociado a esta encuesta ya no se encuentra activo. Muchas gracias.',
+            ], 404);
+        }
+
+        if (! $nfcToken->is_active) {
+            return response()->view('survey-nfc-invalid', [
+                'message' => 'Este enlace de encuesta no es válido o ya no está activo.',
+            ], 404);
+        }
 
         // Validación extra: el empleado debe pertenecer al mismo cliente.
         if ((string) $employee->client_id !== (string) $client->id) {
