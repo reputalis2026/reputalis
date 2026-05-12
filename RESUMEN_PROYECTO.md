@@ -1,115 +1,108 @@
-# Resumen del Proyecto Reputalis
+# Resumen del proyecto Reputalis
 
-## Regla de mantenimiento (obligatoria)
-
-Estos 3 documentos son de seguimiento continuo y **no se pueden borrar nunca**:
-
-- `CONTEXTO_PARA_IA.md`
-- `DESCRIPCION_CLASES.md`
-- `RESUMEN_PROYECTO.md`
-
-Siempre se actualizan, nunca se eliminan.
-
-## Información General
-
-**Proyecto:** Reputalis  
-**Framework:** Laravel 11.x  
-**Panel administrativo:** Filament 3.x  
-**Base de datos:** PostgreSQL (UUIDs con `gen_random_uuid()`)  
-**Frontend:** TailwindCSS + Vite  
-**PHP:** ^8.2
-
-**Documento de referencia detallado:** para estado actual de modelos, rutas, convenciones y flujos, usar **CONTEXTO_PARA_IA.md**. Este resumen ofrece una visión general.
+**Propósito:** visión de producto, qué está implementado y qué queda fuera. Para rutas, API y convenciones de implementación, usar [`CONTEXTO_PARA_IA.md`](CONTEXTO_PARA_IA.md). Para tablas y clases en detalle: [`DOCUMENTACION_TABLAS_BD.md`](DOCUMENTACION_TABLAS_BD.md) y [`DESCRIPCION_CLASES.md`](DESCRIPCION_CLASES.md). Entrada general para IAs: [`README_AI.md`](README_AI.md). Bitácora de cambios: [`docs/HANDOFFS.md`](docs/HANDOFFS.md).
 
 ---
 
-## Estado Actual del Proyecto
+## Documentos de contexto (no borrar del repo)
 
-### Actualizacion reciente (Abr 2026)
-
-- Restaurado provider del panel (`AdminPanelProvider`) y login Filament (`/admin/login` GET+POST operativo).
-- Restaurada encuesta publica + NFC (`SurveyController`, `survey.blade.php`, `survey-nfc-invalid.blade.php`).
-- Restaurada/normalizada subpagina **Encuesta** de cliente (`ClientResource -> PuntosDeMejora`).
-- Ajustados permisos de empleados (crear/ver/editar/borrar por rol y cliente contenedor).
-- **Empleados (abr 2026, detalle):** `EmployeeResource::canAccess()` alineado con Filament SPA (`canViewAny` o `canCreate`); página **Crear empleado** con `?client_id=` autoriza vía `ClientResource::canEdit`; **UUID de empleado** generado en modelo al crear (evita `employee_id` nulo en `nfctokens`); migración **FK cascade** al borrar empleado para `nfctokens`.
-- Restaurado listado CSAT en panel (`CsatSurveyResource`) con alcance por rol.
-- Agregado overlay global de carga/navegacion para Filament (hooks + script + markup).
-- Añadido `canAccess()` en paginas críticas (`AdminNotifications`, `ClientCalls`, `DistributorMessages`) para bloquear URL directa.
-- Añadida internacionalización mínima de la encuesta pública por cliente: columnas `es/pt/en`, `default_locale`, resolución por `Accept-Language` y fallback `idioma detectado -> default_locale -> es`.
-- Añadida fase 1 de traducción del panel cliente por archivos `lang/es|en|pt` y helpers `__()`: locale del panel autenticado por sesión, ruta `/admin/language/{locale}` y selector en el user menu de Filament. No toca base de datos ni la lógica de idioma de la encuesta pública.
-- Fase 2 de traducciones: panel cliente completado en sus pantallas principales (dashboard, encuesta, empleados, perfil y empleado alcanzable); inicio de cobertura para superadmin/distribuidor en ClientResource, EmployeeResource, CSAT, sectores, llamadas, notificaciones y mensajes.
-- Fase 3 de traducciones: completados `DistributorResource`, `NfcTokenResource` oculto/compatibilidad, `ClientCalls`, `ViewEmployee` y auditoria final de hardcodes visibles del panel autenticado. Sin BD ni overrides.
-
-### Implementado y funcional
-
-#### 1. Autenticación y roles
-- **User:** UUID, roles `superadmin`, `cliente`, `distribuidor`. Métodos `isSuperAdmin()`, `isClientOwner()`, `isDistributor()`. Relaciones con Client (owner, createdBy, panel messages).
-
-#### 2. Clientes (entidad central)
-- **Client** (tabla `clients`): antes “Pharmacy”; renombrado. Datos fiscales, contacto, `owner_id`, `created_by`, `is_active`, `fecha_inicio_alta`, `fecha_fin`, `logo`, soft deletes.
-- **Soft deletes:** el listado incluye pestaña de “Clientes eliminados”; **solo SuperAdmin** puede verlos y restaurarlos.
-- **Activación y vigencia (solo SuperAdmin en Editar cliente):**
-  - Toggle “Cliente activo”.
-  - **Duración de activación:** 12, 24 o 36 meses (se calcula `fecha_fin` desde `fecha_inicio_alta`) u “Otra fecha” (DatePicker manual). Obligatorio al activar.
-  - **Confirmación al cambiar expiración:** si se cambia duración o fecha de fin y se pulsa Guardar, se muestra un modal (“Has cambiado la fecha de expiración”) con Aceptar/Cancelar; Cancelar no guarda, Aceptar guarda todo. Implementado con Livewire (`showExpirationConfirmModal`) y vista en el footer de EditClient.
-
-#### 3. Distribuidores
-- Mismo modelo **Client**, filtrado por `owner.role = distribuidor` (DistributorResource). Solo SuperAdmin gestiona distribuidores. Un distribuidor puede crear clientes (farmacias) que quedan con `created_by = distribuidor`.
-
-#### 4. Panel Filament (`/admin`)
-- **ClientResource:** CRUD de clientes (solo `owner.role = cliente`). SuperAdmin ve/edita todo; Distribuidor solo clientes que él creó. El rol cliente no ve “Clientes” en el menú; usa páginas propias de solo lectura (ClientPuntosDeMejora, ClientEmpleados). La página global de llamadas lista solo clientes reales, muestra estado vencido y mantiene el alcance por distribuidor.
-- **Alta de cliente con encuesta inicial:** al crear un cliente en `CreateClient`, si todavía no existe configuración para ese `client_id`, se crea automáticamente `ClientImprovementConfig` con `default_locale = es`, `positive_scores = [4,5]`, pregunta principal, título y 2 opciones base traducidas a `es`, `pt`, `en`. Además, la página `PuntosDeMejora` aplica el mismo fallback para clientes antiguos: al abrir **Encuesta**, si faltaba esa configuración, la crea en ese momento con los mismos valores base. SuperAdmin y distribuidor pueden editar luego estos valores desde **Encuesta**; el rol cliente solo los visualiza en modo lectura.
-- **Páginas solo para rol cliente:** **ClientPuntosDeMejora** y **ClientEmpleados** (Filament Pages independientes, datos de `ownedClient`). Menú del cliente: Dashboard, Encuesta, Empleados. Sin breadcrumbs de ClientResource. SuperAdmin/Distribuidor usan ClientResource (Clientes → [Cliente] → Encuesta / Empleados), mientras que el rol cliente tiene bloqueado por URL el acceso a `ClientResource -> Empleados` para evitar flujo editable fuera de `ClientEmpleados`.
-- **DistributorResource:** CRUD de distribuidores (Client con rol distribuidor).
-- **EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource.** EmployeeResource no está en el menú; se usa desde Cliente → Empleados (cliente solo consulta en ClientEmpleados). Create/Edit de empleado se simplificaron: sin breadcrumb, sin alias visible, sin sección Token NFC/copiar enlace y sin “crear y crear otro”. Alta/edición mantiene token NFC 1:1 estable: no se regenera ni sustituye, solo se crea si faltaba; `employees.is_active` sincroniza `nfctokens.is_active`.
-- **Encuesta por cliente:** en ClientResource, subpágina **Encuesta** (modelo `PuntosDeMejora` en código): **ClientImprovementConfig** (`display_mode` números/caritas, `default_locale`, `positive_scores`, pregunta/título por idioma) + **ClientImprovementOption** (`label_es`, `label_pt`, `label_en`, mín. 2). SuperAdmin y Distribuidor editan; el rol cliente solo consulta en modo lectura. Assets opcionales: `public/survey-rating/numbers/*.png`, `public/survey-rating/faces/*.png`.
-- **Notificaciones/mensajes del panel:** AdminNotifications (SuperAdmin), DistributorMessages (distribuidor). Flujo: distribuidor crea cliente inactivo → notificación a SuperAdmin y distribuidor; SuperAdmin activa → notificación al distribuidor (PanelMessageService).
-- **Idioma del panel autenticado:** basado solo en archivos PHP de `lang/` (`panel`, `dashboard`, `client`, `survey`, `employees`, `common`). El selector de idioma vive en el user menu de Filament y persiste en sesión (`panel_locale`); es independiente del idioma por defecto del cliente y de la encuesta pública/NFC. Cobertura actual: panel autenticado localizado todo lo posible con archivos `lang/`; no se traducen datos persistidos.
-
-#### 5. Encuestas CSAT
-- **API:** `POST /api/surveys/create` con `client_code`, `score` (1–5), opcionalmente `improvement_option_id` si el score no está configurado como positivo, `employee_code`, etc. Límites por IP y por dispositivo. El contrato no cambia; la validación interna consulta `client_improvement_configs.positive_scores` y guarda el snapshot en `csat_surveys.positive_scores_used`.
-- **Página pública:** `/survey`, `/survey/{client_code}` para rellenar encuesta (misma API de envío; score siempre 1–5). Resuelve idioma del cliente final por `Accept-Language`, normaliza `pt-BR`/`en-US`, usa traducción configurada si está completa, cae al `default_locale` de la encuesta y finalmente a español. Escala 1–5 con `data-score`; el JS decide flujo positivo vs punto de mejora con `surveyPositiveScores` en lugar de `score >= 4`; tras puntuación baja, `improvementBlock` muestra textos traducidos en botones/cards verticales de ancho completo y envía siempre `improvement_option_id`. Los mensajes genéricos de cierre (agradecimientos, subtítulos, CTA Google y envío) usan el mismo `surveyLocale`.
-- **Encuesta por NFC (token):** `GET /survey/nfc/{token}` resuelve `NfcToken` y empleado; bloquea si el token está inactivo, si el empleado está inactivo o si cliente/empleado no corresponden. Si el empleado está inactivo muestra una pantalla móvil simple con “El empleado asociado a esta encuesta ya no se encuentra activo. Muchas gracias.” y botón “Cerrar”. La API rechaza `employee_code` de empleados inactivos y no asocia `employee_id`.
-
-#### 5.1 Empleados y NFC (actualización Mayo 2026)
-- **Cliente → Empleados:** la subpágina editable para SuperAdmin/Distribuidor usa botones tipo pestaña **Empleados activos / Empleados inactivos** y muestra solo el grupo seleccionado. Las tarjetas muestran foto/iniciales, nombre y puesto si existe; el enlace NFC se copia desde cada tarjeta con fallback de portapapeles y feedback visible.
-- **Borrado:** un empleado activo no puede borrarse. El botón no se muestra para activos y el backend lo bloquea con `EmployeeResource::canDelete()` y `deleteEmployee()`; el borrado masivo queda deshabilitado.
-- **Estado funcional:** desactivar/reactivar empleado sincroniza `nfctokens.is_active`; el token no cambia de valor. Un empleado inactivo no abre encuesta NFC y no puede asociarse por API mediante `employee_code`.
-
-#### 6. PWA “El Pulso del Día”
-- `/pulse`: login para propietarios de cliente. Dashboard por `client_code` con métricas de satisfacción (CsatMetrics, usando el snapshot histórico `positive_scores_used`).
-
-#### 7. Otros modelos y soporte
-- **Sector** (catálogo), **ImprovementReason** (legacy), **PanelMessage / PanelMessageRecipient**. Servicios: **CsatMetrics**, **PanelMessageService**, **ImprovementReasonLabelResolver** (legacy).
+`CONTEXTO_PARA_IA.md`, `RESUMEN_PROYECTO.md` y `DESCRIPCION_CLASES.md` se mantienen en el repositorio y se **actualizan** con el tiempo; el índice y normas están en `README_AI.md`.
 
 ---
 
-## Estructura relevante (resumida)
+## Información general
 
-- **Modelos:** User, Client, Employee, NfcToken, CsatSurvey, ImprovementReason, Sector, PanelMessage, PanelMessageRecipient, ClientImprovementConfig, ClientImprovementOption, ClientImprovementReasonLabel (legacy).
-- **Filament:** ClientResource (CreateClient, EditClient, PuntosDeMejora — UI “Encuesta”, Empleados, etc.), DistributorResource, EmployeeResource, NfcTokenResource, CsatSurveyResource, SectorResource. Páginas solo para rol cliente: **ClientPuntosDeMejora**, **ClientEmpleados** (solo lectura, menú: Dashboard, Encuesta, Empleados). Widgets: CsatStatsOverviewWidget, ClientsOverviewWidget.
-- **Rutas:** web (Pulse, survey, admin), api (surveys/create).
-- **Vistas propias:** encuesta pública, Pulse, modal de confirmación de expiración en EditClient (`edit-client-expiration-modal.blade.php`).
+| Aspecto | Valor |
+|--------|--------|
+| Proyecto | Reputalis |
+| Framework | Laravel 11.x |
+| Panel | Filament 3.x |
+| Base de datos | PostgreSQL (UUIDs) |
+| Frontend | TailwindCSS + Vite |
+| PHP | ^8.2 |
+
+---
+
+## Qué es Reputalis
+
+Plataforma de **gestión de satisfacción (CSAT)** y clientes (orientación inicial farmacia/parafarmacia, modelo genérico). Incluye:
+
+1. **Panel Filament** (`/admin`): superadmin, distribuidor y cliente propietario con permisos distintos.
+2. **Encuestas:** API `POST /api/surveys/create`, página pública `/survey/{client_code}`, NFC `/survey/nfc/{token}`.
+3. **PWA “El Pulso del Día”** (`/pulse`): dashboard de métricas para el propietario del cliente.
+
+La entidad central de negocio es **Client** (`clients`). Los distribuidores son **el mismo modelo** filtrado por `owner.role = distribuidor`.
+
+---
+
+## Estado actual (alto nivel)
+
+- Núcleo operativo: clientes, distribuidores, empleados y NFC estable, encuesta configurable por cliente (multidioma, `display_mode`, `positive_scores`), CSAT en panel, llamadas, mensajes de panel, Pulse, i18n del panel autenticado vía `lang/`.
+- **Empleados (2026):** pestañas activo/inactivo, copiar enlace NFC desde tarjetas, borrado solo inactivos, sincronización `employees.is_active` ↔ `nfctokens.is_active`, pantalla NFC si empleado inactivo.
+- **Cambios técnicos recientes** (login Filament, overlay SPA, permisos `EmployeeResource`, UUID empleado, FK NFC cascade, traducciones fases 1–3): resumidos en [`CONTEXTO_PARA_IA.md`](CONTEXTO_PARA_IA.md) para no duplicar listas largas aquí.
+
+---
+
+## Implementado y funcional (resumen)
+
+### Autenticación y roles
+
+- **User:** roles `superadmin`, `cliente`, `distribuidor`; helpers `isSuperAdmin()`, `isClientOwner()`, `isDistributor()`; acceso panel según rol.
+
+### Clientes
+
+- **Client:** datos fiscales y comerciales, `owner_id`, `created_by`, vigencia (`fecha_inicio_alta`, `fecha_fin`), `is_active`, soft deletes, logo.
+- **Solo superadmin** restaura desde pestaña de eliminados.
+- **Activación:** al activar, flujo de duración 12/24/36 meses u “otra fecha”; modal de confirmación si cambia expiración (`EditClient`).
+
+### Distribuidores
+
+- Mismo **Client** con owner distribuidor; `DistributorResource` solo superadmin; distribuidor crea clientes con `created_by` enlace a él.
+
+### Panel Filament
+
+- **ClientResource** con subpáginas Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol.
+- **Cliente (rol):** menú Dashboard / Encuesta / Empleados vía páginas dedicadas; sin edición cruzada por URL donde está bloqueado.
+- **Notificaciones:** `PanelMessage` / `PanelMessageService` en alta y activación de cliente.
+- **Idioma panel:** sesión + archivos `lang/`; independiente de la encuesta pública.
+
+### Encuestas CSAT
+
+- API con límites por IP y dispositivo; validación de opciones de mejora del cliente; `positive_scores_used` como histórico.
+- Vista pública con idioma por `Accept-Language` y fallback a `default_locale` y `es`.
+- NFC: token estable por empleado; validaciones de cliente/empleado/token activos.
+
+### Pulse
+
+- Login propietario; métricas vía `CsatMetrics` y `positive_scores_used`.
+
+### Otros
+
+- **Sector**, **ImprovementReason** (legacy compat), **ClientCall**, widgets de dashboard.
+
+---
+
+## Estructura relevante (índice)
+
+- **Modelos:** User, Client, Employee, NfcToken, CsatSurvey, ClientImprovementConfig, ClientImprovementOption, PanelMessage, PanelMessageRecipient, Sector, etc.
+- **Filament:** recursos anteriores + páginas cliente + notificaciones.
+- **Rutas:** `routes/web.php`, `routes/api.php`.
+
+Detalle por clase: `DESCRIPCION_CLASES.md`.
 
 ---
 
 ## Pendiente / no implementado
 
-- Tablas/migraciones: contracts, (pharmacy/client)settings, googleoauthaccounts, googlelocations, googlereviewscache, googlemetricsdaily, alertevents, alertreads, alertrecipients, documents, benchmarkruns (existen migraciones antiguas o vacías; sin modelos/Resources).
-- Integración Google (OAuth, ubicaciones, reseñas, métricas).
-- Sistema de alertas, contratos, documentos, benchmarks.
+- Tablas previstas en migraciones sin app completa: contratos, documentos, Google (OAuth, reseñas, métricas), alertas, benchmarks, ajustes legacy de settings.
+- Posible estrategia futura para textos persistidos en BD (traducciones de datos).
 
 ---
 
-## Notas importantes
+## Notas
 
-- **UUID** en tablas principales; PostgreSQL `gen_random_uuid()`.
-- Clientes y distribuidores comparten **Client**; se distinguen por `users.role` del `owner_id`.
-- Código de cliente (`Client.code`) en URLs públicas (Pulse, encuesta, API).
-- La internacionalización del panel autenticado está cerrada a nivel de código propio visible. Quedan fuera Pulse, encuesta pública y textos persistidos/dinámicos que requerirían otra estrategia (por ejemplo overrides o campos traducibles en BD).
-- **CONTEXTO_PARA_IA.md** es la referencia actual; este resumen puede quedar desactualizado antes que aquel.
+- UUID en tablas principales; convención `Client` vs nombre legacy `pharmacy` en migraciones antiguas.
+- `CONTEXTO_PARA_IA.md` suele estar más al día en detalles técnicos puntuales; este resumen prioriza **qué existe** a nivel funcional.
+- Operación del servidor (comandos): [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
----
-
-**Última actualización:** 11 mayo 2026 (documentado: limpieza visual/funcional de empleados, estado funcional de empleado sincronizado con NFC, pestañas activos/inactivos, borrado solo de inactivos y pantalla móvil de NFC inválido).  
-**Estado:** Núcleo operativo (clientes, distribuidores, encuestas CSAT, Pulse, configuración **Encuesta** por cliente multidioma con `display_mode` en escala pública, estado y vigencia con confirmación, empleados con NFC estable y control funcional de activos/inactivos). Pendiente: Google, alertas, contratos, documentos y posible estrategia futura para traducciones persistidas/overrides.
+**Última revisión documental:** mayo 2026 (reorganización de docs + mantenimiento de contenido alineado con código).

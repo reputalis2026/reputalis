@@ -1,8 +1,10 @@
-# Documentacion de tablas de base de datos
+# Documentación de tablas de base de datos
 
-Este archivo resume las tablas detectadas en las migraciones del proyecto y el objetivo de cada campo.
+**Propósito:** referencia de **tablas y campos** según el esquema actual y migraciones. Para relaciones Eloquent, reglas de negocio y pantallas, combina con [`DESCRIPCION_CLASES.md`](DESCRIPCION_CLASES.md) y el código. Índice de documentación: [`README_AI.md`](../README_AI.md).
 
-> Nota: esta guia esta pensada como documentacion funcional/tecnica. En tablas legacy donde no se definen todos los campos en migraciones actuales, se documentan los campos visibles y se recomienda ampliar con el modelo/SQL historico.
+Este archivo resume tablas relevantes y el sentido de cada campo.
+
+> En tablas legacy o poco usadas, algunos campos pueden no aparecer en migraciones recientes; contrastar con el modelo o con `psql` / `\d` en el entorno.
 
 ## Tablas de negocio principales
 
@@ -35,7 +37,7 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `fullname`: nombre completo del usuario.
 - `name`: nombre corto o alternativo.
 - `role`: rol de permisos dentro del sistema.
-- `pharmacy_id`: relacion legacy con farmacia (tabla previa).
+- `pharmacy_id`: columna legacy si aún existe; la relación viva es `client_id` → `clients`.
 - `email_verified_at`: fecha de verificacion de email.
 - `password_reset_token`: token de recuperacion de contrasena.
 - `last_login_at`: ultimo acceso.
@@ -52,7 +54,7 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 - `id`: identificador del empleado.
 - `created_at`: fecha de alta.
 - `updated_at`: fecha de actualizacion.
-- `pharmacy_id`: relacion legacy con farmacia.
+- `pharmacy_id`: columna legacy si aún existe; la relación viva es `client_id` → `clients`.
 - `name`: nombre del empleado.
 - `position`: puesto/cargo; se muestra bajo el nombre en las tarjetas del panel si tiene valor.
 - `is_active`: estado funcional del empleado. Si pasa a `false`, su token NFC asociado queda inactivo y no debe poder abrir la encuesta NFC ni asociarse por API mediante `employee_code`.
@@ -64,7 +66,7 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 **Para que sirve:** tokens NFC asignados a empleados para captacion/identificacion en encuestas.
 
 - `id`: identificador del token.
-- `pharmacy_id`: relacion legacy con farmacia.
+- `pharmacy_id`: columna legacy si aún existe; la relación viva es `client_id` → `clients`.
 - `employee_id`: empleado asociado al token.
 - `token`: valor unico del token NFC. Debe ser estable y permanente: no se regenera al editar, activar o desactivar un empleado.
 - `is_active`: estado activo/inactivo del token. Se sincroniza con `employees.is_active`; un empleado inactivo implica token inactivo.
@@ -76,7 +78,7 @@ Este archivo resume las tablas detectadas en las migraciones del proyecto y el o
 **Para que sirve:** respuestas de encuestas de satisfaccion (CSAT) y punto de mejora.
 
 - `id`: identificador de la encuesta.
-- `pharmacy_id`: referencia legacy a farmacia.
+- `pharmacy_id`: columna legacy si aún existe; la relación viva es `client_id` → `clients`.
 - `employee_id`: empleado evaluado o asociado.
 - `score`: puntuacion de satisfaccion.
 - `improvementreason_id`: motivo de mejora legacy.

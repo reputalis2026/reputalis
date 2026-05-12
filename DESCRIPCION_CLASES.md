@@ -1,14 +1,8 @@
-## Descripción de clases principales
+# Descripción de clases principales
 
-## REGLA CRITICA (NO BORRAR)
+**Propósito:** catálogo orientado a **clases** (modelos, Filament, controladores, servicios). No describe campo a campo cada tabla; para eso usa [`DOCUMENTACION_TABLAS_BD.md`](DOCUMENTACION_TABLAS_BD.md). Normas y orden de lectura: [`README_AI.md`](README_AI.md).
 
-Estos archivos de contexto se mantienen siempre en el repo y **no se borran**:
-
-- `CONTEXTO_PARA_IA.md`
-- `DESCRIPCION_CLASES.md`
-- `RESUMEN_PROYECTO.md`
-
-Si cambian flujos o permisos, se actualizan; no se eliminan.
+Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECTO.md` son referencia viva: **actualizar**, no borrar del repositorio.
 
 ---
 
@@ -52,7 +46,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 - **Traducciones del panel autenticado (fase 2-3):** `ClientResource`, `DistributorResource`, `EmployeeResource`, `CsatSurveyResource`, `SectorResource`, `NfcTokenResource`, `AdminNotifications`, `DistributorMessages`, `Dashboard`, `ClientCalls`, `CsatStatsOverviewWidget`, `ClientsOverviewWidget`, `EditProfile` y páginas cliente usan `__()` con claves de `lang/`. El panel autenticado queda cubierto todo lo posible sin base de datos; quedan fuera textos persistidos/dinámicos, Pulse y encuesta pública.
 
-- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina activa de **Encuesta** por cliente dentro de `ClientResource`; permite edición (superadmin/distribuidor) y vista de solo lectura (cliente). Mantiene `display_mode`, añade selector `default_locale`, sección “Valoraciones positivas” con checkboxes 1..5, edita pregunta principal/título/opciones en `es`, `pt`, `en` y valida que ningún idioma quede vacío. Las valoraciones positivas deben formar un bloque final consecutivo hasta 5 y no pueden estar vacías ni incluir las cinco. La creación por defecto rellena los tres idiomas, `positive_scores = [4,5]` y genera UUIDs en PHP para config y opciones.
+- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina **Encuesta** en `ClientResource`; edición (superadmin/distribuidor) o solo lectura (cliente). `display_mode`, `default_locale`, valoraciones positivas 1..5 (bloque final consecutivo hasta 5, no vacío ni las cinco), textos en `es`/`pt`/`en`. UUID en PHP para config y opciones nuevas; si falta configuración (legacy), la página la crea al abrir con valores base y `[4,5]`.
 
 - **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre, como vista amigable dentro del menú del cliente.
 
@@ -81,8 +75,6 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 - **App\Filament\Resources\ClientResource\Pages\EditClient**: Página de edición de cliente que sincroniza datos del propietario, controla la activación y fecha de expiración con un modal de confirmación y, al activar un cliente inactivo, envía un mensaje al distribuidor correspondiente.
 
 - **App\Filament\Resources\ClientResource\Pages\ViewClient**: Página de visualización de la ficha de un cliente (solo lectura), que carga datos del propietario y ofrece una acción rápida para ir a la edición cuando los permisos lo permiten.
-
-- **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina de un cliente dentro de `ClientResource` (etiqueta de interfaz **“Encuesta”**) para configurar (superadmin/distribuidor) o consultar (cliente) el bloque: `display_mode`, `default_locale`, `positive_scores`, pregunta/título/opciones multidioma en `ClientImprovementConfig` y `ClientImprovementOption`. Si el cliente no tenía configuración previa (caso legacy), la página la inicializa automáticamente en `es`, `pt`, `en` y con `[4,5]` como positivas usando UUID generados en PHP.
 
 - **App\Filament\Resources\ClientResource\Pages\Empleados**: Subpágina de un cliente que muestra sus empleados en tarjetas y permite a superadmin/distribuidor crearlos/editar/borrar con alcance por cliente (`created_by` para distribuidor). La vista usa botones tipo pestaña **“Empleados activos”** / **“Empleados inactivos”** mediante `employeeStatusTab`, de modo que la pantalla carga solo un grupo cada vez. Las tarjetas muestran foto/iniciales, nombre y `position` bajo el nombre si existe; mantienen **Copiar enlace** para `/survey/nfc/{token}` con fallback de portapapeles y feedback visible. El borrado solo se muestra y ejecuta en empleados inactivos; `deleteEmployee()` rechaza activos aunque se manipule el frontend. El rol cliente no debe usar esta ruta: su acceso por URL queda bloqueado (`403`) y su vista oficial es `ClientEmpleados` en solo lectura.
 
@@ -116,8 +108,7 @@ Si cambian flujos o permisos, se actualizan; no se eliminan.
 
 ---
 
-## Nota operativa reciente
+## Nota operativa
 
-- El panel admin usa `App\Providers\Filament\AdminPanelProvider` con `->spa()` y overlay global de carga mediante hooks `BODY_START` y `SCRIPTS_BEFORE`; tambien registra el middleware de locale de panel y tres entradas de idioma en el user menu.
-- **Despliegue:** tras cambios en BD, ejecutar migraciones (incl. `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`) en cada entorno.
+Cambios recientes de rutas, panel o despliegue: [`CONTEXTO_PARA_IA.md`](CONTEXTO_PARA_IA.md) § “Handoff reciente”. Comandos en servidor: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
