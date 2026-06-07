@@ -3,18 +3,21 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
+use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Model;
 
 class ViewClient extends ViewRecord
 {
+    use HasClientPageTitle;
+
     protected static string $resource = ClientResource::class;
     protected static ?string $navigationIcon = '';
 
     public static function getNavigationLabel(): string
     {
-        return __('client.resource.model_label');
+        return __('client.menu.profile');
     }
 
     public function getBreadcrumbs(): array
@@ -28,11 +31,6 @@ class ViewClient extends ViewRecord
         $record->loadMissing('owner');
 
         return $record;
-    }
-
-    public function getTitle(): string
-    {
-        return (string) ($this->record?->namecommercial ?? __('client.resource.model_label'));
     }
 
     public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth|string|null

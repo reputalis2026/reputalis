@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Pages\SubNavigationPosition;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
@@ -21,6 +22,8 @@ class ClientResource extends Resource
     protected static ?string $model = Client::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+
+    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     public static function getNavigationLabel(): string
     {
@@ -462,6 +465,7 @@ class ClientResource extends Resource
         return [
             'index' => Pages\ListClients::route('/'),
             'create' => Pages\CreateClient::route('/create'),
+            'dashboard' => Pages\ClientDashboard::route('/{record}/dashboard'),
             'view' => Pages\ViewClient::route('/{record}'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
             'puntos-de-mejora' => Pages\PuntosDeMejora::route('/{record}/puntos-de-mejora'),
@@ -471,13 +475,14 @@ class ClientResource extends Resource
     }
 
     /**
-     * Subnavegación al ver/editar un cliente: Ver, Editar, Encuesta, Empleados.
+     * Subnavegación del registro de cliente.
      *
      * @return array<\Filament\Navigation\NavigationItem>
      */
     public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
     {
         $items = [
+            Pages\ClientDashboard::class,
             Pages\ViewClient::class,
             Pages\PuntosDeMejora::class,
             Pages\Empleados::class,

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
+use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Models\Client;
 use App\Models\ClientCall;
 use Filament\Actions\Action as HeaderAction;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Llamadas extends Page implements HasTable
 {
+    use HasClientPageTitle;
     use InteractsWithRecord;
     use TablesInteractsWithTable;
 
@@ -92,14 +94,6 @@ class Llamadas extends Page implements HasTable
         }
 
         return false;
-    }
-
-    public function getTitle(): string
-    {
-        /** @var Client $client */
-        $client = $this->getRecord();
-
-        return __('client.calls.title');
     }
 
     public function getBreadcrumb(): string

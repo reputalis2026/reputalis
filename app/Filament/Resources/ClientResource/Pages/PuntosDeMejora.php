@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
+use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Models\ClientImprovementConfig;
 use App\Models\ClientImprovementOption;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 
 class PuntosDeMejora extends Page
 {
+    use HasClientPageTitle;
     use InteractsWithFormActions;
     use InteractsWithForms;
     use InteractsWithRecord;
@@ -399,16 +401,6 @@ class PuntosDeMejora extends Page
                 ->label(__('common.actions.save'))
                 ->submit('save'),
         ];
-    }
-
-    public function getTitle(): string
-    {
-        $user = auth()->user();
-        if ($user?->isClientOwner()) {
-            return __('client.survey.title.own');
-        }
-
-        return __('client.survey.title.record', ['client' => $this->getRecord()->namecommercial]);
     }
 
     /**

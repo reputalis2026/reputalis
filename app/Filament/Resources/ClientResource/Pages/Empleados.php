@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
+use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Filament\Resources\EmployeeResource;
 use App\Models\Employee;
 use Filament\Actions;
@@ -12,6 +13,7 @@ use Filament\Resources\Pages\Page;
 
 class Empleados extends Page
 {
+    use HasClientPageTitle;
     use InteractsWithRecord;
 
     protected static string $resource = ClientResource::class;
@@ -130,16 +132,6 @@ class Empleados extends Page
         }
 
         return $actions;
-    }
-
-    public function getTitle(): string
-    {
-        $user = auth()->user();
-        if ($user && $user->isClientOwner()) {
-            return __('employees.title.own');
-        }
-
-        return __('employees.title.record', ['client' => $this->getRecord()->namecommercial]);
     }
 
     public function getBreadcrumb(): string
