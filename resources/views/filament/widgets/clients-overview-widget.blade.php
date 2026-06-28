@@ -95,7 +95,7 @@
                     </div>
                     @foreach ($clients as $client)
                         <a
-                            href="{{ \App\Filament\Resources\ClientResource::getUrl('view', ['record' => $client->id]) }}"
+                            href="{{ \App\Filament\Resources\ClientResource::getUrl('dashboard', ['record' => $client->id]) }}"
                             class="grid items-center border-b border-l-4 border-gray-200 border-l-emerald-500 px-4 py-3 transition last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:border-l-emerald-400 dark:hover:bg-gray-700/50"
                             style="grid-template-columns: {{ $gridColsActivos }}; gap: 1rem;"
                         >
@@ -119,7 +119,7 @@
                     </div>
                     @foreach ($clients as $client)
                         <a
-                            href="{{ \App\Filament\Resources\ClientResource::getUrl('view', ['record' => $client->id]) }}"
+                            href="{{ \App\Filament\Resources\ClientResource::getUrl('dashboard', ['record' => $client->id]) }}"
                             class="grid items-center border-b border-l-4 border-gray-200 border-l-gray-400 px-4 py-3 transition last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:border-l-gray-500 dark:hover:bg-gray-700/50"
                             style="grid-template-columns: {{ $gridColsInactivos }}; gap: 1rem;"
                         >
@@ -142,7 +142,7 @@
                     </div>
                     @foreach ($clients as $client)
                         <a
-                            href="{{ \App\Filament\Resources\ClientResource::getUrl('view', ['record' => $client->id]) }}"
+                            href="{{ \App\Filament\Resources\ClientResource::getUrl('dashboard', ['record' => $client->id]) }}"
                             class="grid items-center border-b border-l-4 border-gray-200 border-l-amber-500 px-4 py-3 transition last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:border-l-amber-400 dark:hover:bg-gray-700/50"
                             style="grid-template-columns: {{ $gridColsBajaProxima }}; gap: 1rem;"
                         >

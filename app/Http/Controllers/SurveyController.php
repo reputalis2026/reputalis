@@ -145,7 +145,8 @@ class SurveyController extends Controller
             'improvementBlock' => $improvementBlock,
             'client_code' => $client->code,
             'employee' => $employee,
-            'employeeCode' => $employee->name, // La API resuelve empleado por name
+            'employeeCode' => trim($employee->name),
+            'employeeId' => $employee->id,
             'showNfcDemo' => false,
             'surveyDisplayMode' => $surveyDisplayMode,
             'surveyQuestion' => $surveyQuestion,

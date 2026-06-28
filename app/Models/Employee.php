@@ -26,6 +26,12 @@ class Employee extends Model
             }
         });
 
+        static::saving(function (Employee $employee): void {
+            if (is_string($employee->name)) {
+                $employee->name = trim($employee->name);
+            }
+        });
+
         static::saved(function (Employee $employee): void {
             if (! $employee->wasChanged('is_active')) {
                 return;
@@ -70,5 +76,59 @@ class Employee extends Model
     public function nfcTokens(): HasOne
     {
         return $this->hasOne(NfcToken::class, 'employee_id');
+    }
+
+    public static function resolveForClientSurvey(string $clientId, ?string $employeeId, ?string $employeeCode): ?self
+    {
+        if (filled($employeeId)) {
+            return static::query()
+                ->where('client_id', $clientId)
+                ->whereKey($employeeId)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (! filled($employeeCode)) {
+            return null;
+        }
+
+        $normalizedCode = trim($employeeCode);
+
+        return static::query()
+            ->where('client_id', $clientId)
+            ->where('is_active', true)
+            ->where(function ($query) use ($employeeCode, $normalizedCode): void {
+                $query->where('name', $employeeCode)
+                    ->orWhere('name', $normalizedCode)
+                    ->orWhereRaw('TRIM(name) = ?', [$normalizedCode]);
+            })
+            ->first();
+    }
+
+    public static function inactiveMatchForClientSurvey(string $clientId, ?string $employeeId, ?string $employeeCode): bool
+    {
+        if (filled($employeeId)) {
+            return static::query()
+                ->where('client_id', $clientId)
+                ->whereKey($employeeId)
+                ->where('is_active', false)
+                ->exists();
+        }
+
+        if (! filled($employeeCode)) {
+            return false;
+        }
+
+        $normalizedCode = trim($employeeCode);
+
+        return static::query()
+            ->where('client_id', $clientId)
+            ->where('is_active', false)
+            ->where(function ($query) use ($employeeCode, $normalizedCode): void {
+                $query->where('name', $employeeCode)
+                    ->orWhere('name', $normalizedCode)
+                    ->orWhereRaw('TRIM(name) = ?', [$normalizedCode]);
+            })
+            ->exists();
     }
 }

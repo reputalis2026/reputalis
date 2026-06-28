@@ -5,7 +5,8 @@
 
     $showNfcDemo = isset($showNfcDemo) ? (bool) $showNfcDemo : true;
     $employeeDisplayName = isset($employee) && $employee ? ($employee->alias ?: $employee->name) : null;
-    $employeeCodeResolved = isset($employeeCode) ? $employeeCode : null;
+    $employeeCodeResolved = isset($employeeCode) ? trim((string) $employeeCode) : null;
+    $employeeIdResolved = isset($employeeId) ? (string) $employeeId : (isset($employee) && $employee ? (string) $employee->id : null);
     $surveyDisplayMode = isset($surveyDisplayMode) && $surveyDisplayMode === 'faces' ? 'faces' : 'numbers';
     $surveyLocale = in_array(($surveyLocale ?? 'es'), ['es', 'pt', 'en'], true) ? $surveyLocale : 'es';
     $surveyUiTexts = [
@@ -308,6 +309,7 @@
     const CLIENT_CODE = @json($clientCode);
     const CLIENT_NAME = @json($clientName);
     const EMPLOYEE_CODE = @json($employeeCodeResolved);
+    const EMPLOYEE_ID = @json($employeeIdResolved);
     const SURVEY_LOCALE = @json($surveyLocale);
     const POSITIVE_SCORES = @json(array_values($surveyPositiveScores ?? [4, 5]));
     const STORAGE_KEY_DEVICE = 'reputalis_' + CLIENT_CODE + '_devicehash';
@@ -359,7 +361,15 @@
             const raw = localStorage.getItem(STORAGE_KEY_PENDING) || '[]';
             const arr = JSON.parse(raw);
             const effectiveEmployeeCode = payload.employee_code || EMPLOYEE_CODE || null;
-            arr.push({ ...payload, employee_code: effectiveEmployeeCode, locale_used: getLocale(), device_hash: getDeviceHash(), _ts: Date.now() });
+            const effectiveEmployeeId = payload.employee_id || EMPLOYEE_ID || null;
+            arr.push({
+                ...payload,
+                employee_id: effectiveEmployeeId,
+                employee_code: effectiveEmployeeCode,
+                locale_used: getLocale(),
+                device_hash: getDeviceHash(),
+                _ts: Date.now(),
+            });
             localStorage.setItem(STORAGE_KEY_PENDING, JSON.stringify(arr));
         } catch (e) {}
     }
@@ -380,6 +390,7 @@
         const first = pending[0];
         const payload = { 
             client_code: CLIENT_CODE,
+            employee_id: first.employee_id || EMPLOYEE_ID || null,
             employee_code: first.employee_code || EMPLOYEE_CODE || null,
             score: first.score,
             improvement_option_id: first.improvement_option_id || null,
@@ -401,8 +412,10 @@
     function submitSurvey(payload, fromQueue) {
         if (!fromQueue) setOverlay(true, t('sending'));
         const effectiveEmployeeCode = payload.employee_code || EMPLOYEE_CODE || null;
+        const effectiveEmployeeId = payload.employee_id || EMPLOYEE_ID || null;
         const body = { 
             client_code: CLIENT_CODE, 
+            employee_id: effectiveEmployeeId,
             employee_code: effectiveEmployeeCode,
             score: payload.score, 
             improvement_option_id: payload.improvement_option_id || null, 
@@ -425,11 +438,11 @@
                     } else showStep('step-thanks-low');
                 }
             } else {
-                if (!fromQueue) { savePending({ ...payload, employee_code: effectiveEmployeeCode }); alert(data.message || t('error')); }
+                if (!fromQueue) { savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode }); alert(data.message || t('error')); }
             }
         })
         .catch(() => {
-            if (!fromQueue) { setOverlay(false); savePending({ ...payload, employee_code: effectiveEmployeeCode }); alert(t('errorNetwork')); }
+            if (!fromQueue) { setOverlay(false); savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode }); alert(t('errorNetwork')); }
         });
     }
 

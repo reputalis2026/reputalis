@@ -29,16 +29,21 @@ class SurveyController extends Controller
         }
 
         $employee = null;
-        if (filled($request->employee_code)) {
-            $employee = Employee::where('client_id', $client->id)
-                ->where('name', $request->employee_code)
-                ->where('is_active', true)
-                ->first();
+        $employeeId = $request->input('employee_id');
+        $employeeCode = $request->input('employee_code');
 
-            if (! $employee && Employee::where('client_id', $client->id)
-                ->where('name', $request->employee_code)
-                ->where('is_active', false)
-                ->exists()) {
+        if (filled($employeeId) || filled($employeeCode)) {
+            $employee = Employee::resolveForClientSurvey(
+                (string) $client->id,
+                is_string($employeeId) ? $employeeId : null,
+                is_string($employeeCode) ? $employeeCode : null,
+            );
+
+            if (! $employee && Employee::inactiveMatchForClientSurvey(
+                (string) $client->id,
+                is_string($employeeId) ? $employeeId : null,
+                is_string($employeeCode) ? $employeeCode : null,
+            )) {
                 return response()->json([
                     'message' => 'El empleado indicado está inactivo.',
                     'errors' => ['employee_code' => ['El empleado indicado está inactivo.']],

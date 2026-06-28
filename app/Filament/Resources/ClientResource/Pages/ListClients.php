@@ -103,7 +103,7 @@ class ListClients extends ListRecords
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
                     ->label(__('client.form.commercial_name'))
-                    ->url(fn (Client $record): string => ClientResource::getUrl('view', ['record' => $record]))
+                    ->url(fn (Client $record): string => ClientResource::getUrl('dashboard', ['record' => $record]))
                     ->wrap()
                     ->searchable()
                     ->sortable(),

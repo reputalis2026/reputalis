@@ -6,7 +6,6 @@ use App\Models\Client;
 use App\Models\CsatSurvey;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class CsatMetrics
 {
@@ -73,24 +72,7 @@ class CsatMetrics
 
     private static function countSatisfiedSurveys(\Illuminate\Database\Eloquent\Builder $periodQuery): int
     {
-        $counts = $periodQuery
-            ->select('score', 'positive_scores_used', DB::raw('COUNT(*) as aggregate'))
-            ->groupBy('score', 'positive_scores_used')
-            ->get();
-
-        if ($counts->isEmpty()) {
-            return 0;
-        }
-
-        return (int) $counts->sum(function ($row): int {
-            $positiveScores = is_array($row->positive_scores_used)
-                ? $row->positive_scores_used
-                : (json_decode((string) $row->positive_scores_used, true) ?: [4, 5]);
-
-            return in_array((int) $row->score, $positiveScores, true)
-                ? (int) $row->aggregate
-                : 0;
-        });
+        return (int) (clone $periodQuery)->whereIn('score', [4, 5])->count();
     }
 
     /**

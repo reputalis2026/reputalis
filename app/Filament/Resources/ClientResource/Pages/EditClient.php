@@ -219,7 +219,7 @@ class EditClient extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return ClientResource::getUrl('view', ['record' => $this->record]);
+        return ClientResource::getUrl('dashboard', ['record' => $this->record]);
     }
 
     protected function getSaveFormAction(): Action

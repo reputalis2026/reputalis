@@ -396,7 +396,8 @@ class ClientResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->label(__('common.actions.view')),
+                    ->label(__('common.actions.view'))
+                    ->url(fn (Client $record): string => static::getUrl('dashboard', ['record' => $record])),
                 Tables\Actions\EditAction::make()
                     ->label(__('common.actions.edit')),
                 Tables\Actions\Action::make('llamadas')
@@ -465,8 +466,8 @@ class ClientResource extends Resource
         return [
             'index' => Pages\ListClients::route('/'),
             'create' => Pages\CreateClient::route('/create'),
-            'dashboard' => Pages\ClientDashboard::route('/{record}/dashboard'),
-            'view' => Pages\ViewClient::route('/{record}'),
+            'dashboard' => Pages\ClientDashboard::route('/{record}'),
+            'view' => Pages\ViewClient::route('/{record}/ficha'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
             'puntos-de-mejora' => Pages\PuntosDeMejora::route('/{record}/puntos-de-mejora'),
             'empleados' => Pages\Empleados::route('/{record}/empleados'),

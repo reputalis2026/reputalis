@@ -18,6 +18,7 @@ class StoreSurveyRequest extends FormRequest
     {
         return [
             'client_code' => ['required', 'string', 'max:255'],
+            'employee_id' => ['nullable', 'string', 'uuid'],
             'employee_code' => ['nullable', 'string', 'max:255'],
             'score' => ['required', 'integer', 'min:1', 'max:5'],
             'improvement_reason_code' => ['nullable', 'string', 'max:255'],
