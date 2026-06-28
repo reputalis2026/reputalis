@@ -57,21 +57,21 @@
             </div>
         @endif
 
-        <div class="client-dashboard-main-summary-metric rounded-xl bg-gray-50 p-3 ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10">
-            <p class="client-dashboard-metric-label">
+        <div class="client-dashboard-filter-surveys-highlight">
+            <p class="client-dashboard-filter-surveys-label">
                 {{ __('client.dashboard.filters.found_surveys') }}
             </p>
-            <p class="client-dashboard-metric-value client-dashboard-metric-value-lg mt-1">
-                {{ $rangeContextSummary['total_surveys'] }}
+            <p class="client-dashboard-filter-surveys-value">
+                {{ number_format((int) $rangeContextSummary['total_surveys'], 0, ',', ' ') }}
             </p>
         </div>
 
         @if ($activeRangeType === 'today')
-            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300">
+            <p class="client-dashboard-filter-dates text-sm font-semibold text-gray-600 dark:text-gray-300">
                 {{ $rangeContextSummary['date_from'] }}
             </p>
         @elseif (! $isCustomRange)
-            <dl class="grid grid-cols-2 gap-3">
+            <dl class="client-dashboard-filter-dates grid grid-cols-2 gap-3">
                 <div>
                     <dt class="client-dashboard-metric-label">
                         {{ __('client.dashboard.filters.from') }}

@@ -80,7 +80,7 @@ class CreateEmployee extends CreateRecord
             }
         }
 
-        return $this->getResource()::getUrl('index');
+        return ClientResource::getUrl('index');
     }
 
     protected function getFormActions(): array

@@ -37,6 +37,10 @@ class ClientDashboard extends Page
 
     public bool $showEmployeeDetail = false;
 
+    public ?string $selectedImprovementOptionId = null;
+
+    public bool $showImprovementDetail = false;
+
     public static function getNavigationLabel(): string
     {
         return __('client.menu.dashboard');
@@ -68,19 +72,23 @@ class ClientDashboard extends Page
 
     public function switchReputationTab(string $tab): void
     {
-        $this->activeReputationTab = in_array($tab, ['internal', 'external'], true)
+        $this->resetDetailModals();
+
+        $this->activeReputationTab = in_array($tab, ['internal', 'external', 'sector'], true)
             ? $tab
             : 'internal';
     }
 
     public function setRangeType(string $rangeType): void
     {
-        $this->resetEmployeeDetail();
+        $this->resetDetailModals();
         $this->range_type = InternalReputationDateRange::normalizeRangeType($rangeType);
+        $this->syncSurveyHistoryGroupingForRange();
 
         if ($this->range_type === InternalReputationDateRange::TYPE_CUSTOM) {
             $this->date_from = $this->getDefaultCustomDateFrom();
             $this->date_to = now()->toDateString();
+            $this->syncSurveyHistoryGroupingForRange();
 
             return;
         }
@@ -94,22 +102,42 @@ class ClientDashboard extends Page
     public function updated(string $property, mixed $value = null): void
     {
         if (in_array($property, ['date_from', 'date_to'], true)) {
-            $this->resetEmployeeDetail();
+            $this->resetDetailModals();
             $this->range_type = InternalReputationDateRange::TYPE_CUSTOM;
+            $this->syncSurveyHistoryGroupingForRange();
         }
     }
 
     public function clearCustomRange(): void
     {
-        $this->resetEmployeeDetail();
+        $this->resetDetailModals();
         $this->date_from = null;
         $this->date_to = null;
         $this->range_type = InternalReputationDateRange::TYPE_ALL;
+        $this->syncSurveyHistoryGroupingForRange();
     }
 
     public function setSurveyHistoryGrouping(string $grouping): void
     {
+        if ($this->shouldForceSurveyHistoryHours()) {
+            $this->survey_history_grouping = InternalReputationMetrics::SURVEY_HISTORY_GROUPING_HOURS;
+
+            return;
+        }
+
         $this->survey_history_grouping = InternalReputationMetrics::normalizeSurveyHistoryGrouping($grouping);
+    }
+
+    public function shouldForceSurveyHistoryHours(): bool
+    {
+        return $this->range_type === InternalReputationDateRange::TYPE_TODAY;
+    }
+
+    private function syncSurveyHistoryGroupingForRange(): void
+    {
+        $this->survey_history_grouping = $this->shouldForceSurveyHistoryHours()
+            ? InternalReputationMetrics::SURVEY_HISTORY_GROUPING_HOURS
+            : InternalReputationMetrics::SURVEY_HISTORY_GROUPING_RANGE;
     }
 
     public function openScoreTrendDetail(): void
@@ -139,6 +167,25 @@ class ClientDashboard extends Page
     public function closeEmployeeDetail(): void
     {
         $this->resetEmployeeDetail();
+    }
+
+    public function openImprovementDetail(string $optionId): void
+    {
+        $isListed = collect($this->getImprovementRanking()['options'] ?? [])->contains(
+            fn (array $option): bool => $option['id'] === $optionId,
+        );
+
+        if (! $isListed) {
+            return;
+        }
+
+        $this->selectedImprovementOptionId = $optionId;
+        $this->showImprovementDetail = true;
+    }
+
+    public function closeImprovementDetail(): void
+    {
+        $this->resetImprovementDetail();
     }
 
     /**
@@ -264,6 +311,74 @@ class ClientDashboard extends Page
     }
 
     /**
+     * @return array{
+     *     id: string,
+     *     label: string,
+     *     period_label: string,
+     *     chart_config: array{
+     *         labels: array<int, string>,
+     *         values: array<int, float|null>,
+     *         counts: array<int, int>,
+     *         totals: array<int, int>,
+     *         seriesLabel: string,
+     *         yAxisLabel: string,
+     *         emptyLabel: string
+     *     },
+     *     employee_ranking: array<int, array{id: string, name: string, photo_url: string|null, initials: string, count: int, percentage: float}>
+     * }|null
+     */
+    public function getSelectedImprovementDetail(): ?array
+    {
+        if (! $this->showImprovementDetail || ! $this->selectedImprovementOptionId) {
+            return null;
+        }
+
+        $trend = app(InternalReputationMetrics::class)->getImprovementOptionTrend(
+            $this->getClientRecord()->id,
+            $this->selectedImprovementOptionId,
+            $this->getInternalReputationDateRange(),
+            app()->getLocale(),
+        );
+
+        if (! $trend) {
+            return null;
+        }
+
+        $employeeRanking = collect(app(InternalReputationMetrics::class)->getImprovementOptionEmployeeRanking(
+            $this->getClientRecord()->id,
+            $this->selectedImprovementOptionId,
+            $this->getInternalReputationDateRange(),
+        ))
+            ->map(fn (array $employee): array => [
+                'id' => $employee['id'],
+                'name' => $employee['name'],
+                'photo_url' => $employee['photo'] ? Storage::disk('public')->url($employee['photo']) : null,
+                'initials' => $this->getEmployeeInitials($employee['name']),
+                'count' => $employee['count'],
+                'percentage' => $employee['percentage'],
+            ])
+            ->all();
+
+        return [
+            'id' => $trend['id'],
+            'label' => $trend['label'],
+            'period_label' => __('client.dashboard.improvement_ranking.detail_period', [
+                'period' => $trend['period_label'],
+            ]),
+            'chart_config' => [
+                'labels' => $trend['labels'],
+                'values' => $trend['percentages'],
+                'counts' => $trend['counts'],
+                'totals' => $trend['totals'],
+                'seriesLabel' => __('client.dashboard.improvement_ranking.detail_series_label'),
+                'yAxisLabel' => __('client.dashboard.improvement_ranking.detail_y_axis_label'),
+                'emptyLabel' => __('client.dashboard.improvement_ranking.detail_empty'),
+            ],
+            'employee_ranking' => $employeeRanking,
+        ];
+    }
+
+    /**
      * @return array<string, array{label: string}>
      */
     public function getReputationTabs(): array
@@ -274,6 +389,9 @@ class ClientDashboard extends Page
             ],
             'external' => [
                 'label' => __('client.dashboard.tabs.external'),
+            ],
+            'sector' => [
+                'label' => __('client.dashboard.tabs.sector'),
             ],
         ];
     }
@@ -638,6 +756,18 @@ class ClientDashboard extends Page
     {
         $this->showEmployeeDetail = false;
         $this->selectedEmployeeId = null;
+    }
+
+    private function resetImprovementDetail(): void
+    {
+        $this->showImprovementDetail = false;
+        $this->selectedImprovementOptionId = null;
+    }
+
+    private function resetDetailModals(): void
+    {
+        $this->resetEmployeeDetail();
+        $this->resetImprovementDetail();
     }
 
     private function formatSatisfiedPercent(?float $value): string

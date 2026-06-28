@@ -15,6 +15,94 @@
         ];
     @endphp
 
+    <style>
+        .client-employees-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .client-employees-card {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .client-employees-photo,
+        .client-employees-photo-placeholder {
+            display: flex;
+            width: 5rem;
+            height: 5rem;
+            flex: 0 0 5rem;
+        }
+
+        .client-employees-photo {
+            border-radius: 9999px;
+            object-fit: cover;
+            box-shadow: 0 0 0 2px rgba(229, 231, 235, 1);
+        }
+
+        .client-employees-photo-placeholder {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .15rem;
+            border-radius: 9999px;
+            background: linear-gradient(180deg, #f8fafc 0%, #e5e7eb 100%);
+            color: #94a3b8;
+            box-shadow: inset 0 0 0 2px rgba(148, 163, 184, .22);
+        }
+
+        .client-employees-photo-placeholder svg {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .client-employees-photo-placeholder span {
+            font-size: .56rem;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .dark .client-employees-photo-placeholder {
+            background: linear-gradient(180deg, rgb(55 65 81) 0%, rgb(31 41 55) 100%);
+            color: #cbd5e1;
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .12);
+        }
+
+        .dark .client-employees-photo {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, .1);
+        }
+
+        @media (min-width: 640px) {
+            .client-employees-photo,
+            .client-employees-photo-placeholder {
+                width: 6rem;
+                height: 6rem;
+                flex-basis: 6rem;
+            }
+
+            .client-employees-photo-placeholder svg {
+                width: 2.35rem;
+                height: 2.35rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .client-employees-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .client-employees-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+    </style>
+
     @if (!$canEdit)
         <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
             {{ __('employees.intro_read_only') }}
@@ -79,10 +167,10 @@
                 @if ($employees->isEmpty())
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('employees.empty.read_only') }}</p>
                 @else
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="client-employees-grid">
                         @foreach ($employees as $employee)
                             <div
-                                class="fi-section mx-auto flex w-full max-w-xs flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+                                class="client-employees-card fi-section flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
                             >
                                 <div @class([
                                     'flex flex-col items-center p-4 text-center',
@@ -93,21 +181,14 @@
                                             src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($employee->photo) }}"
                                             alt="{{ $employee->name }}"
                                             @class([
-                                                'h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-white/10 sm:h-24 sm:w-24',
+                                                'client-employees-photo',
                                                 'grayscale' => ! $employee->is_active,
                                             ])
                                         />
                                     @else
-                                        @php
-                                            $words = array_filter(explode(' ', $employee->name));
-                                            $initials = $words
-                                                ? strtoupper(mb_substr($words[0], 0, 1) . (isset($words[1]) ? mb_substr($words[1], 0, 1) : ''))
-                                                : '?';
-                                        @endphp
-                                        <div
-                                            class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-200 text-base font-semibold text-gray-600 ring-2 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-white/10 sm:h-24 sm:w-24 sm:text-lg"
-                                        >
-                                            {{ $initials }}
+                                        <div class="client-employees-photo-placeholder" aria-label="{{ __('employees.no_photo') }}">
+                                            <x-filament::icon icon="heroicon-o-user" />
+                                            <span>{{ __('employees.no_photo') }}</span>
                                         </div>
                                     @endif
                                     <h3 class="mt-3 text-base font-semibold text-gray-950 dark:text-white sm:mt-3">

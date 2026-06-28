@@ -118,6 +118,15 @@
                     modal._reputalisEmployeeSatisfiedChartRenderingSignature = null;
                 }
             });
+
+            document.querySelectorAll('[data-dashboard-improvement-detail]').forEach((modal) => {
+                const chartElement = modal.querySelector('[data-dashboard-chart="improvement-detail"]');
+
+                if (modal._reputalisImprovementDetailChartSignature && ! hasRenderedChart(chartElement)) {
+                    modal._reputalisImprovementDetailChartSignature = null;
+                    modal._reputalisImprovementDetailChartRenderingSignature = null;
+                }
+            });
         };
 
         const isVisibleForRender = (element) => {
@@ -135,6 +144,171 @@
             window.reputalisDashboardChartsRetryTimer = window.setTimeout(() => {
                 window.reputalisInitClientDashboardCharts?.();
             }, delay);
+        };
+
+        const lightenHexColor = (hex, ratio = 0.38) => {
+            const normalized = String(hex || '').replace('#', '');
+
+            if (normalized.length !== 6) {
+                return '#f3f4f6';
+            }
+
+            const channels = [0, 2, 4].map((start) => parseInt(normalized.substring(start, start + 2), 16));
+            const mixed = channels.map((channel) => Math.round(channel + (255 - channel) * ratio));
+
+            return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+        };
+
+        const defaultScoreColors = ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'];
+
+        const buildBreakdownTooltip = (config, breakdownData) => ({
+            theme: false,
+            cssClass: 'reputalis-breakdown-tooltip',
+            custom: ({ dataPointIndex }) => {
+                const item = breakdownData[dataPointIndex] || { count: 0 };
+                const label = config.surveysTooltipLabel || 'Número de encuestas:';
+                const barColor = (config.scoreColors || defaultScoreColors)[dataPointIndex] || defaultScoreColors[0];
+                const backgroundColor = lightenHexColor(barColor, 0.4);
+
+                return '<' + 'div style="'
+                    + 'background:' + backgroundColor + ';'
+                    + 'color:#ffffff;'
+                    + 'border:1px solid rgba(15, 23, 42, .08);'
+                    + 'border-radius:.5rem;'
+                    + 'box-shadow:0 4px 12px rgba(15, 23, 42, .12);'
+                    + 'font-size:.8125rem;'
+                    + 'font-weight:650;'
+                    + 'line-height:1.25rem;'
+                    + 'padding:.45rem .65rem;'
+                    + 'white-space:nowrap;'
+                    + '">' + label + ' ' + item.count + '<' + '/' + 'div' + '>';
+            },
+        });
+
+        const clampChartSize = (value, min, max) => Math.round(Math.min(max, Math.max(min, value)));
+
+        const resolveMainSummaryChartSizes = (card) => {
+            const gauge = card.querySelector('[data-dashboard-chart="gauge"]');
+            const breakdown = card.querySelector('[data-dashboard-chart="breakdown"]');
+            const radialShell = gauge?.closest('.client-dashboard-main-summary-chart-shell');
+            const radialSize = clampChartSize(radialShell?.clientWidth || gauge?.clientWidth || 160, 100, 180);
+            const breakdownWidth = breakdown?.clientWidth || 0;
+            const breakdownHeight = clampChartSize(
+                breakdown?.clientHeight || breakdown?.parentElement?.clientHeight || 170,
+                140,
+                190,
+            );
+
+            return { radialSize, breakdownWidth, breakdownHeight };
+        };
+
+        const buildGaugeRadialOptions = (config, valueColor, chartHeight = 180) => ({
+            chart: {
+                type: 'radialBar',
+                height: chartHeight,
+                parentHeightOffset: 0,
+                sparkline: { enabled: true },
+            },
+            series: [Number(config.gaugePercent || 0)],
+            colors: [config.gaugeColor || '#9ca3af'],
+            plotOptions: {
+                radialBar: {
+                    hollow: { size: chartHeight >= 150 ? '58%' : '52%' },
+                    track: {
+                        background: config.trackColor || '#e5e7eb',
+                        strokeWidth: '100%',
+                    },
+                    dataLabels: {
+                        show: true,
+                        name: {
+                            show: true,
+                            offsetY: chartHeight >= 150 ? 24 : 18,
+                            color: config.labelColor || '#6b7280',
+                            fontSize: chartHeight >= 150 ? '10px' : '9px',
+                            fontWeight: 500,
+                        },
+                        value: {
+                            show: true,
+                            offsetY: chartHeight >= 150 ? -8 : -6,
+                            color: valueColor,
+                            fontSize: chartHeight >= 180 ? '28px' : chartHeight >= 140 ? '22px' : chartHeight >= 110 ? '18px' : '16px',
+                            fontWeight: 700,
+                            formatter: () => config.gaugeValue || '',
+                        },
+                    },
+                },
+            },
+            labels: [config.gaugeLabel || ''],
+            stroke: { lineCap: 'round' },
+        });
+
+        const buildBreakdownChartOptions = (config, breakdownData, { breakdownWidth, breakdownHeight }) => {
+            const compactLabels = breakdownWidth > 0 && breakdownWidth < 300;
+            const veryCompactLabels = breakdownWidth > 0 && breakdownWidth < 220;
+
+            return {
+                chart: {
+                    type: 'bar',
+                    height: breakdownHeight,
+                    width: '100%',
+                    parentHeightOffset: 0,
+                    toolbar: { show: false },
+                    animations: { enabled: false },
+                },
+                series: [{
+                    name: '',
+                    data: breakdownData.map((item) => item.percentage),
+                }],
+                colors: config.scoreColors?.length ? config.scoreColors : defaultScoreColors,
+                legend: { show: false },
+                plotOptions: {
+                    bar: {
+                        distributed: true,
+                        horizontal: false,
+                        borderRadius: 5,
+                        columnWidth: veryCompactLabels ? '58%' : compactLabels ? '64%' : '72%',
+                    },
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                xaxis: {
+                    categories: breakdownData.map((item) => `${item.percentage}%`),
+                    labels: {
+                        rotate: veryCompactLabels ? -45 : compactLabels ? -35 : 0,
+                        rotateAlways: veryCompactLabels || compactLabels,
+                        hideOverlappingLabels: true,
+                        trim: true,
+                        style: {
+                            fontSize: veryCompactLabels ? '9px' : compactLabels ? '10px' : '11px',
+                            fontWeight: 600,
+                            colors: config.labelColor || '#6b7280',
+                        },
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                },
+                yaxis: {
+                    min: 0,
+                    max: 100,
+                    tickAmount: 4,
+                    labels: { show: false },
+                },
+                grid: {
+                    show: true,
+                    borderColor: 'rgba(148, 163, 184, 0.18)',
+                    strokeDashArray: 3,
+                    padding: {
+                        top: 10,
+                        right: veryCompactLabels ? 4 : 0,
+                        bottom: veryCompactLabels ? -2 : compactLabels ? -4 : -6,
+                        left: veryCompactLabels ? 4 : 0,
+                    },
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                },
+                tooltip: buildBreakdownTooltip(config, breakdownData),
+            };
         };
 
         const buildSatisfiedRadialOptions = (config, valueColor, chartHeight = 180, { compact = false } = {}) => ({
@@ -162,7 +336,7 @@
                             show: true,
                             offsetY: compact ? 3 : 6,
                             color: valueColor,
-                            fontSize: chartHeight >= 180 ? '28px' : chartHeight >= 90 ? '19px' : '17px',
+                            fontSize: chartHeight >= 180 ? '28px' : chartHeight >= 120 ? '22px' : chartHeight >= 90 ? '19px' : '17px',
                             fontWeight: 700,
                             formatter: () => config.satisfiedValue || '',
                         },
@@ -186,7 +360,8 @@
                 return;
             }
 
-            const signature = JSON.stringify(config);
+            const chartSizes = resolveMainSummaryChartSizes(card);
+            const signature = JSON.stringify({ config, chartSizes });
             if (card._reputalisChartsRenderingSignature === signature) {
                 return;
             }
@@ -229,118 +404,22 @@
                     }))
                     .sort((a, b) => a.score - b.score);
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151';
+                const { radialSize } = resolveMainSummaryChartSizes(card);
 
-                gauge._reputalisChart = new ApexCharts(gauge, {
-                    chart: {
-                        type: 'radialBar',
-                        height: 180,
-                        parentHeightOffset: 0,
-                        sparkline: { enabled: true },
-                    },
-                    series: [Number(config.gaugePercent || 0)],
-                    colors: [config.gaugeColor || '#9ca3af'],
-                    plotOptions: {
-                        radialBar: {
-                            hollow: { size: '58%' },
-                            track: {
-                                background: config.trackColor || '#e5e7eb',
-                                strokeWidth: '100%',
-                            },
-                            dataLabels: {
-                                show: true,
-                                name: {
-                                    show: true,
-                                    offsetY: 24,
-                                    color: config.labelColor || '#6b7280',
-                                    fontSize: '10px',
-                                    fontWeight: 500,
-                                },
-                                value: {
-                                    show: true,
-                                    offsetY: -8,
-                                    color: valueColor,
-                                    fontSize: '28px',
-                                    fontWeight: 700,
-                                    formatter: () => config.gaugeValue || '',
-                                },
-                            },
-                        },
-                    },
-                    labels: [config.gaugeLabel || ''],
-                    stroke: { lineCap: 'round' },
-                });
+                gauge._reputalisChart = new ApexCharts(
+                    gauge,
+                    buildGaugeRadialOptions(config, valueColor, radialSize),
+                );
 
                 satisfied._reputalisChart = new ApexCharts(
                     satisfied,
-                    buildSatisfiedRadialOptions(config, valueColor),
+                    buildSatisfiedRadialOptions(config, valueColor, radialSize),
                 );
 
-                breakdown._reputalisChart = new ApexCharts(breakdown, {
-                    chart: {
-                        type: 'bar',
-                        height: 190,
-                        width: '100%',
-                        parentHeightOffset: 0,
-                        toolbar: { show: false },
-                        animations: { enabled: false },
-                    },
-                    series: [{
-                        name: config.percentageLabel || '%',
-                        data: breakdownData.map((item) => item.percentage),
-                    }],
-                    colors: ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'],
-                    legend: { show: false },
-                    plotOptions: {
-                        bar: {
-                            distributed: true,
-                            horizontal: false,
-                            borderRadius: 5,
-                            columnWidth: '72%',
-                        },
-                    },
-                    dataLabels: {
-                        enabled: false,
-                    },
-                    xaxis: {
-                        categories: breakdownData.map((item) => `${item.percentage}%`),
-                        labels: {
-                            style: {
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                colors: config.labelColor || '#6b7280',
-                            },
-                        },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false },
-                    },
-                    yaxis: {
-                        min: 0,
-                        max: 100,
-                        tickAmount: 4,
-                        labels: { show: false },
-                    },
-                    grid: {
-                        show: true,
-                        borderColor: 'rgba(148, 163, 184, 0.18)',
-                        strokeDashArray: 3,
-                        padding: {
-                            top: 10,
-                            right: 0,
-                            bottom: -6,
-                            left: 0,
-                        },
-                        xaxis: { lines: { show: false } },
-                        yaxis: { lines: { show: true } },
-                    },
-                    tooltip: {
-                        y: {
-                            formatter: (value, { dataPointIndex }) => {
-                                const item = breakdownData[dataPointIndex] || { count: 0 };
-                                return `${value}% (${item.count})`;
-                            },
-                        },
-                    },
-                });
+                breakdown._reputalisChart = new ApexCharts(
+                    breakdown,
+                    buildBreakdownChartOptions(config, breakdownData, resolveMainSummaryChartSizes(card)),
+                );
 
                 await gauge._reputalisChart.render();
                 await satisfied._reputalisChart.render();
@@ -432,6 +511,7 @@
             const xLabelRotate = grouping === 'hours' ? 0 : (labels.length > 12 ? -35 : 0);
             const chartHeight = grouping === 'hours' ? 272 : 232;
             const isHoursGrouping = grouping === 'hours';
+            const xAxisRightPadding = isHoursGrouping ? 14 : 36;
 
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
                 chart: {
@@ -515,7 +595,7 @@
                     strokeDashArray: 0,
                     padding: {
                         top: 6,
-                        right: 14,
+                        right: xAxisRightPadding,
                         bottom: isHoursGrouping ? 30 : 4,
                         left: 8,
                     },
@@ -593,6 +673,8 @@
 
                 const labels = config.labels || [];
                 const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                const isHourlyTrend = config.granularity === 'hour';
+                const xAxisRightPadding = isHourlyTrend ? 14 : 36;
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
@@ -606,6 +688,10 @@
                         toolbar: { show: false },
                         zoom: { enabled: false },
                         animations: { enabled: false },
+                        events: isHourlyTrend ? {
+                            mounted: (chartContext) => formatHourAxisLabels(chartContext.el),
+                            updated: (chartContext) => formatHourAxisLabels(chartContext.el),
+                        } : {},
                     },
                     series: [{
                         name: config.seriesLabel || 'Promedio',
@@ -625,13 +711,19 @@
                     xaxis: {
                         categories: labels,
                         labels: {
-                            rotate: -35,
-                            trim: true,
+                            rotate: isHourlyTrend ? 0 : -35,
+                            hideOverlappingLabels: ! isHourlyTrend,
+                            trim: ! isHourlyTrend,
+                            minHeight: isHourlyTrend ? 42 : undefined,
+                            offsetY: isHourlyTrend ? 2 : 0,
                             style: {
                                 colors: valueColor,
-                                fontSize: '11px',
+                                fontSize: isHourlyTrend ? '10px' : '11px',
                                 fontWeight: 500,
                             },
+                            formatter: isHourlyTrend
+                                ? (_value, _timestamp, opts) => `${opts?.i ?? _value}:00`
+                                : undefined,
                         },
                         axisBorder: { color: '#111827' },
                         axisTicks: { show: false },
@@ -662,8 +754,8 @@
                         strokeDashArray: 0,
                         padding: {
                             top: 8,
-                            right: 14,
-                            bottom: 0,
+                            right: xAxisRightPadding,
+                            bottom: isHourlyTrend ? 30 : 0,
                             left: 8,
                         },
                     },
@@ -687,6 +779,11 @@
                 });
 
                 await chartElement._reputalisChart.render();
+
+                if (isHourlyTrend) {
+                    formatHourAxisLabels(chartElement);
+                }
+
                 card._reputalisTrendChartSignature = signature;
             } finally {
                 card._reputalisTrendChartRenderingSignature = null;
@@ -745,7 +842,7 @@
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
                     chart: {
                         type: 'line',
-                        height: 248,
+                        height: 340,
                         parentHeightOffset: 0,
                         toolbar: { show: false },
                         zoom: { enabled: false },
@@ -883,7 +980,7 @@
 
                 chartElement._reputalisChart = new ApexCharts(
                     chartElement,
-                    buildSatisfiedRadialOptions(config, valueColor, 84, { compact: true }),
+                    buildSatisfiedRadialOptions(config, valueColor, 152, { compact: false }),
                 );
 
                 await chartElement._reputalisChart.render();
@@ -893,7 +990,171 @@
             }
         };
 
+        const renderImprovementDetailChart = async (modal) => {
+            const config = parseJsonConfig(modal, '[data-dashboard-improvement-detail-config]');
+            if (!config) {
+                return;
+            }
+
+            const chartElement = modal.querySelector('[data-dashboard-chart="improvement-detail"]');
+            if (!chartElement) {
+                return;
+            }
+
+            const signature = JSON.stringify(config);
+            if (modal._reputalisImprovementDetailChartRenderingSignature === signature) {
+                return;
+            }
+
+            if (
+                modal._reputalisImprovementDetailChartSignature === signature &&
+                hasRenderedChart(chartElement)
+            ) {
+                return;
+            }
+
+            if (! isVisibleForRender(chartElement) && ! isVisibleForRender(modal)) {
+                queueDashboardChartsRetry();
+                return;
+            }
+
+            modal._reputalisImprovementDetailChartRenderingSignature = signature;
+
+            try {
+                const ApexCharts = await loadApexCharts();
+
+                await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+                if (! isVisibleForRender(chartElement) && ! isVisibleForRender(modal)) {
+                    queueDashboardChartsRetry();
+                    return;
+                }
+
+                destroyChart(chartElement);
+
+                const labels = config.labels || [];
+                const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
+                const gridColor = document.documentElement.classList.contains('dark')
+                    ? 'rgba(148, 163, 184, 0.18)'
+                    : 'rgba(100, 116, 139, 0.24)';
+
+                chartElement._reputalisChart = new ApexCharts(chartElement, {
+                    chart: {
+                        type: 'line',
+                        height: 280,
+                        parentHeightOffset: 0,
+                        toolbar: { show: false },
+                        zoom: { enabled: false },
+                        animations: { enabled: false },
+                    },
+                    series: [{
+                        name: config.seriesLabel || '%',
+                        data: values,
+                    }],
+                    colors: ['#78a69e'],
+                    stroke: {
+                        curve: 'smooth',
+                        width: 2,
+                    },
+                    markers: {
+                        size: values.length > 40 ? 0 : 5,
+                        strokeWidth: 0,
+                        colors: ['#78a69e'],
+                    },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: labels,
+                        labels: {
+                            rotate: -35,
+                            trim: true,
+                            style: {
+                                colors: valueColor,
+                                fontSize: '11px',
+                                fontWeight: 500,
+                            },
+                        },
+                        axisBorder: { color: '#111827' },
+                        axisTicks: { show: false },
+                        tooltip: { enabled: false },
+                    },
+                    yaxis: {
+                        min: 0,
+                        max: 100,
+                        tickAmount: 5,
+                        decimalsInFloat: 0,
+                        title: {
+                            text: config.yAxisLabel || '%',
+                            style: {
+                                color: valueColor,
+                                fontSize: '11px',
+                                fontWeight: 600,
+                            },
+                        },
+                        labels: {
+                            formatter: (value) => `${Number(value || 0).toFixed(0)}`,
+                            style: {
+                                colors: valueColor,
+                                fontSize: '11px',
+                            },
+                        },
+                    },
+                    grid: {
+                        borderColor: gridColor,
+                        strokeDashArray: 0,
+                        padding: {
+                            top: 8,
+                            right: 18,
+                            bottom: 32,
+                            left: 8,
+                        },
+                    },
+                    tooltip: {
+                        marker: { show: false },
+                        y: {
+                            formatter: (value) => {
+                                if (value === null || value === undefined) {
+                                    return '';
+                                }
+
+                                return `${Number(value).toFixed(1)}%`;
+                            },
+                        },
+                    },
+                    noData: {
+                        text: config.emptyLabel || '',
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        style: {
+                            color: valueColor,
+                            fontSize: '13px',
+                        },
+                    },
+                });
+
+                await chartElement._reputalisChart.render();
+                modal._reputalisImprovementDetailChartSignature = signature;
+            } finally {
+                modal._reputalisImprovementDetailChartRenderingSignature = null;
+            }
+        };
+
         let scheduled = false;
+
+        const bindMainSummaryResizeObservers = () => {
+            document.querySelectorAll('[data-dashboard-summary-chart]').forEach((card) => {
+                if (card._reputalisSummaryResizeObserver) {
+                    return;
+                }
+
+                card._reputalisSummaryResizeObserver = new ResizeObserver(() => {
+                    card._reputalisChartsSignature = null;
+                    card._reputalisChartsRenderingSignature = null;
+                    queueDashboardChartsRetry(80);
+                });
+                card._reputalisSummaryResizeObserver.observe(card);
+            });
+        };
 
         window.reputalisInitClientDashboardCharts = () => {
             if (scheduled) {
@@ -905,6 +1166,7 @@
             window.requestAnimationFrame(() => {
                 scheduled = false;
                 resetStaleDashboardChartSignatures();
+                bindMainSummaryResizeObservers();
 
                 document
                     .querySelectorAll('[data-dashboard-summary-chart]')
@@ -939,6 +1201,14 @@
 
                         renderEmployeeDetailSatisfiedChart(modal).catch((error) => {
                             console.error('Unable to render employee detail satisfied chart', error);
+                        });
+                    });
+
+                document
+                    .querySelectorAll('[data-dashboard-improvement-detail]')
+                    .forEach((modal) => {
+                        renderImprovementDetailChart(modal).catch((error) => {
+                            console.error('Unable to render improvement detail chart', error);
                         });
                     });
             });

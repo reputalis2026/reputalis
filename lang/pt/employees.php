@@ -12,6 +12,7 @@ return [
     'subtitle' => 'Seus funcionários configurados',
     'intro_read_only' => 'Estes são os funcionários configurados para o seu cliente.',
     'count' => 'Funcionários (:count)',
+    'no_photo' => 'Sem foto',
     'tabs' => [
         'active' => 'Funcionários ativos',
         'inactive' => 'Funcionários inativos',

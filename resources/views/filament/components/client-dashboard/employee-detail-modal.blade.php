@@ -44,7 +44,7 @@
                     class="client-dashboard-employee-detail-close"
                     aria-label="{{ __('common.actions.close') }}"
                 >
-                    <x-filament::icon icon="heroicon-m-x-mark" class="h-4 w-4" />
+                    <x-filament::icon icon="heroicon-m-x-mark" class="h-5 w-5" />
                 </button>
             </div>
 

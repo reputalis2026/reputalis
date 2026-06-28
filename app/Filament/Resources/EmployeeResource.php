@@ -64,6 +64,21 @@ class EmployeeResource extends Resource
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('1:1')
                             ->imagePreviewHeight(120)
+                            ->fetchFileInformation(false)
+                            ->getUploadedFileUsing(static function (Forms\Components\BaseFileUpload $component, string $file): ?array {
+                                $storage = $component->getDisk();
+
+                                if (! $storage->exists($file)) {
+                                    return null;
+                                }
+
+                                return [
+                                    'name' => basename($file),
+                                    'size' => 0,
+                                    'type' => $storage->mimeType($file) ?: 'image/*',
+                                    'url' => request()->getSchemeAndHttpHost() . '/storage/' . ltrim($file, '/'),
+                                ];
+                            })
                             ->maxSize(1024),
                         Forms\Components\TextInput::make('position')
                             ->label(__('employees.form.position'))
@@ -144,7 +159,6 @@ class EmployeeResource extends Resource
                     : []
             )
             ->actions([
-                Tables\Actions\ViewAction::make()->label(__('common.actions.view')),
                 Tables\Actions\EditAction::make()->label(__('common.actions.edit')),
             ])
             ->bulkActions(
@@ -172,19 +186,14 @@ class EmployeeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEmployees::route('/'),
             'create' => Pages\CreateEmployee::route('/create'),
-            'view' => Pages\ViewEmployee::route('/{record}'),
             'edit' => Pages\EditEmployee::route('/{record}/edit'),
         ];
     }
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-
-        // Listado global solo superadmin (mantener empleados bajo Cliente para el resto de roles)
-        return $user?->isSuperAdmin() ?? false;
+        return false;
     }
 
     /**

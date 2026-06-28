@@ -533,6 +533,144 @@ class InternalReputationMetrics
     }
 
     /**
+     * @return array{
+     *     id: string,
+     *     label: string,
+     *     period_label: string,
+     *     labels: array<int, string>,
+     *     percentages: array<int, float|null>,
+     *     counts: array<int, int>,
+     *     totals: array<int, int>,
+     *     rows: array<int, array{label: string, count: int, total: int, percentage: float}>,
+     *     granularity: string
+     * }|null
+     */
+    public function getImprovementOptionTrend(
+        string $clientId,
+        string $optionId,
+        InternalReputationDateRange $range,
+        ?string $locale = null,
+    ): ?array {
+        $option = ClientImprovementOption::query()
+            ->where('id', $optionId)
+            ->whereHas(
+                'clientImprovementConfig',
+                fn (Builder $query) => $query->where('client_id', $clientId),
+            )
+            ->first();
+
+        if (! $option) {
+            return null;
+        }
+
+        [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
+        $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+
+        $rows = $this->applyDateRange(
+            CsatSurvey::query()->where('csat_surveys.client_id', $clientId),
+            new InternalReputationDateRange(
+                InternalReputationDateRange::TYPE_CUSTOM,
+                $from?->toDateString(),
+                $until?->toDateString(),
+            ),
+            'csat_surveys.created_at',
+        )
+            ->selectRaw("date_trunc('{$granularity}', csat_surveys.created_at) as bucket")
+            ->selectRaw('COUNT(*) as total_count')
+            ->selectRaw(
+                'SUM(CASE WHEN csat_surveys.improvement_option_id = ? THEN 1 ELSE 0 END) as option_count',
+                [$optionId],
+            )
+            ->groupByRaw("date_trunc('{$granularity}', csat_surveys.created_at)")
+            ->orderBy('bucket')
+            ->get()
+            ->mapWithKeys(fn ($row): array => [
+                Carbon::parse($row->bucket)->format('Y-m-d H:i:s') => [
+                    'count' => (int) $row->option_count,
+                    'total' => (int) $row->total_count,
+                ],
+            ]);
+
+        $labels = [];
+        $percentages = [];
+        $counts = [];
+        $totals = [];
+        $tableRows = [];
+
+        foreach ($this->historyPeriod($from, $until, $granularity) as $bucket) {
+            $key = $bucket->copy()->startOf($granularity)->format('Y-m-d H:i:s');
+            $label = $this->formatHistoryLabel($bucket, $granularity);
+            $count = (int) ($rows[$key]['count'] ?? 0);
+            $total = (int) ($rows[$key]['total'] ?? 0);
+            $percentage = $total > 0 ? round(($count / $total) * 100, 1) : null;
+
+            $labels[] = $label;
+            $percentages[] = $percentage;
+            $counts[] = $count;
+            $totals[] = $total;
+
+            if ($total > 0) {
+                $tableRows[] = [
+                    'label' => $label,
+                    'count' => $count,
+                    'total' => $total,
+                    'percentage' => $percentage ?? 0.0,
+                ];
+            }
+        }
+
+        return [
+            'id' => (string) $option->id,
+            'label' => $option->labelForLocale($locale ?? app()->getLocale()),
+            'period_label' => $this->formatRangeLabel($from, $until),
+            'labels' => $labels,
+            'percentages' => $percentages,
+            'counts' => $counts,
+            'totals' => $totals,
+            'rows' => $tableRows,
+            'granularity' => $granularity,
+        ];
+    }
+
+    /**
+     * @return array<int, array{id: string, name: string, photo: string|null, count: int, percentage: float}>
+     */
+    public function getImprovementOptionEmployeeRanking(
+        string $clientId,
+        string $optionId,
+        InternalReputationDateRange $range,
+    ): array {
+        $rows = $this->surveyQuery($clientId, $range)
+            ->join('employees', 'employees.id', '=', 'csat_surveys.employee_id')
+            ->where('employees.client_id', $clientId)
+            ->where('csat_surveys.improvement_option_id', $optionId)
+            ->whereNotNull('csat_surveys.employee_id')
+            ->select([
+                'employees.id',
+                'employees.name',
+                'employees.photo',
+                DB::raw('COUNT(*) as aggregate'),
+            ])
+            ->groupBy('employees.id', 'employees.name', 'employees.photo')
+            ->orderByDesc('aggregate')
+            ->orderBy('employees.name')
+            ->get();
+
+        $total = (int) $rows->sum('aggregate');
+
+        return $rows
+            ->map(fn ($row): array => [
+                'id' => (string) $row->id,
+                'name' => (string) $row->name,
+                'photo' => $row->photo ? (string) $row->photo : null,
+                'count' => (int) $row->aggregate,
+                'percentage' => $total > 0 ? round(((int) $row->aggregate / $total) * 100, 1) : 0.0,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return array<int, array{score: int, count: int, percentage: float}>
      */
     public function getScoreBreakdown(string $clientId, InternalReputationDateRange $range): array
@@ -629,5 +767,10 @@ class InternalReputationMetrics
             'day' => $bucket->format('d/m'),
             default => $bucket->isoFormat('MMM YY'),
         };
+    }
+
+    private function formatRangeLabel(Carbon $from, Carbon $until): string
+    {
+        return $from->format('d/m/Y') . ' - ' . $until->format('d/m/Y');
     }
 }
