@@ -47,6 +47,7 @@
             'counts' => $surveyHistory['counts'],
             'total' => $surveyHistory['total'],
             'grouping' => $surveyHistory['grouping'] ?? 'range',
+            'rangeKey' => $range_type.'|'.($date_from ?? '').'|'.($date_to ?? ''),
             'seriesLabel' => __('client.dashboard.survey_history.y_axis_label'),
             'tooltipLabel' => __('client.dashboard.survey_history.series_label'),
             'emptyLabel' => __('client.dashboard.survey_history.empty'),
@@ -55,6 +56,7 @@
             'labels' => $scoreTrend['labels'],
             'values' => $scoreTrend['averages'],
             'granularity' => $scoreTrend['granularity'],
+            'rangeKey' => $range_type.'|'.($date_from ?? '').'|'.($date_to ?? ''),
             'seriesLabel' => __('client.dashboard.score_trend.series_label'),
             'emptyLabel' => __('client.dashboard.score_trend.empty'),
         ];
@@ -1155,6 +1157,20 @@
             color: #ffffff;
         }
 
+        .client-dashboard-hour-shift-actions {
+            display: none;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .35rem .45rem;
+            padding: 0 1rem .55rem;
+        }
+
+        @media (max-width: 768px) {
+            .client-dashboard-survey-history-card.is-hours-grouping .client-dashboard-hour-shift-actions {
+                display: flex;
+            }
+        }
+
         .dark .client-dashboard-survey-history-pill {
             background: rgb(31 41 55);
             color: #cbd5e1;
@@ -1196,6 +1212,25 @@
 
         .client-dashboard-score-trend-card .client-dashboard-survey-history-chart {
             min-height: 14.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .client-dashboard-survey-history-card.is-hours-grouping .client-dashboard-survey-history-body {
+                padding-bottom: 2rem;
+            }
+
+            .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-hours-grouping:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+                padding-bottom: 2rem;
+            }
+
+            .client-dashboard-survey-history-card.is-hours-grouping .client-dashboard-survey-history-chart {
+                height: 17.5rem;
+            }
+
+            .client-dashboard-score-trend-card.is-hours-grouping .client-dashboard-survey-history-chart {
+                min-height: 17rem;
+                height: 17rem;
+            }
         }
 
         @media (min-width: 1280px) {
@@ -2224,6 +2259,27 @@
                             </div>
                         </div>
 
+                        @if ($forceSurveyHistoryHours || $survey_history_grouping === 'hours')
+                            <div class="client-dashboard-hour-shift-actions" data-hour-shift-controls>
+                                <button
+                                    type="button"
+                                    data-hour-shift="day"
+                                    class="client-dashboard-survey-history-pill"
+                                    aria-pressed="false"
+                                >
+                                    {{ __('client.dashboard.hourly_shift.first') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    data-hour-shift="night"
+                                    class="client-dashboard-survey-history-pill"
+                                    aria-pressed="false"
+                                >
+                                    {{ __('client.dashboard.hourly_shift.second') }}
+                                </button>
+                            </div>
+                        @endif
+
                         <div class="client-dashboard-survey-history-body">
                             <div wire:ignore data-dashboard-chart="survey-history" class="client-dashboard-survey-history-chart"></div>
                         </div>
@@ -2341,6 +2397,7 @@
                     @class([
                         'client-dashboard-survey-history-card client-dashboard-score-trend-card',
                         'is-detail-open' => $showScoreTrendDetail,
+                        'is-hours-grouping' => ($scoreTrend['granularity'] ?? '') === 'hour',
                     ])
                     data-dashboard-section="score-trend"
                     data-dashboard-trend-chart
@@ -2368,6 +2425,27 @@
                             </button>
                         </div>
                     </div>
+
+                    @if (($scoreTrend['granularity'] ?? '') === 'hour')
+                        <div class="client-dashboard-hour-shift-actions" data-hour-shift-controls>
+                            <button
+                                type="button"
+                                data-hour-shift="day"
+                                class="client-dashboard-survey-history-pill"
+                                aria-pressed="false"
+                            >
+                                {{ __('client.dashboard.hourly_shift.first') }}
+                            </button>
+                            <button
+                                type="button"
+                                data-hour-shift="night"
+                                class="client-dashboard-survey-history-pill"
+                                aria-pressed="false"
+                            >
+                                {{ __('client.dashboard.hourly_shift.second') }}
+                            </button>
+                        </div>
+                    @endif
 
                     <div class="client-dashboard-survey-history-body">
                         <div wire:ignore data-dashboard-chart="score-trend" class="client-dashboard-survey-history-chart"></div>

@@ -187,6 +187,102 @@
 
         const clampChartSize = (value, min, max) => Math.round(Math.min(max, Math.max(min, value)));
 
+        const formatHourLabel = (hour) => `${String(hour).padStart(2, '0')}:00`;
+
+        const MOBILE_HOURLY_MAX_WIDTH = 768;
+        const HOUR_SHIFT_DAY = 'day';
+        const HOUR_SHIFT_NIGHT = 'night';
+
+        const isMobileHourlyViewport = () => window.matchMedia(`(max-width: ${MOBILE_HOURLY_MAX_WIDTH}px)`).matches;
+
+        const getDefaultHourShift = () => (new Date().getHours() < 12 ? HOUR_SHIFT_DAY : HOUR_SHIFT_NIGHT);
+
+        const sliceHourlySeries = (labels, series, shift) => {
+            const start = shift === HOUR_SHIFT_NIGHT ? 12 : 0;
+
+            return {
+                labels: (labels || []).slice(start, start + 12),
+                series: (series || []).slice(start, start + 12),
+                hourOffset: start,
+            };
+        };
+
+        const resolveHourShift = () => {
+            if (!window.reputalisSharedHourShift) {
+                window.reputalisSharedHourShift = getDefaultHourShift();
+            }
+
+            return window.reputalisSharedHourShift;
+        };
+
+        const syncHourShiftControls = (card, shift) => {
+            const controls = card.querySelector('[data-hour-shift-controls]');
+            if (!controls) {
+                return;
+            }
+
+            controls.querySelectorAll('[data-hour-shift]').forEach((button) => {
+                const isActive = button.dataset.hourShift === shift;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        };
+
+        const bindHourShiftControls = () => {
+            if (window.reputalisHourShiftControlsBound) {
+                return;
+            }
+
+            window.reputalisHourShiftControlsBound = true;
+
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-hour-shift]');
+                if (!button) {
+                    return;
+                }
+
+                const card = button.closest('[data-dashboard-history-chart], [data-dashboard-trend-chart]');
+                if (!card || !isMobileHourlyViewport()) {
+                    return;
+                }
+
+                const shift = button.dataset.hourShift;
+                if (!shift || window.reputalisSharedHourShift === shift) {
+                    return;
+                }
+
+                window.reputalisSharedHourShift = shift;
+                resetDashboardHourlyChartState();
+                window.reputalisInitClientDashboardCharts?.();
+            });
+        };
+
+        const resetDashboardHourlyChartState = () => {
+            document
+                .querySelectorAll('[data-dashboard-history-chart], [data-dashboard-trend-chart]')
+                .forEach((card) => {
+                    card._reputalisHistoryChartSignature = null;
+                    card._reputalisHistoryChartRenderingSignature = null;
+                    card._reputalisTrendChartSignature = null;
+                    card._reputalisTrendChartRenderingSignature = null;
+                });
+        };
+
+        const syncDashboardRangeKey = (config) => {
+            const rangeKey = config?.rangeKey;
+
+            if (!rangeKey) {
+                return;
+            }
+
+            if (window.reputalisDashboardRangeKey && window.reputalisDashboardRangeKey !== rangeKey) {
+                window.reputalisSharedHourShift = null;
+                resetDashboardHourlyChartState();
+            }
+
+            window.reputalisDashboardRangeKey = rangeKey;
+        };
+
         const resolveMainSummaryChartSizes = (card) => {
             const gauge = card.querySelector('[data-dashboard-chart="gauge"]');
             const breakdown = card.querySelector('[data-dashboard-chart="breakdown"]');
@@ -431,7 +527,7 @@
             }
         };
 
-        const formatHourAxisLabels = (chartRoot) => {
+        const formatHourAxisLabels = (chartRoot, hourOffset = 0) => {
             if (!chartRoot) {
                 return;
             }
@@ -443,7 +539,7 @@
             }
 
             axisGroup.querySelectorAll('text').forEach((textNode, index) => {
-                const hour = index;
+                const hour = hourOffset + index;
                 const x = textNode.getAttribute('x');
                 const isBottomRow = hour % 2 === 1;
 
@@ -452,7 +548,7 @@
                 const labelLine = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
                 labelLine.setAttribute('x', x);
                 labelLine.setAttribute('dy', isBottomRow ? '1.35em' : '0');
-                labelLine.textContent = `${hour}:00`;
+                labelLine.textContent = formatHourLabel(hour);
 
                 textNode.appendChild(labelLine);
             });
@@ -464,12 +560,22 @@
                 return;
             }
 
+            syncDashboardRangeKey(config);
+
             const chartElement = card.querySelector('[data-dashboard-chart="survey-history"]');
             if (!chartElement) {
                 return;
             }
 
-            const signature = JSON.stringify(config);
+            const grouping = config.grouping || 'range';
+            const isHoursGrouping = grouping === 'hours';
+            const useHourShift = isHoursGrouping && isMobileHourlyViewport();
+            const hourShift = useHourShift ? resolveHourShift() : null;
+            const signature = JSON.stringify({
+                config,
+                hourShift,
+                mobile: isMobileHourlyViewport(),
+            });
             if (card._reputalisHistoryChartRenderingSignature === signature) {
                 return;
             }
@@ -500,17 +606,25 @@
 
                 destroyChart(chartElement);
 
-            const labels = config.labels || [];
-            const counts = (config.counts || []).map((count) => Number(count || 0));
-            const grouping = config.grouping || 'range';
+            let labels = config.labels || [];
+            let counts = (config.counts || []).map((count) => Number(count || 0));
+            let hourOffset = 0;
+
+            if (useHourShift) {
+                const sliced = sliceHourlySeries(labels, counts, hourShift);
+                labels = sliced.labels;
+                counts = sliced.series;
+                hourOffset = sliced.hourOffset;
+                syncHourShiftControls(card, hourShift);
+            }
+
             const maxCount = Math.max(...counts, 0);
             const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
             const gridColor = document.documentElement.classList.contains('dark')
                 ? 'rgba(148, 163, 184, 0.18)'
                 : 'rgba(100, 116, 139, 0.24)';
-            const xLabelRotate = grouping === 'hours' ? 0 : (labels.length > 12 ? -35 : 0);
-            const chartHeight = grouping === 'hours' ? 272 : 232;
-            const isHoursGrouping = grouping === 'hours';
+            const xLabelRotate = isHoursGrouping ? 0 : (labels.length > 12 ? -35 : 0);
+            const chartHeight = isHoursGrouping ? (useHourShift ? 248 : 272) : 232;
             const xAxisRightPadding = isHoursGrouping ? 14 : 36;
 
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
@@ -522,8 +636,8 @@
                     zoom: { enabled: false },
                     animations: { enabled: false },
                     events: isHoursGrouping ? {
-                        mounted: (chartContext) => formatHourAxisLabels(chartContext.el),
-                        updated: (chartContext) => formatHourAxisLabels(chartContext.el),
+                        mounted: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
+                        updated: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                     } : {},
                 },
                 series: [{
@@ -564,7 +678,7 @@
                             fontWeight: 500,
                         },
                         formatter: isHoursGrouping
-                            ? (_value, _timestamp, opts) => `${opts?.i ?? _value}:00`
+                            ? (_value, _timestamp, opts) => formatHourLabel(hourOffset + (opts?.i ?? 0))
                             : undefined,
                     },
                     axisBorder: { color: gridColor },
@@ -620,7 +734,7 @@
                 await chartElement._reputalisChart.render();
 
                 if (isHoursGrouping) {
-                    formatHourAxisLabels(chartElement);
+                    formatHourAxisLabels(chartElement, hourOffset);
                 }
 
                 card._reputalisHistoryChartSignature = signature;
@@ -635,12 +749,21 @@
                 return;
             }
 
+            syncDashboardRangeKey(config);
+
             const chartElement = card.querySelector('[data-dashboard-chart="score-trend"]');
             if (!chartElement) {
                 return;
             }
 
-            const signature = JSON.stringify(config);
+            const isHourlyTrend = config.granularity === 'hour';
+            const useHourShift = isHourlyTrend && isMobileHourlyViewport();
+            const hourShift = useHourShift ? resolveHourShift() : null;
+            const signature = JSON.stringify({
+                config,
+                hourShift,
+                mobile: isMobileHourlyViewport(),
+            });
             if (card._reputalisTrendChartRenderingSignature === signature) {
                 return;
             }
@@ -671,10 +794,20 @@
 
                 destroyChart(chartElement);
 
-                const labels = config.labels || [];
-                const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
-                const isHourlyTrend = config.granularity === 'hour';
+                let labels = config.labels || [];
+                let values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                let hourOffset = 0;
+
+                if (useHourShift) {
+                    const sliced = sliceHourlySeries(labels, values, hourShift);
+                    labels = sliced.labels;
+                    values = sliced.series;
+                    hourOffset = sliced.hourOffset;
+                    syncHourShiftControls(card, hourShift);
+                }
+
                 const xAxisRightPadding = isHourlyTrend ? 14 : 36;
+                const chartHeight = isHourlyTrend ? (useHourShift ? 248 : 272) : 238;
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
@@ -683,14 +816,14 @@
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
                     chart: {
                         type: 'line',
-                        height: 238,
+                        height: chartHeight,
                         parentHeightOffset: 0,
                         toolbar: { show: false },
                         zoom: { enabled: false },
                         animations: { enabled: false },
                         events: isHourlyTrend ? {
-                            mounted: (chartContext) => formatHourAxisLabels(chartContext.el),
-                            updated: (chartContext) => formatHourAxisLabels(chartContext.el),
+                            mounted: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
+                            updated: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                         } : {},
                     },
                     series: [{
@@ -722,7 +855,7 @@
                                 fontWeight: 500,
                             },
                             formatter: isHourlyTrend
-                                ? (_value, _timestamp, opts) => `${opts?.i ?? _value}:00`
+                                ? (_value, _timestamp, opts) => formatHourLabel(hourOffset + (opts?.i ?? 0))
                                 : undefined,
                         },
                         axisBorder: { color: '#111827' },
@@ -781,7 +914,7 @@
                 await chartElement._reputalisChart.render();
 
                 if (isHourlyTrend) {
-                    formatHourAxisLabels(chartElement);
+                    formatHourAxisLabels(chartElement, hourOffset);
                 }
 
                 card._reputalisTrendChartSignature = signature;
@@ -1167,6 +1300,7 @@
                 scheduled = false;
                 resetStaleDashboardChartSignatures();
                 bindMainSummaryResizeObservers();
+                bindHourShiftControls();
 
                 document
                     .querySelectorAll('[data-dashboard-summary-chart]')

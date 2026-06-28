@@ -8,6 +8,10 @@ trait HasClientPageTitle
 {
     public function getTitle(): string|Htmlable
     {
+        if (auth()->user()?->isClientOwner()) {
+            return '';
+        }
+
         return (string) ($this->getRecord()?->namecommercial ?? __('client.resource.model_label'));
     }
 }

@@ -226,6 +226,10 @@ return [
             'detail_improvement_points' => 'Improvement points',
             'detail_ratings' => 'Ratings',
         ],
+        'hourly_shift' => [
+            'first' => '00-11 h',
+            'second' => '12-23 h',
+        ],
         'survey_history' => [
             'heading' => 'Survey history',
             'show_by' => 'Show by',

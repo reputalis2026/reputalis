@@ -482,6 +482,10 @@ class ClientResource extends Resource
      */
     public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
     {
+        if (auth()->user()?->isClientOwner()) {
+            return [];
+        }
+
         $items = [
             Pages\ClientDashboard::class,
             Pages\ViewClient::class,

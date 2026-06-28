@@ -226,6 +226,10 @@ return [
             'detail_improvement_points' => 'Puntos de mejora',
             'detail_ratings' => 'Valoraciones',
         ],
+        'hourly_shift' => [
+            'first' => '00-11 h',
+            'second' => '12-23 h',
+        ],
         'survey_history' => [
             'heading' => 'Histórico de encuestas',
             'show_by' => 'Mostrar por',
