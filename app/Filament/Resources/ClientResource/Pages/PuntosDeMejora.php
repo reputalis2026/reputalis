@@ -87,7 +87,7 @@ class PuntosDeMejora extends Page
     {
         $client = $this->getRecord();
         $config = $this->ensureDefaultConfigForClient($client->id);
-        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $options = $config ? $config->activeOptions()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
         $defaultTitles = ClientImprovementConfig::defaultTitles();
 
@@ -102,6 +102,7 @@ class PuntosDeMejora extends Page
             'display_mode' => ClientImprovementConfig::normalizeDisplayMode($config?->display_mode),
             'positive_scores' => $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores(),
             'options' => $options->map(fn ($o) => [
+                'id' => (string) $o->id,
                 'label_es' => $o->label_es ?: $o->label,
                 'label_pt' => $o->label_pt ?: ($o->label_es ?: $o->label),
                 'label_en' => $o->label_en ?: ($o->label_es ?: $o->label),
@@ -146,6 +147,7 @@ class PuntosDeMejora extends Page
                 'label_pt' => $labels['pt'],
                 'label_en' => $labels['en'],
                 'sort_order' => $index + 1,
+                'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ])->all()
@@ -220,6 +222,7 @@ class PuntosDeMejora extends Page
                         \Filament\Forms\Components\Repeater::make('options')
                             ->label(__('client.survey.answers_options'))
                             ->schema([
+                                \Filament\Forms\Components\Hidden::make('id'),
                                 \Filament\Forms\Components\TextInput::make('label_es')
                                     ->label(__('survey.language_names.es'))
                                     ->required()
@@ -314,7 +317,10 @@ class PuntosDeMejora extends Page
             return;
         }
 
-        $labels = array_values(array_map(fn (array $option): array => $this->trimLocalizedState($option, 'label'), $optionsData));
+        $labels = array_values(array_map(fn (array $option): array => [
+            'id' => filled($option['id'] ?? null) ? (string) $option['id'] : null,
+            ...$this->trimLocalizedState($option, 'label'),
+        ], $optionsData));
 
         if (count($labels) < 2) {
             Notification::make()->danger()->title(__('client.survey.validation.min_answers'))->send();
@@ -349,17 +355,32 @@ class PuntosDeMejora extends Page
             $config->save();
 
             $configId = $config->getKey();
-            ClientImprovementOption::where('client_improvement_config_id', $configId)->delete();
+            $keptOptionIds = collect($labels)
+                ->pluck('id')
+                ->filter()
+                ->map(fn (string $id): string => $id)
+                ->all();
+
+            ClientImprovementOption::query()
+                ->where('client_improvement_config_id', $configId)
+                ->when(
+                    count($keptOptionIds) > 0,
+                    fn ($query) => $query->whereNotIn('id', $keptOptionIds),
+                )
+                ->update(['is_active' => false]);
 
             foreach ($labels as $i => $label) {
-                ClientImprovementOption::create([
-                    'id' => (string) Str::uuid(),
+                ClientImprovementOption::updateOrCreate([
+                    'id' => $label['id'] ?? (string) Str::uuid(),
+                    'client_improvement_config_id' => $configId,
+                ], [
                     'client_improvement_config_id' => $configId,
                     'label' => $label['es'],
                     'label_es' => $label['es'],
                     'label_pt' => $label['pt'],
                     'label_en' => $label['en'],
                     'sort_order' => $i,
+                    'is_active' => true,
                 ]);
             }
         });
@@ -412,7 +433,7 @@ class PuntosDeMejora extends Page
     {
         $client = $this->getRecord();
         $config = $client->improvementConfig;
-        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $options = $config ? $config->activeOptions()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $mode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
         $defaultTitles = ClientImprovementConfig::defaultTitles();

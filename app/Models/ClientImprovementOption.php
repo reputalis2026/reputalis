@@ -20,6 +20,7 @@ class ClientImprovementOption extends Model
         'label_pt',
         'label_en',
         'sort_order',
+        'is_active',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class ClientImprovementOption extends Model
         return [
             'id' => 'string',
             'client_improvement_config_id' => 'string',
+            'is_active' => 'boolean',
         ];
     }
 

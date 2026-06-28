@@ -65,6 +65,11 @@ class ClientImprovementConfig extends Model
             ->orderBy('created_at');
     }
 
+    public function activeOptions(): HasMany
+    {
+        return $this->options()->where('is_active', true);
+    }
+
     /**
      * @return self::DISPLAY_MODE_NUMBERS|self::DISPLAY_MODE_FACES
      */

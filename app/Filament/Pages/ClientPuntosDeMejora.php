@@ -73,7 +73,7 @@ class ClientPuntosDeMejora extends Page
     {
         $config = $this->client?->improvementConfig;
         $options = $config
-            ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get()
+            ? $config->activeOptions()->orderBy('sort_order')->orderBy('created_at')->get()
             : collect();
         $mode = ClientImprovementConfig::normalizeDisplayMode($config?->display_mode);
         $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();

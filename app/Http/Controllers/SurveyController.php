@@ -43,7 +43,7 @@ class SurveyController extends Controller
 
         $client->load('improvementConfig');
         $config = $client->improvementConfig;
-        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $options = $config ? $config->activeOptions()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $surveyLocale = $this->resolveSurveyLocale($request, $config, $options);
         $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
             ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];
@@ -120,7 +120,7 @@ class SurveyController extends Controller
 
         $client->load('improvementConfig');
         $config = $client->improvementConfig;
-        $options = $config ? $config->options()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
+        $options = $config ? $config->activeOptions()->orderBy('sort_order')->orderBy('created_at')->get() : collect();
         $surveyLocale = $this->resolveSurveyLocale($request, $config, $options);
         $surveyQuestion = $config?->surveyQuestionTextForLocale($surveyLocale)
             ?? ClientImprovementConfig::defaultSurveyQuestionTexts()[ClientImprovementConfig::DEFAULT_LOCALE];

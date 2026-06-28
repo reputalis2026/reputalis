@@ -128,9 +128,19 @@
 
                         <div class="client-dashboard-employee-detail-improvement-list">
                             @foreach ($employeeDetail['improvement_points'] as $point)
-                                <article class="client-dashboard-employee-detail-improvement-card">
+                                <article
+                                    @class([
+                                        'client-dashboard-employee-detail-improvement-card',
+                                        'is-inactive' => ! ($point['is_active'] ?? true),
+                                    ])
+                                >
                                     <p class="client-dashboard-employee-detail-improvement-label">
                                         {{ $point['label'] }}
+                                        @unless ($point['is_active'] ?? true)
+                                            <span class="client-dashboard-improvement-inactive-badge">
+                                                {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
+                                            </span>
+                                        @endunless
                                     </p>
 
                                     <div class="client-dashboard-employee-detail-improvement-stats">
@@ -140,6 +150,13 @@
                                         <span class="client-dashboard-employee-detail-improvement-count">
                                             {{ trans_choice('client.dashboard.improvement_ranking.surveys_count', $point['count'], ['count' => $point['count']]) }}
                                         </span>
+                                    </div>
+
+                                    <div
+                                        class="client-dashboard-employee-detail-improvement-bar"
+                                        aria-hidden="true"
+                                    >
+                                        <span style="width: {{ min(100, max(0, (float) $point['percentage'])) }}%;"></span>
                                     </div>
                                 </article>
                             @endforeach

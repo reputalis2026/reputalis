@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 
 class InternalReputationMetrics
 {
@@ -80,7 +81,7 @@ class InternalReputationMetrics
     }
 
     /**
-     * @return array<int, array{id: string, name: string, photo: string|null, surveys: int, avg_score: float, score_counts: array<int, int>, score_percentages: array<int, float>}>
+     * @return array<int, array{id: string, name: string, photo: string|null, is_active: bool, surveys: int, avg_score: float, score_counts: array<int, int>, score_percentages: array<int, float>}>
      */
     public function getEmployeeScoreRanking(string $clientId, InternalReputationDateRange $range): array
     {
@@ -92,10 +93,11 @@ class InternalReputationMetrics
                 'employees.id',
                 'employees.name',
                 'employees.photo',
+                'employees.is_active',
                 'csat_surveys.score',
                 DB::raw('COUNT(*) as aggregate'),
             ])
-            ->groupBy('employees.id', 'employees.name', 'employees.photo', 'csat_surveys.score')
+            ->groupBy('employees.id', 'employees.name', 'employees.photo', 'employees.is_active', 'csat_surveys.score')
             ->get();
 
         return $rows
@@ -120,6 +122,7 @@ class InternalReputationMetrics
                     'id' => (string) $firstRow->id,
                     'name' => (string) $firstRow->name,
                     'photo' => $firstRow->photo ? (string) $firstRow->photo : null,
+                    'is_active' => (bool) $firstRow->is_active,
                     'surveys' => $surveys,
                     'avg_score' => $surveys > 0 ? round($weightedScore / $surveys, 2) : 0.0,
                     'score_counts' => $scoreCounts,
@@ -129,6 +132,7 @@ class InternalReputationMetrics
                 ];
             })
             ->sortBy([
+                ['is_active', 'desc'],
                 ['avg_score', 'desc'],
                 ['surveys', 'desc'],
                 ['name', 'asc'],
@@ -399,7 +403,7 @@ class InternalReputationMetrics
     }
 
     /**
-     * @return array<int, array{label: string, count: int, percentage: float}>
+     * @return array<int, array{label: string, is_active: bool, count: int, percentage: float}>
      */
     public function getEmployeeImprovementPoints(
         string $clientId,
@@ -434,23 +438,26 @@ class InternalReputationMetrics
             ->keyBy('id');
 
         return $rows
-            ->map(function ($row) use ($options, $totalSurveys, $locale): ?array {
+            ->map(function ($row) use ($options, $totalSurveys, $locale): array {
                 $option = $options->get($row->improvement_option_id);
-                $label = $option?->labelForLocale($locale ?? app()->getLocale());
-
-                if (! filled($label)) {
-                    return null;
-                }
+                $label = $option?->labelForLocale($locale ?? app()->getLocale())
+                    ?: $this->deletedImprovementOptionLabel($locale);
 
                 $count = (int) $row->aggregate;
 
                 return [
                     'label' => $label,
+                    'is_active' => (bool) ($option?->is_active ?? false),
                     'count' => $count,
                     'percentage' => round(($count / $totalSurveys) * 100, 1),
                 ];
             })
-            ->filter()
+            ->sortBy([
+                ['is_active', 'desc'],
+                ['percentage', 'desc'],
+                ['count', 'desc'],
+                ['label', 'asc'],
+            ])
             ->values()
             ->all();
     }
@@ -484,7 +491,7 @@ class InternalReputationMetrics
     }
 
     /**
-     * @return array{question: string, total_surveys: int, options: array<int, array{id: string, label: string, count: int, percentage: float}>}
+     * @return array{question: string, total_surveys: int, options: array<int, array{id: string, label: string, is_active: bool, count: int, percentage: float}>}
      */
     public function getImprovementOptionRanking(string $clientId, InternalReputationDateRange $range, ?string $locale = null): array
     {
@@ -493,14 +500,6 @@ class InternalReputationMetrics
             ->with('options')
             ->first();
 
-        if (! $config) {
-            return [
-                'question' => ClientImprovementConfig::defaultTitles()[ClientImprovementConfig::DEFAULT_LOCALE],
-                'total_surveys' => 0,
-                'options' => [],
-            ];
-        }
-
         $totalSurveys = $this->surveyQuery($clientId, $range)->count();
         $counts = $this->surveyQuery($clientId, $range)
             ->whereNotNull('csat_surveys.improvement_option_id')
@@ -508,16 +507,44 @@ class InternalReputationMetrics
             ->groupBy('csat_surveys.improvement_option_id')
             ->pluck('aggregate', 'improvement_option_id');
 
-        $options = $config->options
+        $activeOptionModels = $config?->activeOptions()->get() ?? collect();
+        $allOptionModels = $config?->options()->get()->keyBy('id') ?? collect();
+        $activeOptionIds = $activeOptionModels->pluck('id')->map(fn ($id): string => (string) $id)->all();
+
+        $activeOptions = $activeOptionModels
             ->map(fn (ClientImprovementOption $option): array => [
                 'id' => (string) $option->id,
                 'label' => $option->labelForLocale($locale),
+                'is_active' => true,
                 'count' => (int) ($counts[$option->id] ?? 0),
                 'percentage' => $totalSurveys > 0
                     ? round(((int) ($counts[$option->id] ?? 0) / $totalSurveys) * 100, 1)
                     : 0.0,
-            ])
+            ]);
+
+        $deletedOptions = collect($counts)
+            ->reject(fn ($count, $optionId): bool => in_array((string) $optionId, $activeOptionIds, true))
+            ->filter(fn ($count): bool => (int) $count > 0)
+            ->map(function ($count, $optionId) use ($allOptionModels, $locale, $totalSurveys): array {
+                $option = $allOptionModels->get((string) $optionId);
+
+                return [
+                    'id' => (string) $optionId,
+                    'label' => $option?->labelForLocale($locale)
+                        ?: $this->deletedImprovementOptionLabel($locale),
+                    'is_active' => false,
+                    'count' => (int) $count,
+                    'percentage' => $totalSurveys > 0
+                        ? round(((int) $count / $totalSurveys) * 100, 1)
+                        : 0.0,
+                ];
+            })
+            ->values();
+
+        $options = $activeOptions
+            ->concat($deletedOptions)
             ->sortBy([
+                ['is_active', 'desc'],
                 ['percentage', 'desc'],
                 ['count', 'desc'],
                 ['label', 'asc'],
@@ -526,7 +553,8 @@ class InternalReputationMetrics
             ->all();
 
         return [
-            'question' => $config->titleForLocale($locale),
+            'question' => $config?->titleForLocale($locale)
+                ?? ClientImprovementConfig::defaultTitles()[ClientImprovementConfig::DEFAULT_LOCALE],
             'total_surveys' => $totalSurveys,
             'options' => $options,
         ];
@@ -542,7 +570,8 @@ class InternalReputationMetrics
      *     counts: array<int, int>,
      *     totals: array<int, int>,
      *     rows: array<int, array{label: string, count: int, total: int, percentage: float}>,
-     *     granularity: string
+     *     granularity: string,
+     *     is_active: bool
      * }|null
      */
     public function getImprovementOptionTrend(
@@ -559,12 +588,26 @@ class InternalReputationMetrics
             )
             ->first();
 
-        if (! $option) {
-            return null;
-        }
-
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
         $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+
+        if (! $option) {
+            $hasHistoricalSurveys = $this->applyDateRange(
+                CsatSurvey::query()->where('csat_surveys.client_id', $clientId),
+                new InternalReputationDateRange(
+                    InternalReputationDateRange::TYPE_CUSTOM,
+                    $from?->toDateString(),
+                    $until?->toDateString(),
+                ),
+                'csat_surveys.created_at',
+            )
+                ->where('csat_surveys.improvement_option_id', $optionId)
+                ->exists();
+
+            if (! $hasHistoricalSurveys) {
+                return null;
+            }
+        }
 
         $rows = $this->applyDateRange(
             CsatSurvey::query()->where('csat_surveys.client_id', $clientId),
@@ -620,8 +663,10 @@ class InternalReputationMetrics
         }
 
         return [
-            'id' => (string) $option->id,
-            'label' => $option->labelForLocale($locale ?? app()->getLocale()),
+            'id' => $option ? (string) $option->id : $optionId,
+            'label' => $option?->labelForLocale($locale ?? app()->getLocale())
+                ?: $this->deletedImprovementOptionLabel($locale),
+            'is_active' => (bool) ($option?->is_active ?? false),
             'period_label' => $this->formatRangeLabel($from, $until),
             'labels' => $labels,
             'percentages' => $percentages,
@@ -633,7 +678,7 @@ class InternalReputationMetrics
     }
 
     /**
-     * @return array<int, array{id: string, name: string, photo: string|null, count: int, percentage: float}>
+     * @return array<int, array{id: string, name: string, photo: string|null, is_active: bool, count: int, percentage: float}>
      */
     public function getImprovementOptionEmployeeRanking(
         string $clientId,
@@ -649,9 +694,11 @@ class InternalReputationMetrics
                 'employees.id',
                 'employees.name',
                 'employees.photo',
+                'employees.is_active',
                 DB::raw('COUNT(*) as aggregate'),
             ])
-            ->groupBy('employees.id', 'employees.name', 'employees.photo')
+            ->groupBy('employees.id', 'employees.name', 'employees.photo', 'employees.is_active')
+            ->orderByDesc('employees.is_active')
             ->orderByDesc('aggregate')
             ->orderBy('employees.name')
             ->get();
@@ -663,6 +710,7 @@ class InternalReputationMetrics
                 'id' => (string) $row->id,
                 'name' => (string) $row->name,
                 'photo' => $row->photo ? (string) $row->photo : null,
+                'is_active' => (bool) $row->is_active,
                 'count' => (int) $row->aggregate,
                 'percentage' => $total > 0 ? round(((int) $row->aggregate / $total) * 100, 1) : 0.0,
             ])
@@ -714,6 +762,15 @@ class InternalReputationMetrics
     private function countSatisfiedSurveys(Builder $periodQuery): int
     {
         return (int) (clone $periodQuery)->whereIn('score', [4, 5])->count();
+    }
+
+    private function deletedImprovementOptionLabel(?string $locale = null): string
+    {
+        return Lang::get(
+            'client.dashboard.improvement_ranking.deleted_option',
+            [],
+            $locale ?? app()->getLocale(),
+        );
     }
 
     /**

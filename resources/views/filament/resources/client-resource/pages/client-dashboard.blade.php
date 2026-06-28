@@ -509,6 +509,17 @@
             opacity: 0;
         }
 
+        .client-dashboard-improvement-row.is-inactive {
+            border-style: dashed;
+            background: #f1f5f9;
+            opacity: .68;
+            filter: grayscale(.35);
+        }
+
+        .client-dashboard-improvement-row.is-inactive:hover {
+            opacity: .82;
+        }
+
         .dark .client-dashboard-improvement-row:hover {
             border-color: rgba(239, 127, 131, .42);
             box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
@@ -520,6 +531,10 @@
             box-shadow: none;
         }
 
+        .dark .client-dashboard-improvement-row.is-inactive {
+            background: rgba(31, 41, 55, .72);
+        }
+
         .client-dashboard-improvement-label {
             display: flex;
             min-height: 3.65rem;
@@ -528,6 +543,27 @@
             color: #475569;
             font-size: .73rem;
             font-weight: 500;
+        }
+
+        .client-dashboard-improvement-inactive-badge {
+            display: inline-flex;
+            width: fit-content;
+            margin-left: .35rem;
+            border-radius: 9999px;
+            background: rgba(100, 116, 139, .12);
+            padding: .12rem .42rem;
+            color: #64748b;
+            font-size: .56rem;
+            font-weight: 800;
+            line-height: .85rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            vertical-align: middle;
+        }
+
+        .dark .client-dashboard-improvement-inactive-badge {
+            background: rgba(148, 163, 184, .16);
+            color: #cbd5e1;
         }
 
         .dark .client-dashboard-improvement-label {
@@ -934,8 +970,19 @@
             box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
         }
 
+        .client-dashboard-improvement-detail-employee.is-inactive {
+            border-style: dashed;
+            background: #f1f5f9;
+            opacity: .68;
+            filter: grayscale(.35);
+        }
+
         .dark .client-dashboard-improvement-detail-employee {
             background: rgb(17 24 39);
+        }
+
+        .dark .client-dashboard-improvement-detail-employee.is-inactive {
+            background: rgba(31, 41, 55, .72);
         }
 
         .client-dashboard-improvement-detail-employee-avatar {
@@ -1288,6 +1335,22 @@
             outline: none;
         }
 
+        .client-dashboard-employee-row.is-inactive {
+            border-style: dashed;
+            background: #f1f5f9;
+            opacity: .68;
+            filter: grayscale(.35);
+        }
+
+        .client-dashboard-employee-row.is-inactive:hover,
+        .client-dashboard-employee-row.is-inactive:focus-visible {
+            opacity: .82;
+        }
+
+        .dark .client-dashboard-employee-row.is-inactive {
+            background: rgba(31, 41, 55, .72);
+        }
+
         .client-dashboard-employee-info-tab {
             position: absolute;
             top: 50%;
@@ -1391,6 +1454,30 @@
             font-size: .76rem;
             font-weight: 650;
             color: #475569;
+        }
+
+        .client-dashboard-employee-name-wrap {
+            min-width: 0;
+        }
+
+        .client-dashboard-employee-inactive-badge {
+            display: inline-flex;
+            width: fit-content;
+            margin-top: .18rem;
+            border-radius: 9999px;
+            background: rgba(100, 116, 139, .12);
+            padding: .12rem .42rem;
+            color: #64748b;
+            font-size: .56rem;
+            font-weight: 800;
+            line-height: .85rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .dark .client-dashboard-employee-inactive-badge {
+            background: rgba(148, 163, 184, .16);
+            color: #cbd5e1;
         }
 
         .dark .client-dashboard-employee-name {
@@ -1646,19 +1733,19 @@
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bars {
             min-height: 4.75rem;
-            gap: .55rem;
-            padding: 0 .35rem .18rem;
+            gap: .32rem;
+            padding: 0 .2rem .18rem;
         }
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar {
-            max-width: 1.15rem;
+            max-width: 1rem;
             width: 100%;
         }
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar-labels {
-            gap: .55rem;
+            gap: .32rem;
             margin-top: .28rem;
-            font-size: .7rem;
+            font-size: .64rem;
             font-weight: 700;
         }
 
@@ -1716,7 +1803,7 @@
             min-height: 0;
             flex: 1;
             flex-direction: column;
-            gap: .5rem;
+            gap: .6rem;
             overflow-y: auto;
             padding-right: .15rem;
             scrollbar-width: thin;
@@ -1736,14 +1823,28 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            gap: .5rem;
-            border-radius: .5rem;
-            background: #f8fafc;
-            padding: .75rem .85rem;
+            gap: .55rem;
+            border: 1px solid rgba(239, 68, 68, .14);
+            border-radius: .65rem;
+            background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+            padding: .8rem .9rem;
         }
 
         .dark .client-dashboard-employee-detail-improvement-card {
-            background: rgba(31, 41, 55, .55);
+            border-color: rgba(248, 113, 113, .2);
+            background: linear-gradient(180deg, rgba(31, 41, 55, .78) 0%, rgba(69, 26, 26, .28) 100%);
+        }
+
+        .client-dashboard-employee-detail-improvement-card.is-inactive {
+            border-style: dashed;
+            background: #f1f5f9;
+            opacity: .72;
+            filter: grayscale(.35);
+        }
+
+        .dark .client-dashboard-employee-detail-improvement-card.is-inactive {
+            background: rgba(31, 41, 55, .72);
         }
 
         .client-dashboard-employee-detail-improvement-label {
@@ -1760,8 +1861,9 @@
 
         .client-dashboard-employee-detail-improvement-stats {
             display: flex;
-            flex-direction: column;
-            gap: .2rem;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: .5rem;
         }
 
         .client-dashboard-employee-detail-improvement-percentage {
@@ -1776,6 +1878,22 @@
             font-size: .74rem;
             font-weight: 600;
             line-height: 1.2;
+            text-align: right;
+        }
+
+        .client-dashboard-employee-detail-improvement-bar {
+            height: .48rem;
+            overflow: hidden;
+            border-radius: 9999px;
+            background: rgba(239, 68, 68, .12);
+        }
+
+        .client-dashboard-employee-detail-improvement-bar span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ff9880 0%, #ef4444 100%);
+            min-width: .25rem;
         }
 
         .client-dashboard-employee-detail-trend-title {
@@ -2127,7 +2245,10 @@
                             <div class="client-dashboard-employee-ranking-scroll">
                                 @foreach ($employeeRanking as $employee)
                                     <article
-                                        class="client-dashboard-employee-row"
+                                        @class([
+                                            'client-dashboard-employee-row',
+                                            'is-inactive' => ! ($employee['is_active'] ?? true),
+                                        ])
                                         wire:click="openEmployeeDetail('{{ $employee['id'] }}')"
                                         wire:keydown.enter="openEmployeeDetail('{{ $employee['id'] }}')"
                                         role="button"
@@ -2149,9 +2270,17 @@
                                                 @endif
                                             </div>
 
-                                            <h4 class="client-dashboard-employee-name">
-                                                {{ $employee['name'] }}
-                                            </h4>
+                                            <div class="client-dashboard-employee-name-wrap">
+                                                <h4 class="client-dashboard-employee-name">
+                                                    {{ $employee['name'] }}
+                                                </h4>
+
+                                                @unless ($employee['is_active'] ?? true)
+                                                    <span class="client-dashboard-employee-inactive-badge">
+                                                        {{ __('client.dashboard.employee_ranking.inactive') }}
+                                                    </span>
+                                                @endunless
+                                            </div>
                                         </div>
 
                                         <div class="client-dashboard-employee-chart">
@@ -2320,7 +2449,10 @@
                                     <button
                                         type="button"
                                         wire:click="openImprovementDetail('{{ $option['id'] }}')"
-                                        class="client-dashboard-improvement-row"
+                                        @class([
+                                            'client-dashboard-improvement-row',
+                                            'is-inactive' => ! ($option['is_active'] ?? true),
+                                        ])
                                     >
                                         <span class="client-dashboard-improvement-info-tab" aria-hidden="true">
                                             <span class="client-dashboard-improvement-info-tab-text">
@@ -2329,7 +2461,14 @@
                                         </span>
 
                                         <div class="client-dashboard-improvement-label">
-                                            {{ $option['label'] }}
+                                            <span>
+                                                {{ $option['label'] }}
+                                                @unless ($option['is_active'] ?? true)
+                                                    <span class="client-dashboard-improvement-inactive-badge">
+                                                        {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
+                                                    </span>
+                                                @endunless
+                                            </span>
                                         </div>
 
                                         <div class="client-dashboard-improvement-negative">
@@ -2389,6 +2528,11 @@
 
                                     <div class="client-dashboard-improvement-detail-meta">
                                         <span>{{ $improvementDetail['label'] }}</span>
+                                        @unless ($improvementDetail['is_active'] ?? true)
+                                            <span class="client-dashboard-improvement-inactive-badge">
+                                                {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
+                                            </span>
+                                        @endunless
                                         <span>{{ $improvementDetail['period_label'] }}</span>
                                     </div>
                                 </div>
@@ -2423,7 +2567,12 @@
 
                                     <div class="client-dashboard-improvement-detail-employee-list">
                                         @forelse ($improvementDetail['employee_ranking'] as $employee)
-                                            <article class="client-dashboard-improvement-detail-employee">
+                                            <article
+                                                @class([
+                                                    'client-dashboard-improvement-detail-employee',
+                                                    'is-inactive' => ! ($employee['is_active'] ?? true),
+                                                ])
+                                            >
                                                 <span class="client-dashboard-improvement-detail-employee-avatar">
                                                     @if ($employee['photo_url'])
                                                         <img src="{{ $employee['photo_url'] }}" alt="{{ $employee['name'] }}">
@@ -2436,6 +2585,11 @@
                                                     <p class="client-dashboard-improvement-detail-employee-name">
                                                         {{ $employee['name'] }}
                                                     </p>
+                                                    @unless ($employee['is_active'] ?? true)
+                                                        <span class="client-dashboard-employee-inactive-badge">
+                                                            {{ __('client.dashboard.employee_ranking.inactive') }}
+                                                        </span>
+                                                    @endunless
                                                     <div class="client-dashboard-improvement-detail-employee-bar" aria-hidden="true">
                                                         <span style="width: {{ min(100, max(0, (float) $employee['percentage'])) }}%;"></span>
                                                     </div>

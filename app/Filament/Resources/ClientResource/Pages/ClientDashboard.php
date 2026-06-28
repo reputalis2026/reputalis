@@ -280,26 +280,14 @@ class ClientDashboard extends Page
                 'satisfiedValue' => $this->formatSatisfiedPercent($satisfiedPctRaw),
                 'trackColor' => '#e5e7eb',
             ],
-            'rating_groups' => [
-                [
-                    'label' => '1-2',
-                    'count' => (int) ($employee['score_counts'][1] ?? 0) + (int) ($employee['score_counts'][2] ?? 0),
-                    'percentage' => (float) ($employee['score_percentages'][1] ?? 0) + (float) ($employee['score_percentages'][2] ?? 0),
-                    'color' => $scoreColors[1],
-                ],
-                [
-                    'label' => '3',
-                    'count' => (int) ($employee['score_counts'][3] ?? 0),
-                    'percentage' => (float) ($employee['score_percentages'][3] ?? 0),
-                    'color' => $scoreColors[3],
-                ],
-                [
-                    'label' => '4-5',
-                    'count' => (int) ($employee['score_counts'][4] ?? 0) + (int) ($employee['score_counts'][5] ?? 0),
-                    'percentage' => (float) ($employee['score_percentages'][4] ?? 0) + (float) ($employee['score_percentages'][5] ?? 0),
-                    'color' => $scoreColors[5],
-                ],
-            ],
+            'rating_groups' => collect([1, 2, 3, 4, 5])
+                ->map(fn (int $score): array => [
+                    'label' => (string) $score,
+                    'count' => (int) ($employee['score_counts'][$score] ?? 0),
+                    'percentage' => (float) ($employee['score_percentages'][$score] ?? 0),
+                    'color' => $scoreColors[$score],
+                ])
+                ->all(),
             'improvement_points' => $improvementPoints,
             'trend_chart_config' => [
                 'labels' => $trend['labels'],
@@ -324,7 +312,8 @@ class ClientDashboard extends Page
      *         yAxisLabel: string,
      *         emptyLabel: string
      *     },
-     *     employee_ranking: array<int, array{id: string, name: string, photo_url: string|null, initials: string, count: int, percentage: float}>
+     *     is_active: bool,
+     *     employee_ranking: array<int, array{id: string, name: string, photo_url: string|null, initials: string, is_active: bool, count: int, percentage: float}>
      * }|null
      */
     public function getSelectedImprovementDetail(): ?array
@@ -354,6 +343,7 @@ class ClientDashboard extends Page
                 'name' => $employee['name'],
                 'photo_url' => $employee['photo'] ? Storage::disk('public')->url($employee['photo']) : null,
                 'initials' => $this->getEmployeeInitials($employee['name']),
+                'is_active' => (bool) ($employee['is_active'] ?? true),
                 'count' => $employee['count'],
                 'percentage' => $employee['percentage'],
             ])
@@ -362,6 +352,7 @@ class ClientDashboard extends Page
         return [
             'id' => $trend['id'],
             'label' => $trend['label'],
+            'is_active' => (bool) ($trend['is_active'] ?? true),
             'period_label' => __('client.dashboard.improvement_ranking.detail_period', [
                 'period' => $trend['period_label'],
             ]),
@@ -604,7 +595,7 @@ class ClientDashboard extends Page
     }
 
     /**
-     * @return array<int, array{id: string, name: string, photo_url: string|null, initials: string, surveys: int, avg_score: string, score_counts: array<int, int>, score_percentages: array<int, float>}>
+     * @return array<int, array{id: string, name: string, photo_url: string|null, initials: string, is_active: bool, surveys: int, avg_score: string, score_counts: array<int, int>, score_percentages: array<int, float>}>
      */
     public function getEmployeeRanking(): array
     {
@@ -617,6 +608,7 @@ class ClientDashboard extends Page
                 'name' => $employee['name'],
                 'photo_url' => $employee['photo'] ? Storage::disk('public')->url($employee['photo']) : null,
                 'initials' => $this->getEmployeeInitials($employee['name']),
+                'is_active' => (bool) ($employee['is_active'] ?? true),
                 'surveys' => $employee['surveys'],
                 'avg_score' => number_format((float) $employee['avg_score'], 2, ',', ' '),
                 'score_counts' => $employee['score_counts'],

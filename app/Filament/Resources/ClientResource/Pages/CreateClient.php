@@ -165,6 +165,7 @@ class CreateClient extends CreateRecord
                 'label_pt' => $labels['pt'],
                 'label_en' => $labels['en'],
                 'sort_order' => $index + 1,
+                'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ])->all()
