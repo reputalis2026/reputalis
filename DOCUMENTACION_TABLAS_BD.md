@@ -159,6 +159,11 @@ Este archivo resume tablas relevantes y el sentido de cada campo.
 - `survey_question_text_pt`: pregunta principal en portugues.
 - `survey_question_text_en`: pregunta principal en ingles.
 - `positive_scores`: JSONB/array de puntuaciones que siguen el flujo positivo.
+- `google_place_id`: Place ID de Google Maps del negocio (obligatorio al guardar la encuesta en Filament); se usa para redirigir al formulario de reseña.
+- `google_review_message`: mensaje legacy sincronizado con español (compatibilidad).
+- `google_review_message_es`: mensaje mostrado tras valoración positiva en espanol.
+- `google_review_message_pt`: mensaje mostrado tras valoración positiva en portugues.
+- `google_review_message_en`: mensaje mostrado tras valoración positiva en ingles.
 
 ### `client_improvement_options`
 **Para que sirve:** opciones activas de mejora vinculadas a la configuracion actual por cliente.

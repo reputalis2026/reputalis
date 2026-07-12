@@ -27,6 +27,13 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-07-12 — Encuesta: reseña en Google Maps con Place ID y contador
+
+- **Qué se cambió:** Migración `2026_07_12_120000_add_google_review_fields_to_client_improvement_configs_table.php` (`google_place_id`, `google_review_message_*`) — **aplicada en producción** (`php artisan migrate`). Modelo `ClientImprovementConfig` con `normalizeGooglePlaceId()`, `googleReviewUrl()` y textos por defecto. Filament `PuntosDeMejora`: sección «Reseña en Google Maps», Place ID obligatorio al guardar, botón `?` al [Place ID Finder](https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder). Vista pública `survey.blade.php`: mensaje editable, contador 5→1 y redirección automática a `writereview?placeid=...` (sin botón manual «Dejar reseña»). i18n `lang/{es,en,pt}/client.php`. Docs: `CONTEXTO_PARA_IA.md`, `DOCUMENTACION_TABLAS_BD.md`, `DESCRIPCION_CLASES.md`, `RESUMEN_PROYECTO.md`.
+- **Por qué:** Tras valoración positiva, guiar al usuario a dejar reseña en Google del negocio concreto (no búsqueda genérica por nombre).
+- **Qué falta:** Clientes existentes deben **guardar la encuesta** con su Place ID antes de que funcione la redirección (sin Place ID: solo mensaje de gracias, sin contador). Integración OAuth/Google Business (tablas legacy) sigue pendiente.
+- **Riesgos o pendientes:** Place ID incorrecto redirige a ficha/reseña de otro negocio; validar con el cliente. PWA con SW cacheada puede tardar en reflejar cambios de texto hasta recarga.
+
 ### 2026-06-07 — ClientResource: dashboard V1 y navegación del registro
 
 - **Qué se cambió:** Nueva subpágina `ClientDashboard` (`/{record}/dashboard`) con resumen CSAT 7 días y tarjetas operativas (encuesta, empleados, llamadas). Trait `HasClientPageTitle` en subpáginas del cliente. Subnav reordenada: Dashboard → Ficha → Encuesta → Empleados → Llamadas. Tab `ViewClient` renombrada a «Ficha». i18n en `lang/{es,en,pt}/client.php`. Doc: [`docs/client-dashboard-v1.md`](client-dashboard-v1.md).

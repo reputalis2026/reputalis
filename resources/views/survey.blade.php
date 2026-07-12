@@ -15,7 +15,7 @@
             'whyFallback' => '¿Por qué?',
             'thanks' => '¡Gracias!',
             'thanksSub' => 'Su opinión nos ayuda a mejorar.',
-            'leaveReview' => 'Dejar reseña en Google',
+            'countdownRedirect' => 'Le redirigiremos a Google Maps en',
             'thanksLow' => '¡Gracias por ayudarnos a mejorar!',
             'thanksLowSub' => 'Tendremos en cuenta su opinión.',
             'sending' => 'Enviando...',
@@ -25,7 +25,7 @@
             'whyFallback' => 'Por quê?',
             'thanks' => 'Obrigado!',
             'thanksSub' => 'A sua opinião ajuda-nos a melhorar.',
-            'leaveReview' => 'Deixar avaliação no Google',
+            'countdownRedirect' => 'Vamos redirecioná-lo para o Google Maps em',
             'thanksLow' => 'Obrigado por nos ajudar a melhorar!',
             'thanksLowSub' => 'Teremos a sua opinião em conta.',
             'sending' => 'A enviar...',
@@ -35,7 +35,7 @@
             'whyFallback' => 'Why?',
             'thanks' => 'Thank you!',
             'thanksSub' => 'Your feedback helps us improve.',
-            'leaveReview' => 'Leave a review on Google',
+            'countdownRedirect' => 'We will redirect you to Google Maps in',
             'thanksLow' => 'Thanks for helping us improve!',
             'thanksLowSub' => "We'll take your feedback into account.",
             'sending' => 'Sending...',
@@ -267,11 +267,11 @@
 
         <section data-step id="step-thanks-high" class="flex-1 text-center py-8">
             <p class="text-2xl font-semibold text-slate-800 mb-2">{{ $surveyUiTexts['thanks'] }}</p>
-            <p class="text-slate-600 mb-6">{{ $surveyUiTexts['thanksSub'] }}</p>
-            <a id="link-google" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
-                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                {{ $surveyUiTexts['leaveReview'] }}
-            </a>
+            <p class="text-slate-600 mb-6" id="text-google-review">{{ $googleReviewMessage ?? 'Le agradeceríamos que deje una reseña en Google Maps.' }}</p>
+            @if(!empty($googleReviewUrl))
+                <p class="text-sm text-slate-500 mb-3" id="text-countdown-label">{{ $surveyUiTexts['countdownRedirect'] }}</p>
+                <p class="text-6xl font-bold tabular-nums text-amber-500" id="countdown-number" aria-live="polite">5</p>
+            @endif
         </section>
 
         <section data-step id="step-reason" class="flex-1">
@@ -307,18 +307,19 @@
     <script>
 (function() {
     const CLIENT_CODE = @json($clientCode);
-    const CLIENT_NAME = @json($clientName);
     const EMPLOYEE_CODE = @json($employeeCodeResolved);
     const EMPLOYEE_ID = @json($employeeIdResolved);
     const SURVEY_LOCALE = @json($surveyLocale);
     const POSITIVE_SCORES = @json(array_values($surveyPositiveScores ?? [4, 5]));
+    const GOOGLE_REVIEW_URL = @json($googleReviewUrl ?? null);
+    const COUNTDOWN_SECONDS = 5;
     const STORAGE_KEY_DEVICE = 'reputalis_' + CLIENT_CODE + '_devicehash';
     const STORAGE_KEY_PENDING = 'reputalis_' + CLIENT_CODE + '_pending_surveys';
 
     const i18n = {
-        es: { question: '¿Cómo le hemos atendido hoy?', why: '¿Por qué?', thanks: '¡Gracias!', thanksLow: '¡Gracias por ayudarnos a mejorar!', thanksSub: 'Su opinión nos ayuda a mejorar.', thanksLowSub: 'Tendremos en cuenta su opinión.', leaveReview: 'Dejar reseña en Google', sending: 'Enviando...', error: 'No se pudo enviar. Inténtelo de nuevo.', errorNetwork: 'Error de conexión.' },
-        pt: { question: 'Como fomos no seu atendimento hoje?', why: 'Por quê?', thanks: 'Obrigado!', thanksLow: 'Obrigado por nos ajudar a melhorar!', thanksSub: 'A sua opinião ajuda-nos a melhorar.', thanksLowSub: 'Teremos a sua opinião em conta.', leaveReview: 'Deixar avaliação no Google', sending: 'A enviar...', error: 'Não foi possível enviar. Tente novamente.', errorNetwork: 'Erro de ligação.' },
-        en: { question: 'How was your experience today?', why: 'Why?', thanks: 'Thank you!', thanksLow: 'Thanks for helping us improve!', thanksSub: 'Your feedback helps us improve.', thanksLowSub: "We'll take your feedback into account.", leaveReview: 'Leave a review on Google', sending: 'Sending...', error: 'Could not send. Please try again.', errorNetwork: 'Connection error.' }
+        es: { question: '¿Cómo le hemos atendido hoy?', why: '¿Por qué?', thanks: '¡Gracias!', thanksLow: '¡Gracias por ayudarnos a mejorar!', thanksSub: 'Su opinión nos ayuda a mejorar.', thanksLowSub: 'Tendremos en cuenta su opinión.', countdownRedirect: 'Le redirigiremos a Google Maps en', sending: 'Enviando...', error: 'No se pudo enviar. Inténtelo de nuevo.', errorNetwork: 'Error de conexión.' },
+        pt: { question: 'Como fomos no seu atendimento hoje?', why: 'Por quê?', thanks: 'Obrigado!', thanksLow: 'Obrigado por nos ajudar a melhorar!', thanksSub: 'A sua opinião ajuda-nos a melhorar.', thanksLowSub: 'Teremos a sua opinião em conta.', countdownRedirect: 'Vamos redirecioná-lo para o Google Maps em', sending: 'A enviar...', error: 'Não foi possível enviar. Tente novamente.', errorNetwork: 'Erro de ligação.' },
+        en: { question: 'How was your experience today?', why: 'Why?', thanks: 'Thank you!', thanksLow: 'Thanks for helping us improve!', thanksSub: 'Your feedback helps us improve.', thanksLowSub: "We'll take your feedback into account.", countdownRedirect: 'We will redirect you to Google Maps in', sending: 'Sending...', error: 'Could not send. Please try again.', errorNetwork: 'Connection error.' }
     };
     const lang = i18n[SURVEY_LOCALE] ? SURVEY_LOCALE : 'es';
     const t = (key) => i18n[lang][key] ?? i18n.es[key] ?? key;
@@ -345,6 +346,42 @@
         document.querySelectorAll('[data-step]').forEach(el => { el.removeAttribute('data-step'); el.style.display = 'none'; });
         const el = document.getElementById(stepId);
         if (el) { el.setAttribute('data-step', 'active'); el.style.display = 'block'; }
+    }
+
+    let googleReviewCountdownTimer = null;
+
+    function clearGoogleReviewCountdown() {
+        if (googleReviewCountdownTimer !== null) {
+            clearInterval(googleReviewCountdownTimer);
+            googleReviewCountdownTimer = null;
+        }
+    }
+
+    function startGoogleReviewCountdown() {
+        if (!GOOGLE_REVIEW_URL) return;
+
+        clearGoogleReviewCountdown();
+
+        const countdownEl = document.getElementById('countdown-number');
+        const countdownLabel = document.getElementById('text-countdown-label');
+        if (countdownLabel) countdownLabel.textContent = t('countdownRedirect');
+
+        let remaining = COUNTDOWN_SECONDS;
+        if (countdownEl) countdownEl.textContent = String(remaining);
+
+        googleReviewCountdownTimer = setInterval(function() {
+            remaining -= 1;
+            if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
+            if (remaining <= 0) {
+                clearGoogleReviewCountdown();
+                window.location.href = GOOGLE_REVIEW_URL;
+            }
+        }, 1000);
+    }
+
+    function showPositiveThanksStep() {
+        showStep('step-thanks-high');
+        startGoogleReviewCountdown();
     }
 
     function setOverlay(show, text) {
@@ -433,8 +470,7 @@
             if (status >= 200 && status < 300) {
                 if (!fromQueue) {
                     if (isPositiveScore(payload.score)) {
-                        document.getElementById('link-google').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(CLIENT_NAME);
-                        showStep('step-thanks-high');
+                        showPositiveThanksStep();
                     } else showStep('step-thanks-low');
                 }
             } else {

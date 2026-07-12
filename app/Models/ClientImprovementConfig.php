@@ -37,7 +37,14 @@ class ClientImprovementConfig extends Model
         'survey_question_text_pt',
         'survey_question_text_en',
         'positive_scores',
+        'google_place_id',
+        'google_review_message',
+        'google_review_message_es',
+        'google_review_message_pt',
+        'google_review_message_en',
     ];
+
+    public const GOOGLE_PLACE_ID_FINDER_URL = 'https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder';
 
     protected function casts(): array
     {
@@ -50,6 +57,11 @@ class ClientImprovementConfig extends Model
             'survey_question_text_pt' => 'string',
             'survey_question_text_en' => 'string',
             'positive_scores' => 'array',
+            'google_place_id' => 'string',
+            'google_review_message' => 'string',
+            'google_review_message_es' => 'string',
+            'google_review_message_pt' => 'string',
+            'google_review_message_en' => 'string',
         ];
     }
 
@@ -186,6 +198,54 @@ class ClientImprovementConfig extends Model
     {
         return $this->localizedValue('title', $locale)
             ?? self::defaultTitles()[self::DEFAULT_LOCALE];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function defaultGoogleReviewMessages(): array
+    {
+        return [
+            'es' => 'Le agradeceríamos que deje una reseña en Google Maps.',
+            'pt' => 'Agradecíamos que deixasse uma avaliação no Google Maps.',
+            'en' => 'We would appreciate it if you leave a review on Google Maps.',
+        ];
+    }
+
+    public function googleReviewMessageForLocale(?string $locale): string
+    {
+        return $this->localizedValue('google_review_message', $locale)
+            ?? self::defaultGoogleReviewMessages()[self::DEFAULT_LOCALE];
+    }
+
+    public static function normalizeGooglePlaceId(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/[?&]placeid=([^&]+)/i', $value, $matches) === 1) {
+            $value = urldecode($matches[1]);
+        } elseif (preg_match('/place_id:([A-Za-z0-9_-]+)/', $value, $matches) === 1) {
+            $value = $matches[1];
+        }
+
+        $value = trim($value);
+        if ($value === '' || ! preg_match('/^[A-Za-z0-9_-]{10,255}$/', $value)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    public function googleReviewUrl(): ?string
+    {
+        $placeId = self::normalizeGooglePlaceId($this->google_place_id);
+
+        return $placeId !== null
+            ? 'https://search.google.com/local/writereview?placeid=' . rawurlencode($placeId)
+            : null;
     }
 
     public function hasTextForLocale(?string $locale): bool

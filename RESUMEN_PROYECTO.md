@@ -70,6 +70,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 - API con límites por IP y dispositivo; validación de opciones de mejora del cliente; `positive_scores_used` como histórico.
 - Vista pública con idioma por `Accept-Language` y fallback a `default_locale` y `es`.
+- Tras valoración positiva: mensaje configurable multidioma, contador 5→1 y redirección automática a reseña en Google Maps (`google_place_id` por cliente, obligatorio al guardar encuesta en Filament; sin botón manual).
 - NFC: token estable por empleado; validaciones de cliente/empleado/token activos.
 
 ### Pulse

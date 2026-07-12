@@ -16,7 +16,7 @@
 
 - **Filament:** `AdminPanelProvider`, login `/admin/login`, overlay global (`->spa()` + hooks `BODY_START` / `SCRIPTS_BEFORE`).
 - **Encuesta pública y NFC:** `SurveyController` (web), vistas `survey.blade.php`, `survey-nfc-invalid.blade.php`; API `POST /api/surveys/create`.
-- **Encuesta por cliente:** subpágina Filament `PuntosDeMejora` (UI **Encuesta**): `ClientImprovementConfig` + `ClientImprovementOption`, multidioma `es`/`pt`/`en`, `default_locale`, `positive_scores`, `display_mode` (`numbers` | `faces`).
+- **Encuesta por cliente:** subpágina Filament `PuntosDeMejora` (UI **Encuesta**): `ClientImprovementConfig` + `ClientImprovementOption`, multidioma `es`/`pt`/`en`, `default_locale`, `positive_scores`, `display_mode` (`numbers` | `faces`), **`google_place_id`** (obligatorio al guardar) y mensajes multidioma de reseña en Google (`google_review_message_*`).
 - **Empleados:** `EmployeeResource::canAccess()` = `canViewAny() || canCreate()` (evita 403 al abrir rutas del recurso). UUID en `Employee::booted()` al crear. FK `nfctokens.employee_id` → **ON DELETE CASCADE** (migración `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`). Borrado solo empleados **inactivos**; pestañas activos/inactivos en `ClientResource → Empleados`.
 - **Traducciones panel autenticado:** `lang/*`, `SetPanelLocale`, `/admin/language/{locale}`; separado del idioma de encuesta pública.
 - **Seguridad de páginas:** `canAccess()` en `AdminNotifications`, `ClientCalls`, `DistributorMessages`.
@@ -47,7 +47,7 @@ Detalle de producto, stack y módulos: [`RESUMEN_PROYECTO.md`](RESUMEN_PROYECTO.
 - **`App\Http\Controllers\PulseController`:** login propietario cliente, métricas con `CsatMetrics`.
 - **`App\Support\CsatMetrics`:** agregados y caché; respeta `positive_scores_used` en encuestas.
 - **`App\Support\PanelMessageService`:** notificaciones activación cliente; **generar UUID de `PanelMessage` en PHP** antes de recipients.
-- **Vista encuesta:** `resources/views/survey.blade.php` — flujo positivo/mejor según `POSITIVE_SCORES`, assets `public/survey-rating/`; SW encuesta con caché versionada (p. ej. `v5` en código actual).
+- **Vista encuesta:** `resources/views/survey.blade.php` — flujo positivo/mejor según `POSITIVE_SCORES`; tras valoración positiva muestra mensaje configurable, **contador 5→1** y redirección automática a `https://search.google.com/local/writereview?placeid=...` si hay `google_place_id` (sin botón manual); assets `public/survey-rating/`; SW encuesta con caché versionada (p. ej. `v5` en código actual).
 
 ---
 
@@ -70,7 +70,7 @@ Listado por clase (recursos, páginas, permisos): [`DESCRIPCION_CLASES.md`](DESC
 ## Migraciones que suelen importar
 
 - Renombre `pharmacies` → `clients` y columnas `pharmacy_id` → `client_id`.
-- `client_improvement_configs` / `client_improvement_options` y campos multidioma + `positive_scores` + `display_mode`.
+- `client_improvement_configs` / `client_improvement_options` y campos multidioma + `positive_scores` + `display_mode` + **`google_place_id`** + **`google_review_message_*`** (reseña Google tras valoración positiva).
 - `csat_surveys.positive_scores_used` (snapshot).
 - `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`.
 

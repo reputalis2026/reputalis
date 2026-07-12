@@ -62,7 +62,7 @@ class SurveyController extends Controller
             }
         }
 
-        return response()->view('survey', [
+        return response()->view('survey', array_merge([
             'client' => $client,
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
@@ -71,7 +71,7 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ])->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($config, $surveyLocale)))->header('Vary', 'Accept-Language');
     }
 
     /**
@@ -139,7 +139,7 @@ class SurveyController extends Controller
             }
         }
 
-        return response()->view('survey', [
+        return response()->view('survey', array_merge([
             'client' => $client,
             'clients' => collect(),
             'improvementBlock' => $improvementBlock,
@@ -152,7 +152,19 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ])->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($config, $surveyLocale)))->header('Vary', 'Accept-Language');
+    }
+
+    /**
+     * @return array{googleReviewMessage: string, googleReviewUrl: string|null}
+     */
+    private function googleReviewViewData(?ClientImprovementConfig $config, string $surveyLocale): array
+    {
+        return [
+            'googleReviewMessage' => $config?->googleReviewMessageForLocale($surveyLocale)
+                ?? ClientImprovementConfig::defaultGoogleReviewMessages()[ClientImprovementConfig::DEFAULT_LOCALE],
+            'googleReviewUrl' => $config?->googleReviewUrl(),
+        ];
     }
 
     private function resolveSurveyLocale(Request $request, ?ClientImprovementConfig $config, \Illuminate\Support\Collection $options): string

@@ -140,6 +140,7 @@ class CreateClient extends CreateRecord
 
         $defaultQuestions = ClientImprovementConfig::defaultSurveyQuestionTexts();
         $defaultTitles = ClientImprovementConfig::defaultTitles();
+        $defaultGoogleReviewMessages = ClientImprovementConfig::defaultGoogleReviewMessages();
 
         $config = ClientImprovementConfig::query()->create([
             'id' => (string) Str::uuid(),
@@ -153,6 +154,10 @@ class CreateClient extends CreateRecord
             'survey_question_text_es' => $defaultQuestions['es'],
             'survey_question_text_pt' => $defaultQuestions['pt'],
             'survey_question_text_en' => $defaultQuestions['en'],
+            'google_review_message' => $defaultGoogleReviewMessages['es'],
+            'google_review_message_es' => $defaultGoogleReviewMessages['es'],
+            'google_review_message_pt' => $defaultGoogleReviewMessages['pt'],
+            'google_review_message_en' => $defaultGoogleReviewMessages['en'],
             'positive_scores' => ClientImprovementConfig::defaultPositiveScores(),
         ]);
 
