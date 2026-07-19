@@ -206,6 +206,12 @@ class CsatSurveyResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        $user = auth()->user();
+
+        if ($user?->isClientOwner()) {
+            return false;
+        }
+
         return static::canViewAny();
     }
 

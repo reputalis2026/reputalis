@@ -59,12 +59,24 @@ class EmployeeResource extends Resource
                             ->label(__('employees.form.photo'))
                             ->image()
                             ->disk('public')
-                            ->directory('employees')
+                            ->directory(function ($get, $livewire) {
+                                $clientId = $get('client_id') ?: $livewire->record?->client_id;
+                                $code = (string) (\App\Models\Client::find($clientId)?->code ?? 'tmp');
+                                $employeeId = $livewire->record?->getKey();
+
+                                if (filled($employeeId)) {
+                                    return \App\Support\ClientImagePaths::employeeDirectory($code, (string) $employeeId);
+                                }
+
+                                return \App\Support\ClientImagePaths::employeesDirectory($code);
+                            })
                             ->visibility('public')
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('1:1')
                             ->imagePreviewHeight(120)
                             ->fetchFileInformation(false)
+                            // Conservar historial de fotos en la carpeta del empleado.
+                            ->deleteUploadedFileUsing(static function (): void {})
                             ->getUploadedFileUsing(static function (Forms\Components\BaseFileUpload $component, string $file): ?array {
                                 $storage = $component->getDisk();
 

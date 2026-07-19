@@ -4,6 +4,18 @@
     @endphp
 
     <style>
+        .client-employees-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .client-employees-card {
+            width: 100%;
+            min-width: 0;
+        }
+
         .client-employees-photo,
         .client-employees-photo-placeholder {
             display: flex;
@@ -65,6 +77,18 @@
                 height: 2.35rem;
             }
         }
+
+        @media (max-width: 1024px) {
+            .client-employees-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .client-employees-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
     </style>
 
     <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
@@ -90,10 +114,10 @@
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
                 {{ __('employees.count', ['count' => $employees->count()]) }}
             </p>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="client-employees-grid">
                 @foreach ($employees as $employee)
                     <div
-                        class="fi-section mx-auto flex w-full max-w-xs flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+                        class="client-employees-card fi-section flex w-full flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
                     >
                         <div class="flex flex-col items-center p-4 text-center">
                             @if ($employee->photo)

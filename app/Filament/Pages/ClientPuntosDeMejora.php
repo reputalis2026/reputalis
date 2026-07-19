@@ -52,9 +52,7 @@ class ClientPuntosDeMejora extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isClientOwner() === true && $user->ownedClient !== null;
+        return false;
     }
 
     public static function canAccess(): bool

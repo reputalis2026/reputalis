@@ -66,12 +66,30 @@ class ClientResource extends Resource
                             ->label(__('client.form.logo'))
                             ->image()
                             ->disk('public')
-                            ->directory('clients')
+                            ->directory(fn ($livewire) => \App\Support\ClientImagePaths::logoDirectory(
+                                (string) ($livewire->record?->code ?? 'tmp')
+                            ))
                             ->visibility('public')
                             ->maxSize(1024)
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('1:1')
                             ->imagePreviewHeight('120')
+                            ->fetchFileInformation(false)
+                            ->deleteUploadedFileUsing(static function (): void {})
+                            ->getUploadedFileUsing(static function (Forms\Components\BaseFileUpload $component, string $file): ?array {
+                                $storage = $component->getDisk();
+
+                                if (! $storage->exists($file)) {
+                                    return null;
+                                }
+
+                                return [
+                                    'name' => basename($file),
+                                    'size' => 0,
+                                    'type' => $storage->mimeType($file) ?: 'image/*',
+                                    'url' => request()->getSchemeAndHttpHost().'/storage/'.ltrim($file, '/'),
+                                ];
+                            })
                             ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient),
                     ])
                     ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient)
@@ -508,7 +526,7 @@ class ClientResource extends Resource
 
     /**
      * El ítem "Clientes" no se muestra en el menú para el rol cliente;
-     * ellos solo ven "Encuesta" (ítem personalizado en AdminPanelProvider).
+     * ellos ven Dashboard, Empleados, Certificados e Informes.
      */
     public static function shouldRegisterNavigation(): bool
     {

@@ -3,14 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\ClientImagePaths;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements FilamentUser, HasName
+class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
 {
     public $incrementing = false;
     protected $keyType = 'string';
@@ -26,7 +28,7 @@ class User extends Authenticatable implements FilamentUser, HasName
     protected $fillable = [
         'id',
         'name',
-        'fullname',
+        'username',
         'dni',
         'email',
         'admin_email',
@@ -60,11 +62,26 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     public function getFilamentName(): string
     {
-        return $this->fullname ?: $this->email;
+        return $this->username ?: $this->email;
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        if (! $this->isClientOwner()) {
+            return null;
+        }
+
+        $logo = $this->ownedClient?->logo;
+
+        if (! filled($logo)) {
+            return null;
+        }
+
+        return ClientImagePaths::publicUrl($logo);
     }
 
     /**
-     * Permite el acceso al panel de administración a usuarios con rol válido.
+     * Permite el acceso al panel de administracion a usuarios con rol valido.
      */
     public function canAccessPanel(Panel $panel): bool
     {
@@ -76,7 +93,7 @@ class User extends Authenticatable implements FilamentUser, HasName
             return false;
         }
 
-        // Para cliente y distribuidor, solo permitir acceso si su cliente/distribuidor asociado está activo.
+        // Para cliente y distribuidor, solo permitir acceso si su cliente/distribuidor asociado esta activo.
         if (in_array($this->role, [self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true)) {
             $client = $this->ownedClient;
 
@@ -96,7 +113,7 @@ class User extends Authenticatable implements FilamentUser, HasName
     public const ROLE_DISTRIBUIDOR = 'distribuidor';
 
     /**
-     * Relación con el cliente al que pertenece el usuario, si aplica.
+     * Relacion con el cliente al que pertenece el usuario, si aplica.
      */
     public function client()
     {
@@ -128,7 +145,7 @@ class User extends Authenticatable implements FilamentUser, HasName
     }
 
     /**
-     * Relación con el cliente que administra (como propietario).
+     * Relacion con el cliente que administra (como propietario).
      * Un usuario puede ser propietario de un cliente.
      */
     public function ownedClient()
@@ -154,7 +171,7 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     /**
      * Busca un usuario por identificador de login (usuario o email).
-     * Insensible a mayúsculas y recorta espacios.
+     * Insensible a mayusculas y recorta espacios.
      */
     public static function findByIdentifier(string $identifier): ?self
     {

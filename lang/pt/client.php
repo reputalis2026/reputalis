@@ -11,7 +11,17 @@ return [
         'profile' => 'Ficha',
         'survey' => 'Inquérito',
         'employees' => 'Funcionários',
+        'certificates' => 'Certificados',
+        'reports' => 'Relatórios',
         'calls' => 'Chamadas',
+    ],
+    'certificates' => [
+        'title' => 'Certificados',
+        'placeholder' => 'Esta secção estará disponível em breve.',
+    ],
+    'reports' => [
+        'title' => 'Relatórios',
+        'placeholder' => 'Esta secção estará disponível em breve.',
     ],
     'pages' => [
         'create_title' => 'Novo cliente',
@@ -217,7 +227,7 @@ return [
             'empty' => 'Ainda não há avaliações por operário neste intervalo.',
             'info_tab' => '+ info',
             'inactive' => 'Inativo',
-            'detail_title' => 'Detalhe do operário',
+            'detail_title' => 'Detalhe do operário: :name',
             'detail_period' => 'Período: :from - :to',
             'detail_avg_score' => 'Nota média',
             'detail_surveys_count' => 'Número de inquéritos',
@@ -225,6 +235,12 @@ return [
             'detail_improvement_point' => 'Ponto de melhoria',
             'detail_improvement_points' => 'Pontos de melhoria',
             'detail_ratings' => 'Avaliações',
+            'detail_filters' => [
+                'today' => 'Hoje',
+                'week' => 'Semana',
+                'month' => 'Mês',
+                'years' => 'Anos',
+            ],
         ],
         'hourly_shift' => [
             'first' => '00-11 h',
@@ -262,7 +278,7 @@ return [
             'empty' => 'Ainda não há pontos de melhoria configurados.',
             'deleted_option' => 'Ponto de melhoria eliminado',
             'deleted_option_badge' => 'Eliminado',
-            'detail_title' => 'Detalhe do ponto a melhorar',
+            'detail_title' => 'Ponto a melhorar: :name',
             'detail_period' => 'Período: :period',
             'detail_chart_title' => 'Tendência',
             'detail_note' => 'A percentagem da tendência é calculada com base no número total de inquéritos recebidos (positivos e negativos).',

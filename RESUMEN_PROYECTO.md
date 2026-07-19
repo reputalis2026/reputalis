@@ -61,8 +61,10 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 ### Panel Filament
 
-- **ClientResource** con subpáginas Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol.
-- **Cliente (rol):** menú Dashboard / Encuesta / Empleados vía páginas dedicadas; sin edición cruzada por URL donde está bloqueado.
+- **ClientResource** con subpáginas Dashboard, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. Listado de clientes muestra logo pequeño junto al nombre comercial.
+- **Cliente (rol):** menú Dashboard / Empleados / Certificados / Informes (estas dos últimas son placeholders); encuesta CSAT oculta en navegación; branding del panel con nombre del negocio y logo en el menú de perfil.
+- **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial).
+- **Imágenes:** logos/fotos bajo `storage/app/public/img/{code}/…` (comando de migración `clients:migrate-images`).
 - **Notificaciones:** `PanelMessage` / `PanelMessageService` en alta y activación de cliente.
 - **Idioma panel:** sesión + archivos `lang/`; independiente de la encuesta pública.
 

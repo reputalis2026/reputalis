@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource;
 use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Models\Client;
+use App\Models\Employee;
 use App\Support\ClientDashboard\InternalReputationDateRange;
 use App\Support\ClientDashboard\InternalReputationMetrics;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -36,6 +37,12 @@ class ClientDashboard extends Page
     public ?string $selectedEmployeeId = null;
 
     public bool $showEmployeeDetail = false;
+
+    public string $employee_detail_range_type = InternalReputationDateRange::TYPE_ALL;
+
+    public ?string $employee_detail_date_from = null;
+
+    public ?string $employee_detail_date_to = null;
 
     public ?string $selectedImprovementOptionId = null;
 
@@ -161,12 +168,43 @@ class ClientDashboard extends Page
         }
 
         $this->selectedEmployeeId = $employeeId;
+        $this->syncEmployeeDetailRangeFromDashboard();
         $this->showEmployeeDetail = true;
     }
 
     public function closeEmployeeDetail(): void
     {
         $this->resetEmployeeDetail();
+    }
+
+    public function setEmployeeDetailRangeType(string $rangeType): void
+    {
+        if (! $this->showEmployeeDetail) {
+            return;
+        }
+
+        $normalized = $this->normalizeEmployeeDetailRangeType($rangeType);
+
+        if ($normalized === InternalReputationDateRange::TYPE_CUSTOM) {
+            return;
+        }
+
+        $this->employee_detail_range_type = $normalized;
+        $this->employee_detail_date_from = null;
+        $this->employee_detail_date_to = null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getEmployeeDetailRangeTypeOptions(): array
+    {
+        return [
+            InternalReputationDateRange::TYPE_TODAY => __('client.dashboard.employee_ranking.detail_filters.today'),
+            InternalReputationDateRange::TYPE_LAST_WEEK => __('client.dashboard.employee_ranking.detail_filters.week'),
+            InternalReputationDateRange::TYPE_LAST_MONTH => __('client.dashboard.employee_ranking.detail_filters.month'),
+            InternalReputationDateRange::TYPE_ALL => __('client.dashboard.employee_ranking.detail_filters.years'),
+        ];
     }
 
     public function openImprovementDetail(string $optionId): void
@@ -215,13 +253,18 @@ class ClientDashboard extends Page
             return null;
         }
 
+        $detailRange = $this->getEmployeeDetailDateRange();
         $employee = collect(app(InternalReputationMetrics::class)->getEmployeeScoreRanking(
             $this->getClientRecord()->id,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
         ))->firstWhere('id', $this->selectedEmployeeId);
 
         if (! $employee) {
-            return null;
+            $employee = $this->resolveEmployeeDetailFallback($this->selectedEmployeeId);
+
+            if (! $employee) {
+                return null;
+            }
         }
 
         $avgScoreRaw = (float) $employee['avg_score'];
@@ -235,20 +278,21 @@ class ClientDashboard extends Page
         $trend = app(InternalReputationMetrics::class)->getEmployeeScoreTrend(
             $this->getClientRecord()->id,
             $this->selectedEmployeeId,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
+            $detailRange->isAll() ? 'year' : null,
         );
         $satisfiedMetrics = app(InternalReputationMetrics::class)->getEmployeeSatisfiedMetrics(
             $this->getClientRecord()->id,
             $this->selectedEmployeeId,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
         );
         $improvementPoints = app(InternalReputationMetrics::class)->getEmployeeImprovementPoints(
             $this->getClientRecord()->id,
             $this->selectedEmployeeId,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
             app()->getLocale(),
         );
-        $rangeContext = $this->getRangeContextSummary();
+        $rangeContext = $this->getEmployeeDetailRangeContextSummary($detailRange);
         $satisfiedPctRaw = $satisfiedMetrics['satisfied_pct'] !== null
             ? (float) $satisfiedMetrics['satisfied_pct']
             : null;
@@ -263,6 +307,7 @@ class ClientDashboard extends Page
             'avg_score_raw' => $avgScoreRaw,
             'gauge_percent' => round(($avgScoreRaw / 5) * 100, 1),
             'gauge_color' => match (true) {
+                $employee['surveys'] === 0 => '#9ca3af',
                 $avgScoreRaw >= 4 => '#22c55e',
                 $avgScoreRaw >= 3 => '#f59e0b',
                 default => '#ef4444',
@@ -286,12 +331,14 @@ class ClientDashboard extends Page
                     'count' => (int) ($employee['score_counts'][$score] ?? 0),
                     'percentage' => (float) ($employee['score_percentages'][$score] ?? 0),
                     'color' => $scoreColors[$score],
+                    'tooltip_bg' => $this->lightenHexColor($scoreColors[$score], 0.4),
                 ])
                 ->all(),
             'improvement_points' => $improvementPoints,
             'trend_chart_config' => [
                 'labels' => $trend['labels'],
                 'values' => $trend['averages'],
+                'granularity' => $trend['granularity'],
                 'seriesLabel' => __('client.dashboard.score_trend.series_label'),
                 'emptyLabel' => __('client.dashboard.score_trend.empty'),
             ],
@@ -748,6 +795,9 @@ class ClientDashboard extends Page
     {
         $this->showEmployeeDetail = false;
         $this->selectedEmployeeId = null;
+        $this->employee_detail_range_type = InternalReputationDateRange::TYPE_ALL;
+        $this->employee_detail_date_from = null;
+        $this->employee_detail_date_to = null;
     }
 
     private function resetImprovementDetail(): void
@@ -762,6 +812,101 @@ class ClientDashboard extends Page
         $this->resetImprovementDetail();
     }
 
+    private function getEmployeeDetailDateRange(): InternalReputationDateRange
+    {
+        $rangeType = $this->normalizeEmployeeDetailRangeType($this->employee_detail_range_type);
+
+        if ($rangeType === InternalReputationDateRange::TYPE_CUSTOM) {
+            return InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_CUSTOM,
+                $this->employee_detail_date_from,
+                $this->employee_detail_date_to,
+            );
+        }
+
+        return InternalReputationDateRange::fromState($rangeType, null, null);
+    }
+
+    private function normalizeEmployeeDetailRangeType(?string $rangeType): string
+    {
+        $rangeType = (string) $rangeType;
+
+        return in_array($rangeType, [
+            InternalReputationDateRange::TYPE_TODAY,
+            InternalReputationDateRange::TYPE_LAST_WEEK,
+            InternalReputationDateRange::TYPE_LAST_MONTH,
+            InternalReputationDateRange::TYPE_ALL,
+            InternalReputationDateRange::TYPE_CUSTOM,
+        ], true)
+            ? $rangeType
+            : InternalReputationDateRange::TYPE_ALL;
+    }
+
+    private function syncEmployeeDetailRangeFromDashboard(): void
+    {
+        if ($this->range_type === InternalReputationDateRange::TYPE_CUSTOM) {
+            $this->employee_detail_range_type = InternalReputationDateRange::TYPE_CUSTOM;
+            $this->employee_detail_date_from = $this->date_from;
+            $this->employee_detail_date_to = $this->date_to;
+
+            return;
+        }
+
+        $this->employee_detail_range_type = $this->normalizeEmployeeDetailRangeType($this->range_type);
+        $this->employee_detail_date_from = null;
+        $this->employee_detail_date_to = null;
+    }
+
+    /**
+     * @return array{date_from: string, date_to: string}
+     */
+    private function getEmployeeDetailRangeContextSummary(InternalReputationDateRange $range): array
+    {
+        [$from, $to] = $range->bounds();
+
+        if ($range->isAll()) {
+            $from = $this->getClientStartDate();
+            $to = now();
+        }
+
+        return [
+            'date_from' => $from ? $from->format('d/m/Y') : __('common.placeholders.empty'),
+            'date_to' => $to ? $to->format('d/m/Y') : now()->format('d/m/Y'),
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string, photo: string|null, is_active: bool, surveys: int, avg_score: float, score_counts: array<int, int>, score_percentages: array<int, float>}|null
+     */
+    private function resolveEmployeeDetailFallback(string $employeeId): ?array
+    {
+        $employee = Employee::query()
+            ->where('client_id', $this->getClientRecord()->id)
+            ->whereKey($employeeId)
+            ->first();
+
+        if (! $employee) {
+            return null;
+        }
+
+        $scoreCounts = collect([1, 2, 3, 4, 5])
+            ->mapWithKeys(fn (int $score): array => [$score => 0])
+            ->all();
+
+        return [
+            'id' => (string) $employee->id,
+            'name' => (string) $employee->name,
+            'photo' => $employee->photo ? (string) $employee->photo : null,
+            'is_active' => (bool) $employee->is_active,
+            'surveys' => 0,
+            'avg_score' => 0.0,
+            'score_counts' => $scoreCounts,
+            'score_percentages' => collect($scoreCounts)
+                ->map(fn (): float => 0.0)
+                ->all(),
+        ];
+    }
+
     private function formatSatisfiedPercent(?float $value): string
     {
         if ($value === null) {
@@ -772,5 +917,27 @@ class ClientDashboard extends Page
         $decimals = abs($rounded - round($rounded)) < 0.001 ? 0 : 1;
 
         return number_format($rounded, $decimals, ',', ' ').'%';
+    }
+
+    private function lightenHexColor(string $hex, float $ratio = 0.38): string
+    {
+        $normalized = ltrim($hex, '#');
+
+        if (strlen($normalized) !== 6) {
+            return '#f3f4f6';
+        }
+
+        $channels = [
+            hexdec(substr($normalized, 0, 2)),
+            hexdec(substr($normalized, 2, 2)),
+            hexdec(substr($normalized, 4, 2)),
+        ];
+
+        $mixed = array_map(
+            fn (int $channel): int => (int) round($channel + (255 - $channel) * $ratio),
+            $channels,
+        );
+
+        return sprintf('#%02x%02x%02x', $mixed[0], $mixed[1], $mixed[2]);
     }
 }

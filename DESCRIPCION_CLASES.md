@@ -6,7 +6,7 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 
 ---
 
-- **App\Models\User**: Representa a los usuarios del sistema (superadmin, cliente, distribuidor), controla el acceso al panel Filament y expone helpers como `isSuperAdmin()`, `isClientOwner()` e `isDistributor()`, además de relaciones con el cliente que posee y los mensajes de panel recibidos.
+- **App\Models\User**: Representa a los usuarios del sistema (superadmin, cliente, distribuidor), controla el acceso al panel Filament (`FilamentUser`, `HasName`, `HasAvatar`) y expone helpers como `isSuperAdmin()`, `isClientOwner()` e `isDistributor()`. Relaciona el cliente que posee y los mensajes de panel recibidos. Para rol cliente, `getFilamentAvatarUrl()` devuelve el logo del `ownedClient`.
 
 - **App\Models\Client**: Entidad central de cliente (farmacia/negocio); guarda datos fiscales, de contacto, estado y vigencia, y se relaciona con su propietario (`owner`), el usuario que lo creó (`createdBy`), sus usuarios internos, empleados, encuestas CSAT, tokens NFC, configuración de **encuesta** (`ClientImprovementConfig`: idioma por defecto, textos multidioma, valoraciones positivas, opciones y modo visual de escala), etiquetas personalizadas y el historial de llamadas.
 
@@ -64,11 +64,16 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 
 - **App\Filament\Resources\CsatSurveyResource**: Recurso Filament para listar y consultar encuestas CSAT; visible por rol con alcance de datos (superadmin todo, distribuidor sus clientes, cliente su propio cliente).
 
-- **App\Filament\Resources\SectorResource**: Recurso Filament de configuración para el catálogo de sectores; permite crear, editar y eliminar sectores controlando que no tengan clientes asociados antes de borrarlos.
+- **App\Filament\Resources\SectorResource**: Recurso Filament de configuración para el catálogo de sectores; permite crear, editar y eliminar sectores controlando que no tengan clientes asociados antes de borrarlos. **Sin entrada propia en el menú** (`shouldRegisterNavigation = false`); se abre desde **Herramientas adicionales**.
+- **App\Filament\Pages\AdditionalTools**: Hub «Herramientas adicionales» (grupo Configuración). Visible a superadmin y distribuidor. Cards: Sectores (solo superadmin) e Imágenes de clientes.
+- **App\Filament\Pages\ClientImagesGallery**: Galería de logos y fotos por cliente (acordeón + filtro). Superadmin ve todos; distribuidor solo `created_by = auth()->id()`. Usa `ClientImagePaths` (negocio vs empleados, badge actual, carpetas por empleado).
+- **App\Filament\Pages\ClientCertificados** / **ClientInformes**: Placeholders del menú del rol cliente (solo lectura / sin lógica aún).
+- **App\Support\ClientImagePaths**: Rutas y listado de imágenes bajo `img/{code}/logo` e `img/{code}/employees/{employee_id}`; `ensureEmployeePhotoInFolder()` tras crear/editar empleado; URLs públicas vía `/storage/...`.
+- **App\Console\Commands\MigrateClientImages**: `php artisan clients:migrate-images` mueve logos/fotos legacy (`clients/`, `employees/`, o planos bajo `employees/`) a la estructura `img/{code}/…` y actualiza BD.
 
 - **App\Filament\Resources\DistributorResource**: Recurso Filament para gestionar distribuidores (también basados en `Client`, filtrados por `owner.role = distribuidor`); define formularios, tabla y permisos específicos solo para superadmin.
 
-- **App\Filament\Resources\ClientResource\Pages\ListClients**: Página de listado de clientes que define pestañas (todos, eliminados), restringe el acceso/navegación por rol y redirige a `ClientPuntosDeMejora` cuando el usuario es cliente propietario; optimizada con `with(['createdBy:id,name,fullname,email'])` en `getTableQuery()` y selección mínima de columnas para evitar N+1 y reducir carga.
+- **App\Filament\Resources\ClientResource\Pages\ListClients**: Página de listado de clientes que define pestañas (todos, eliminados), restringe el acceso/navegación por rol y redirige al **dashboard** del cliente cuando el usuario es propietario; columna de nombre con logo pequeño; optimizada con selección mínima de columnas (`logo` incluido) y `with(['createdBy:…'])`.
 
 - **App\Filament\Resources\ClientResource\Pages\CreateClient**: Página para crear un nuevo cliente y su usuario propietario en una sola operación, generando el código `CLIENxxxxxx`, asignando fechas y disparando notificaciones de “cliente pendiente de activación” cuando lo crea un distribuidor. Además, tras crear el cliente inicializa automáticamente su configuración de encuesta si no existe: crea `ClientImprovementConfig` con `default_locale = es`, `positive_scores = [4,5]`, pregunta/título en español, portugués e inglés, y dos `ClientImprovementOption` por defecto (**Tiempo de espera / Tempo de espera / Waiting time** y **Atención recibida / Atendimento recebido / Service received**) usando UUID generados en PHP.
 

@@ -298,6 +298,72 @@
             return { radialSize, breakdownWidth, breakdownHeight };
         };
 
+        const resolveBreakdownChartSizes = (chartElement) => {
+            const breakdownWidth = chartElement?.clientWidth || 0;
+            const breakdownHeight = clampChartSize(
+                chartElement?.clientHeight || chartElement?.parentElement?.clientHeight || 170,
+                140,
+                190,
+            );
+
+            return { breakdownWidth, breakdownHeight };
+        };
+
+        const renderBreakdownChart = async (chartElement, config, signatureStore) => {
+            if (!chartElement || !config) {
+                return;
+            }
+
+            const chartSizes = resolveBreakdownChartSizes(chartElement);
+            const signature = JSON.stringify({ config, chartSizes });
+
+            if (signatureStore.renderingSignature === signature) {
+                return;
+            }
+
+            if (signatureStore.chartSignature === signature && hasRenderedChart(chartElement)) {
+                return;
+            }
+
+            if (! isVisibleForRender(chartElement) && ! isVisibleForRender(chartElement?.closest('[data-dashboard-employee-detail]'))) {
+                queueDashboardChartsRetry();
+                return;
+            }
+
+            signatureStore.renderingSignature = signature;
+
+            try {
+                const ApexCharts = await loadApexCharts();
+
+                await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+                if (! isVisibleForRender(chartElement)) {
+                    queueDashboardChartsRetry();
+                    return;
+                }
+
+                destroyChart(chartElement);
+
+                const breakdownData = (config.scoreLabels || [])
+                    .map((label, index) => ({
+                        score: Number(label),
+                        percentage: Number((config.scorePercentages || [])[index] || 0),
+                        count: Number((config.scoreCounts || [])[index] || 0),
+                    }))
+                    .sort((a, b) => a.score - b.score);
+
+                chartElement._reputalisChart = new ApexCharts(
+                    chartElement,
+                    buildBreakdownChartOptions(config, breakdownData, chartSizes),
+                );
+
+                await chartElement._reputalisChart.render();
+                signatureStore.chartSignature = signature;
+            } finally {
+                signatureStore.renderingSignature = null;
+            }
+        };
+
         const buildGaugeRadialOptions = (config, valueColor, chartHeight = 180) => ({
             chart: {
                 type: 'radialBar',
@@ -967,6 +1033,7 @@
 
                 const labels = config.labels || [];
                 const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                const isYearlyTrend = config.granularity === 'year';
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
@@ -999,7 +1066,7 @@
                     xaxis: {
                         categories: labels,
                         labels: {
-                            rotate: -35,
+                            rotate: isYearlyTrend ? 0 : -35,
                             trim: true,
                             style: {
                                 colors: valueColor,

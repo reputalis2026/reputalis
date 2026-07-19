@@ -1,12 +1,13 @@
 @php
     $employeeDetail = $this->getSelectedEmployeeDetail();
+    $employeeDetailRangeOptions = $this->getEmployeeDetailRangeTypeOptions();
 @endphp
 
 @if ($showEmployeeDetail && $employeeDetail)
     <div
         class="client-dashboard-employee-detail-backdrop"
         wire:click.self="closeEmployeeDetail"
-        wire:key="employee-detail-{{ $employeeDetail['id'] }}-{{ $range_type }}-{{ $date_from ?? 'empty' }}-{{ $date_to ?? 'empty' }}"
+        wire:key="employee-detail-{{ $employeeDetail['id'] }}-{{ $employee_detail_range_type }}-{{ $employee_detail_date_from ?? 'empty' }}-{{ $employee_detail_date_to ?? 'empty' }}"
     >
         <div
             class="client-dashboard-employee-detail-modal"
@@ -26,12 +27,8 @@
             <div class="client-dashboard-employee-detail-header">
                 <div class="client-dashboard-employee-detail-heading">
                     <h4 id="employee-detail-title" class="client-dashboard-employee-detail-title">
-                        {{ __('client.dashboard.employee_ranking.detail_title') }}
+                        {{ __('client.dashboard.employee_ranking.detail_title', ['name' => $employeeDetail['name']]) }}
                     </h4>
-
-                    <p class="client-dashboard-employee-detail-subtitle">
-                        <strong>{{ $employeeDetail['name'] }}</strong>
-                    </p>
 
                     <p class="client-dashboard-employee-detail-period">
                         {{ $employeeDetail['period_label'] }}
@@ -46,6 +43,21 @@
                 >
                     <x-filament::icon icon="heroicon-m-x-mark" class="h-5 w-5" />
                 </button>
+            </div>
+
+            <div class="client-dashboard-employee-detail-filters" role="group" aria-label="{{ __('client.dashboard.employee_ranking.detail_title', ['name' => $employeeDetail['name']]) }}">
+                @foreach ($employeeDetailRangeOptions as $rangeType => $rangeLabel)
+                    <button
+                        type="button"
+                        wire:click="setEmployeeDetailRangeType('{{ $rangeType }}')"
+                        @class([
+                            'client-dashboard-employee-detail-filter-pill',
+                            'is-active' => $employee_detail_range_type === $rangeType,
+                        ])
+                    >
+                        {{ $rangeLabel }}
+                    </button>
+                @endforeach
             </div>
 
             <div class="client-dashboard-employee-detail-summary">
@@ -92,8 +104,9 @@
                             <div class="client-dashboard-employee-bars" aria-hidden="true">
                                 @foreach ($employeeDetail['rating_groups'] as $group)
                                     <span
-                                        class="client-dashboard-employee-bar"
-                                        style="height: max(2px, {{ $group['percentage'] }}%); background-color: {{ $group['color'] }};"
+                                        class="client-dashboard-employee-bar client-dashboard-employee-bar--tooltip"
+                                        data-rating-tooltip="{{ __('client.dashboard.main_summary.breakdown_surveys_tooltip') }} {{ $group['count'] }}"
+                                        style="height: max(2px, {{ $group['percentage'] }}%); background-color: {{ $group['color'] }}; --rating-tooltip-bg: {{ $group['tooltip_bg'] }};"
                                     ></span>
                                 @endforeach
                             </div>

@@ -341,9 +341,14 @@ class InternalReputationMetrics
         string $clientId,
         string $employeeId,
         InternalReputationDateRange $range,
+        ?string $forceGranularity = null,
     ): array {
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
-        $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+        $granularity = $forceGranularity ?: $this->resolveHistoryGranularity($range, $from, $until);
+
+        if (! in_array($granularity, ['hour', 'day', 'month', 'year'], true)) {
+            $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+        }
 
         $rows = $this->surveyQuery($clientId, $range)
             ->where('csat_surveys.employee_id', $employeeId)
@@ -822,6 +827,7 @@ class InternalReputationMetrics
         return match ($granularity) {
             'hour' => $bucket->format('H:00'),
             'day' => $bucket->format('d/m'),
+            'year' => $bucket->format('Y'),
             default => $bucket->isoFormat('MMM YY'),
         };
     }

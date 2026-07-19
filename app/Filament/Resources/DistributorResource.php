@@ -56,12 +56,30 @@ class DistributorResource extends Resource
                             ->label(__('panel.distributors.logo_label'))
                             ->image()
                             ->disk('public')
-                            ->directory('clients')
+                            ->directory(fn ($livewire) => \App\Support\ClientImagePaths::logoDirectory(
+                                (string) ($livewire->record?->code ?? 'tmp')
+                            ))
                             ->visibility('public')
                             ->maxSize(1024)
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('1:1')
                             ->imagePreviewHeight('120')
+                            ->fetchFileInformation(false)
+                            ->deleteUploadedFileUsing(static function (): void {})
+                            ->getUploadedFileUsing(static function (Forms\Components\BaseFileUpload $component, string $file): ?array {
+                                $storage = $component->getDisk();
+
+                                if (! $storage->exists($file)) {
+                                    return null;
+                                }
+
+                                return [
+                                    'name' => basename($file),
+                                    'size' => 0,
+                                    'type' => $storage->mimeType($file) ?: 'image/*',
+                                    'url' => request()->getSchemeAndHttpHost().'/storage/'.ltrim($file, '/'),
+                                ];
+                            })
                             ->visible(fn ($livewire) => $livewire instanceof Pages\EditDistributor),
                     ])
                     ->visible(fn ($livewire) => $livewire instanceof Pages\EditDistributor)

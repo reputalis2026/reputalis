@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\ClientResource\Pages;
 
-use App\Filament\Pages\ClientPuntosDeMejora;
 use App\Filament\Resources\ClientResource;
 use App\Models\Client;
 use Filament\Actions;
@@ -20,10 +19,10 @@ class ListClients extends ListRecords
     {
         parent::mount();
 
-        // El rol cliente no debe ver el listado; redirigir a su página Encuesta.
+        // El rol cliente no debe ver el listado; redirigir a su dashboard.
         $user = auth()->user();
         if ($user?->isClientOwner() && $user->ownedClient) {
-            $this->redirect(ClientPuntosDeMejora::getUrl());
+            $this->redirect(ClientResource::getUrl('dashboard', ['record' => $user->ownedClient]));
         }
     }
 
@@ -76,6 +75,7 @@ class ListClients extends ListRecords
             ->select([
                 'clients.id',
                 'clients.namecommercial',
+                'clients.logo',
                 'clients.is_active',
                 'clients.deleted_at',
                 'clients.owner_id',
@@ -103,6 +103,20 @@ class ListClients extends ListRecords
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
                     ->label(__('client.form.commercial_name'))
+                    ->html()
+                    ->formatStateUsing(function (?string $state, Client $record): string {
+                        $name = e((string) ($state ?: ''));
+                        $logoUrl = filled($record->logo)
+                            ? \App\Support\ClientImagePaths::publicUrl($record->logo)
+                            : null;
+                        $initials = e(mb_strtoupper(mb_substr((string) ($state ?: '?'), 0, 1)));
+
+                        $avatar = $logoUrl
+                            ? '<img src="'.e($logoUrl).'" alt="" loading="lazy" style="display:block;width:2.55rem;height:2.55rem;flex:0 0 2.55rem;object-fit:cover;border-radius:.35rem;background:#e0f2fe;" />'
+                            : '<span style="display:flex;width:2.55rem;height:2.55rem;flex:0 0 2.55rem;align-items:center;justify-content:center;overflow:hidden;border-radius:.35rem;background:#e0f2fe;color:#0369a1;font-size:.8rem;font-weight:700;">'.$initials.'</span>';
+
+                        return '<div style="display:flex;align-items:center;gap:.65rem;min-width:0;"><span style="display:contents;">'.$avatar.'</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'.$name.'</span></div>';
+                    })
                     ->url(fn (Client $record): string => ClientResource::getUrl('dashboard', ['record' => $record]))
                     ->wrap()
                     ->searchable()

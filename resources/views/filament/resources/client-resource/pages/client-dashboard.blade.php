@@ -1665,6 +1665,42 @@
             line-height: 1.25rem;
         }
 
+        .client-dashboard-employee-detail-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .4rem;
+            padding: 0 1.35rem .95rem;
+        }
+
+        .client-dashboard-employee-detail-filter-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(15, 23, 42, .12);
+            border-radius: .55rem;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            font-size: .78rem;
+            font-weight: 650;
+            line-height: 1;
+            padding: .45rem .7rem;
+            appearance: none;
+        }
+
+        .client-dashboard-employee-detail-filter-pill.is-active {
+            border-color: #f59e0b;
+            background: #f59e0b;
+            color: #ffffff;
+        }
+
+        .dark .client-dashboard-employee-detail-filter-pill {
+            background: rgb(31 41 55);
+            border-color: rgba(255, 255, 255, .1);
+            color: #cbd5e1;
+        }
+
         .client-dashboard-employee-detail-close {
             display: inline-flex;
             width: 2rem;
@@ -1764,17 +1800,56 @@
             height: 100%;
             flex-direction: column;
             justify-content: flex-end;
+            overflow: visible;
         }
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bars {
             min-height: 4.75rem;
             gap: .32rem;
             padding: 0 .2rem .18rem;
+            overflow: visible;
         }
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar {
             max-width: 1rem;
             width: 100%;
+        }
+
+        .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar--tooltip {
+            position: relative;
+            cursor: default;
+        }
+
+        .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar--tooltip::before {
+            content: attr(data-rating-tooltip);
+            position: absolute;
+            bottom: calc(100% + .45rem);
+            left: 50%;
+            z-index: 8;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(.15rem);
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: .5rem;
+            background: var(--rating-tooltip-bg, #64748b);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, .12);
+            color: #ffffff;
+            font-size: .8125rem;
+            font-weight: 650;
+            line-height: 1.25rem;
+            padding: .45rem .65rem;
+            white-space: nowrap;
+            transition: opacity .12s ease, transform .12s ease;
+        }
+
+        .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar--tooltip:hover::before,
+        .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar--tooltip:focus-visible::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .client-dashboard-employee-detail-metric-value:has(.client-dashboard-employee-detail-mini-chart) {
+            overflow: visible;
         }
 
         .client-dashboard-employee-detail-mini-chart .client-dashboard-employee-bar-labels {
@@ -1962,6 +2037,10 @@
 
             .client-dashboard-employee-detail-summary {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .client-dashboard-employee-detail-filters {
+                padding: 0 1rem .85rem;
             }
 
             .client-dashboard-employee-detail-mini-chart {
@@ -2309,7 +2388,7 @@
                                         wire:keydown.enter="openEmployeeDetail('{{ $employee['id'] }}')"
                                         role="button"
                                         tabindex="0"
-                                        aria-label="{{ __('client.dashboard.employee_ranking.detail_title') }}: {{ $employee['name'] }}"
+                                        aria-label="{{ __('client.dashboard.employee_ranking.detail_title', ['name' => $employee['name']]) }}"
                                     >
                                         <span class="client-dashboard-employee-info-tab" aria-hidden="true">
                                             <span class="client-dashboard-employee-info-tab-text">
@@ -2601,11 +2680,10 @@
                             <div class="client-dashboard-improvement-detail-header">
                                 <div>
                                     <h4 id="improvement-detail-title" class="client-dashboard-improvement-detail-title">
-                                        {{ __('client.dashboard.improvement_ranking.detail_title') }}
+                                        {{ __('client.dashboard.improvement_ranking.detail_title', ['name' => $improvementDetail['label']]) }}
                                     </h4>
 
                                     <div class="client-dashboard-improvement-detail-meta">
-                                        <span>{{ $improvementDetail['label'] }}</span>
                                         @unless ($improvementDetail['is_active'] ?? true)
                                             <span class="client-dashboard-improvement-inactive-badge">
                                                 {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}

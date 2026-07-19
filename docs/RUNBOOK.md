@@ -102,3 +102,39 @@ sudo tail -n 80 /var/log/fail2ban.log
 ```bash
 sudo tail -n 80 /var/log/auth.log
 ```
+
+---
+
+## Imágenes de clientes (storage)
+
+Estructura esperada en disco público:
+
+- `storage/app/public/img/{CLIENXXXXXX}/logo/`
+- `storage/app/public/img/{CLIENXXXXXX}/employees/{employee_uuid}/`
+
+Comprobar enlace simbólico:
+
+```bash
+cd /var/www/reputalis
+ls -la public/storage
+# si falta:
+sudo -u www-data php artisan storage:link
+```
+
+Migrar rutas legacy (`clients/`, `employees/`) a la estructura nueva (dry-run primero):
+
+```bash
+cd /var/www/reputalis
+sudo -u www-data php artisan clients:migrate-images --dry-run
+sudo -u www-data php artisan clients:migrate-images
+sudo chown -R www-data:www-data storage/app/public/img
+```
+
+Tras cambiar vistas Filament:
+
+```bash
+cd /var/www/reputalis
+sudo -u www-data php artisan view:clear
+sudo -u www-data php artisan filament:cache-components
+```
+

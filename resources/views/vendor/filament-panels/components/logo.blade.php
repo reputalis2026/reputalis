@@ -3,6 +3,7 @@
     $brandLogo = filament()->getBrandLogo();
     $darkModeBrandLogo = filament()->getDarkModeBrandLogo();
     $hasDarkModeBrandLogo = filled($darkModeBrandLogo);
+    $displayBrandName = \Illuminate\Support\Str::upper((string) $brandName);
 
     $getLogoWrapperClasses = fn (bool $isDarkMode): string => \Illuminate\Support\Arr::toCssClasses([
         'fi-logo flex items-center shrink-0',
@@ -10,6 +11,54 @@
         'hidden dark:flex' => $hasDarkModeBrandLogo && $isDarkMode,
     ]);
 @endphp
+
+<style>
+    .fi-logo-brand-text {
+        display: block;
+        max-width: none;
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: inherit;
+        cursor: default;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .dark .fi-logo-brand-text {
+        color: #fff;
+    }
+
+    .fi-sidebar-header .fi-logo,
+    .fi-topbar .fi-logo {
+        max-width: none;
+        overflow: visible;
+        pointer-events: none;
+        cursor: default;
+    }
+
+    /* Si Filament envuelve el logo en <a>, desactivar el clic. */
+    .fi-sidebar-header a:has(.fi-logo),
+    .fi-topbar a:has(.fi-logo) {
+        pointer-events: none;
+        cursor: default;
+        text-decoration: none;
+    }
+
+    /* Permitir que el nombre largo crezca en altura en el header del sidebar. */
+    .fi-sidebar-header:has(.fi-logo-brand-text) {
+        height: auto !important;
+        min-height: 4rem;
+        align-items: center;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+</style>
 
 @capture($content, $logo, $isDarkMode = false)
     @if ($logo instanceof \Illuminate\Contracts\Support\Htmlable)
@@ -29,13 +78,19 @@
     @else
         <div
             {{
-                $attributes->class([
-                    $getLogoWrapperClasses($isDarkMode),
-                    'text-xl font-bold leading-5 tracking-tight text-gray-950 dark:text-white',
-                ])
+                $attributes
+                    ->merge([
+                        'title' => $brandName,
+                    ])
+                    ->class([
+                        $getLogoWrapperClasses($isDarkMode),
+                        'text-gray-950 dark:text-white',
+                    ])
             }}
         >
-            {{ $brandName }}
+            <span class="fi-logo-brand-text">
+                {{ $displayBrandName }}
+            </span>
         </div>
     @endif
 @endcapture

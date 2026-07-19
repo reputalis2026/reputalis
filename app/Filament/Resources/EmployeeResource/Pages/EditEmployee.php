@@ -5,6 +5,7 @@ namespace App\Filament\Resources\EmployeeResource\Pages;
 use App\Filament\Resources\EmployeeResource;
 use App\Filament\Resources\ClientResource;
 use App\Models\NfcToken;
+use App\Support\ClientImagePaths;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Str;
 
@@ -51,6 +52,8 @@ class EditEmployee extends EditRecord
         if (! $employee) {
             return;
         }
+
+        ClientImagePaths::ensureEmployeePhotoInFolder($employee);
 
         if ($employee->nfcTokens()->exists()) {
             return;

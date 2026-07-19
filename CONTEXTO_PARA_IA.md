@@ -14,12 +14,14 @@
 
 ## Handoff reciente (resumen)
 
-- **Filament:** `AdminPanelProvider`, login `/admin/login`, overlay global (`->spa()` + hooks `BODY_START` / `SCRIPTS_BEFORE`).
+- **Filament:** `AdminPanelProvider` (trackeado en Git), login `/admin/login`, overlay global (`->spa()` + hooks `BODY_START` / `SCRIPTS_BEFORE`). Branding rol cliente: `brandName` = nombre comercial, `homeUrl` = null (nombre no clicable), avatar = logo del cliente (`User::getFilamentAvatarUrl()`), override `resources/views/vendor/filament-panels/components/logo.blade.php`.
+- **Imágenes por cliente:** rutas `storage/app/public/img/{code}/logo/` y `img/{code}/employees/{employee_id}/` vía `App\Support\ClientImagePaths`. Migración de legacy: `php artisan clients:migrate-images`. Galería: `ClientImagesGallery` desde **Herramientas adicionales** (`AdditionalTools`); acceso superadmin + distribuidor (`created_by`).
+- **Rol cliente (nav):** Dashboard, Empleados, Certificados e Informes (placeholders); encuesta/CSAT ocultos en menú; listado de clientes redirige al dashboard.
 - **Encuesta pública y NFC:** `SurveyController` (web), vistas `survey.blade.php`, `survey-nfc-invalid.blade.php`; API `POST /api/surveys/create`.
 - **Encuesta por cliente:** subpágina Filament `PuntosDeMejora` (UI **Encuesta**): `ClientImprovementConfig` + `ClientImprovementOption`, multidioma `es`/`pt`/`en`, `default_locale`, `positive_scores`, `display_mode` (`numbers` | `faces`), **`google_place_id`** (obligatorio al guardar) y mensajes multidioma de reseña en Google (`google_review_message_*`).
 - **Empleados:** `EmployeeResource::canAccess()` = `canViewAny() || canCreate()` (evita 403 al abrir rutas del recurso). UUID en `Employee::booted()` al crear. FK `nfctokens.employee_id` → **ON DELETE CASCADE** (migración `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`). Borrado solo empleados **inactivos**; pestañas activos/inactivos en `ClientResource → Empleados`.
 - **Traducciones panel autenticado:** `lang/*`, `SetPanelLocale`, `/admin/language/{locale}`; separado del idioma de encuesta pública.
-- **Seguridad de páginas:** `canAccess()` en `AdminNotifications`, `ClientCalls`, `DistributorMessages`.
+- **Seguridad de páginas:** `canAccess()` en `AdminNotifications`, `ClientCalls`, `DistributorMessages`, `AdditionalTools`, `ClientImagesGallery`.
 
 Detalle de producto, stack y módulos: [`RESUMEN_PROYECTO.md`](RESUMEN_PROYECTO.md).
 
@@ -64,6 +66,8 @@ Listado por clase (recursos, páginas, permisos): [`DESCRIPCION_CLASES.md`](DESC
 - **Distribuidor:** en listados, `created_by === auth()->id()` donde corresponda.
 - **Cliente vs distribuidor:** mismo modelo `Client`; rol del **owner** en `users.role`.
 - **Código de cliente:** `Client.code` en URLs públicas y API.
+- **Imágenes:** no usar `clients/` ni `employees/` planos; subir a `img/{code}/…`. En FileUpload de logo/foto existentes, usar `fetchFileInformation(false)` + `getUploadedFileUsing` (evita loading infinito de Filepond). Conservar historial con `deleteUploadedFileUsing` vacío si la galería debe listar archivos previos.
+- **`AdminPanelProvider`:** ya no está en `.gitignore`; cambios de branding/hooks deben ir al repo.
 
 ---
 

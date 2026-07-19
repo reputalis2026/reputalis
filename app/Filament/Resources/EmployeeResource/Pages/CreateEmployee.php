@@ -6,6 +6,7 @@ use App\Filament\Resources\ClientResource;
 use App\Filament\Resources\EmployeeResource;
 use App\Models\Client;
 use App\Models\NfcToken;
+use App\Support\ClientImagePaths;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 
@@ -94,7 +95,13 @@ class CreateEmployee extends CreateRecord
     protected function afterCreate(): void
     {
         $employee = $this->getRecord();
-        if (! $employee || $employee->nfcTokens()->exists()) {
+        if (! $employee) {
+            return;
+        }
+
+        ClientImagePaths::ensureEmployeePhotoInFolder($employee);
+
+        if ($employee->nfcTokens()->exists()) {
             return;
         }
 

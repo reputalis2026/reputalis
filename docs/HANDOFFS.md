@@ -27,6 +27,19 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-07-16 — Herramientas adicionales, galería de imágenes y branding cliente
+
+- **Qué se cambió:**
+  - **Almacenamiento de imágenes:** logos y fotos pasan a `storage/app/public/img/{client_code}/logo/` y `img/{client_code}/employees/{employee_id}/`. Helper `App\Support\ClientImagePaths`. Comando `php artisan clients:migrate-images` (ya ejecutado en este VPS). FileUpload de cliente/distribuidor/empleado conserva historial (`deleteUploadedFileUsing` vacío) y evita cuelgue de preview con `fetchFileInformation(false)` + `getUploadedFileUsing`.
+  - **Herramientas adicionales:** página Filament `AdditionalTools` (antes “Ajustes”); cards Sectores (solo superadmin) e Imágenes de clientes. `SectorResource` sin navegación propia.
+  - **Galería:** `ClientImagesGallery` (superadmin + distribuidor con `created_by`); acordeón de clientes con logo pequeño, filtro por nombre, secciones negocio/empleados, carpeta por empleado, badge “Actual”, descarga, miniaturas grandes al abrir.
+  - **Rol cliente:** menú Dashboard / Empleados / Certificados / Informes (placeholders); encuesta CSAT oculta en nav; `ListClients` redirige al dashboard; logo delante del nombre en listado; branding panel: nombre comercial arriba (mayúsculas, sin clic) y logo en avatar de perfil (`User` implementa `HasAvatar`); `AdminPanelProvider` con `brandName` / `homeUrl` / sidebar `18rem` (vuelve a trackearse en Git; antes estaba en `.gitignore`).
+  - **Dashboard:** filtros horarios Hoy (`00-11` / `12-23`), detalle operario con rangos locales y tooltips, títulos de detalle.
+  - Vista override logo: `resources/views/vendor/filament-panels/components/logo.blade.php`.
+- **Por qué:** organizar assets por cliente, dar a admin/distribuidor una herramienta de consulta de imágenes, y personalizar la experiencia del rol cliente en el panel.
+- **Qué falta:** contenido real de Certificados e Informes; opcional ampliar branding al rol distribuidor (logo top-left ya descrito en textos de `DistributorResource`).
+- **Riesgos o pendientes:** sin `php artisan storage:link` las URLs `/storage/...` fallan. Tras deploy en otro entorno, ejecutar `clients:migrate-images` si aún hay rutas `clients/` o `employees/`. Nombres muy largos en sidebar hacen crecer el header en altura (no se truncan).
+
 ### 2026-07-12 — Encuesta: reseña en Google Maps con Place ID y contador
 
 - **Qué se cambió:** Migración `2026_07_12_120000_add_google_review_fields_to_client_improvement_configs_table.php` (`google_place_id`, `google_review_message_*`) — **aplicada en producción** (`php artisan migrate`). Modelo `ClientImprovementConfig` con `normalizeGooglePlaceId()`, `googleReviewUrl()` y textos por defecto. Filament `PuntosDeMejora`: sección «Reseña en Google Maps», Place ID obligatorio al guardar, botón `?` al [Place ID Finder](https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder). Vista pública `survey.blade.php`: mensaje editable, contador 5→1 y redirección automática a `writereview?placeid=...` (sin botón manual «Dejar reseña»). i18n `lang/{es,en,pt}/client.php`. Docs: `CONTEXTO_PARA_IA.md`, `DOCUMENTACION_TABLAS_BD.md`, `DESCRIPCION_CLASES.md`, `RESUMEN_PROYECTO.md`.

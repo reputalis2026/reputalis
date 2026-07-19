@@ -11,7 +11,17 @@ return [
         'profile' => 'Profile',
         'survey' => 'Survey',
         'employees' => 'Employees',
+        'certificates' => 'Certificates',
+        'reports' => 'Reports',
         'calls' => 'Calls',
+    ],
+    'certificates' => [
+        'title' => 'Certificates',
+        'placeholder' => 'This section will be available soon.',
+    ],
+    'reports' => [
+        'title' => 'Reports',
+        'placeholder' => 'This section will be available soon.',
     ],
     'pages' => [
         'create_title' => 'New client',
@@ -217,7 +227,7 @@ return [
             'empty' => 'There are no operator ratings in this range yet.',
             'info_tab' => '+ info',
             'inactive' => 'Inactive',
-            'detail_title' => 'Operator detail',
+            'detail_title' => 'Operator detail: :name',
             'detail_period' => 'Period: :from - :to',
             'detail_avg_score' => 'Average score',
             'detail_surveys_count' => 'Number of surveys',
@@ -225,6 +235,12 @@ return [
             'detail_improvement_point' => 'Improvement point',
             'detail_improvement_points' => 'Improvement points',
             'detail_ratings' => 'Ratings',
+            'detail_filters' => [
+                'today' => 'Today',
+                'week' => 'Week',
+                'month' => 'Month',
+                'years' => 'Years',
+            ],
         ],
         'hourly_shift' => [
             'first' => '00-11 h',
@@ -262,7 +278,7 @@ return [
             'empty' => 'There are no configured improvement points yet.',
             'deleted_option' => 'Deleted improvement point',
             'deleted_option_badge' => 'Deleted',
-            'detail_title' => 'Improvement point detail',
+            'detail_title' => 'Improvement point: :name',
             'detail_period' => 'Period: :period',
             'detail_chart_title' => 'Trend',
             'detail_note' => 'The trend percentage is calculated from the total number of received surveys (positive and negative).',

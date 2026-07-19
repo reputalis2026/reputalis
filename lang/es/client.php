@@ -11,7 +11,17 @@ return [
         'profile' => 'Ficha',
         'survey' => 'Encuesta',
         'employees' => 'Empleados',
+        'certificates' => 'Certificados',
+        'reports' => 'Informes',
         'calls' => 'Llamadas',
+    ],
+    'certificates' => [
+        'title' => 'Certificados',
+        'placeholder' => 'Esta sección estará disponible próximamente.',
+    ],
+    'reports' => [
+        'title' => 'Informes',
+        'placeholder' => 'Esta sección estará disponible próximamente.',
     ],
     'pages' => [
         'create_title' => 'Nuevo cliente',
@@ -217,7 +227,7 @@ return [
             'empty' => 'Aún no hay valoraciones por operario en este rango.',
             'info_tab' => '+ info',
             'inactive' => 'Inactivo',
-            'detail_title' => 'Detalle del operario',
+            'detail_title' => 'Detalle del operario: :name',
             'detail_period' => 'Periodo: :from - :to',
             'detail_avg_score' => 'Nota media',
             'detail_surveys_count' => 'Número de encuestas',
@@ -225,6 +235,12 @@ return [
             'detail_improvement_point' => 'Punto de mejora',
             'detail_improvement_points' => 'Puntos de mejora',
             'detail_ratings' => 'Valoraciones',
+            'detail_filters' => [
+                'today' => 'Hoy',
+                'week' => 'Semana',
+                'month' => 'Mes',
+                'years' => 'Años',
+            ],
         ],
         'hourly_shift' => [
             'first' => '00-11 h',
@@ -262,7 +278,7 @@ return [
             'empty' => 'Aún no hay puntos de mejora configurados.',
             'deleted_option' => 'Punto de mejora eliminado',
             'deleted_option_badge' => 'Eliminado',
-            'detail_title' => 'Detalle punto de mejora',
+            'detail_title' => 'Punto de mejora: :name',
             'detail_period' => 'Periodo: :period',
             'detail_chart_title' => 'Tendencia',
             'detail_note' => 'El porcentaje de la tendencia está calculado en base al número total de encuestas recibidas (positivas y negativas).',

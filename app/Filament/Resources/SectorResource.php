@@ -36,6 +36,11 @@ class SectorResource extends Resource
         return __('panel.navigation_groups.configuration');
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
