@@ -37,6 +37,15 @@
 - **Copias locales:** `/root/reports/security/security-report-*.txt`.
 - **Cron diario:** `/etc/cron.d/reputalis-security-report` — ejecución a las **06:30 UTC** (ver archivo para la línea exacta).
 
+## Laravel Scheduler (reputación externa y tareas programadas)
+
+- **Comando de sync:** `php artisan external-reputation:sync` (horas Madrid 10:00 / 17:00 / 23:55 en `routes/console.php`).
+- **Requisito:** cron del sistema que ejecute `schedule:run` cada minuto, p. ej. `/etc/cron.d/reputalis-scheduler`:
+  ```
+  * * * * * www-data cd /var/www/reputalis && php artisan schedule:run >> /dev/null 2>&1
+  ```
+- Sin ese cron, el sync solo ocurre si se lanza a mano (ver [`docs/RUNBOOK.md`](RUNBOOK.md)).
+
 ---
 
 ## Adminer y archivos sensibles

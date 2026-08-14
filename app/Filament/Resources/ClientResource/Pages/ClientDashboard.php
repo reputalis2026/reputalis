@@ -57,6 +57,11 @@ class ClientDashboard extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+
+        $tab = request()->query('reputationTab');
+        if (is_string($tab) && in_array($tab, ['internal', 'sector'], true)) {
+            $this->activeReputationTab = $tab;
+        }
     }
 
     public function getMaxContentWidth(): MaxWidth|string|null
@@ -81,7 +86,13 @@ class ClientDashboard extends Page
     {
         $this->resetDetailModals();
 
-        $this->activeReputationTab = in_array($tab, ['internal', 'external', 'sector'], true)
+        if ($tab === 'external') {
+            $this->redirect(ReputacionExterna::getUrl(['record' => $this->getRecord()]));
+
+            return;
+        }
+
+        $this->activeReputationTab = in_array($tab, ['internal', 'sector'], true)
             ? $tab
             : 'internal';
     }
@@ -417,16 +428,22 @@ class ClientDashboard extends Page
     }
 
     /**
-     * @return array<string, array{label: string}>
+     * @return array<string, array{label: string, badge?: int|null}>
      */
     public function getReputationTabs(): array
     {
+        $unread = (int) $this->getClientRecord()
+            ->externalReputationAlerts()
+            ->unread()
+            ->count();
+
         return [
             'internal' => [
                 'label' => __('client.dashboard.tabs.internal'),
             ],
             'external' => [
                 'label' => __('client.dashboard.tabs.external'),
+                'badge' => $unread > 0 ? $unread : null,
             ],
             'sector' => [
                 'label' => __('client.dashboard.tabs.sector'),

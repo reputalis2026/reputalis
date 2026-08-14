@@ -157,6 +157,40 @@ class ClientResource extends Resource
                     ])
                     ->columns(2),
 
+                Forms\Components\Section::make(__('client.sections.google_maps'))
+                    ->icon('heroicon-o-map-pin')
+                    ->description(__('client.descriptions.google_maps'))
+                    ->schema([
+                        Forms\Components\TextInput::make('google_place_id')
+                            ->label(__('client.form.google_place_id'))
+                            ->maxLength(255)
+                            ->placeholder('ChIJxxxxxxxxxxxxxxxx')
+                            ->helperText(__('client.form.google_place_id_help'))
+                            ->columnSpanFull()
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('googlePlaceIdHelp')
+                                    ->icon('heroicon-o-question-mark-circle')
+                                    ->tooltip(__('client.form.google_place_id_help_link'))
+                                    ->url(\App\Models\ClientImprovementConfig::GOOGLE_PLACE_ID_FINDER_URL)
+                                    ->openUrlInNewTab()
+                            )
+                            ->dehydrateStateUsing(fn (?string $state): ?string => \App\Models\Client::normalizeGooglePlaceId($state))
+                            ->rule(function () {
+                                return function (string $attribute, $value, \Closure $fail): void {
+                                    if ($value === null || $value === '') {
+                                        return;
+                                    }
+                                    if (\App\Models\Client::normalizeGooglePlaceId((string) $value) === null) {
+                                        $fail(__('client.form.google_place_id_invalid'));
+                                    }
+                                };
+                            }),
+                    ])
+                    ->columns(1)
+                    ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\CreateClient ||
+                        $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
+                    ),
+
                 // Bloque 3: Datos del Administrador
                 Forms\Components\Section::make(__('client.sections.admin'))
                     ->icon('heroicon-o-user-circle')
@@ -325,6 +359,10 @@ class ClientResource extends Resource
                         TextEntry::make('sector')->label(__('client.form.sector'))->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('telefono_negocio')->label(__('client.form.business_phone'))->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('telefono_cliente')->label(__('client.form.customer_phone'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('google_place_id')
+                            ->label(__('client.form.google_place_id'))
+                            ->placeholder(__('common.placeholders.empty'))
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 InfolistSection::make(__('client.sections.admin'))
@@ -488,6 +526,7 @@ class ClientResource extends Resource
             'view' => Pages\ViewClient::route('/{record}/ficha'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
             'puntos-de-mejora' => Pages\PuntosDeMejora::route('/{record}/puntos-de-mejora'),
+            'reputacion-externa' => Pages\ReputacionExterna::route('/{record}/reputacion-externa'),
             'empleados' => Pages\Empleados::route('/{record}/empleados'),
             'llamadas' => Pages\Llamadas::route('/{record}/llamadas'),
         ];
@@ -504,6 +543,8 @@ class ClientResource extends Resource
             return [];
         }
 
+        // ReputacionExterna no va en el subnav: se abre desde Dashboard
+        // (pestaña «Reputación externa», junto a interna / sector).
         $items = [
             Pages\ClientDashboard::class,
             Pages\ViewClient::class,

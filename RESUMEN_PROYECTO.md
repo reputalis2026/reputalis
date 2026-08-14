@@ -62,6 +62,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 ### Panel Filament
 
 - **ClientResource** con subpáginas Dashboard, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. Listado de clientes muestra logo pequeño junto al nombre comercial.
+- **Reputación externa (Google / Outscraper):** página `ReputacionExterna` accesible desde Dashboard → pestaña externa (métricas, gráficos, histórico, alertas 1★/2★, sync manual + simulación fake). Cron 3×/día. Plan: `docs/PLAN_REPUTACION_OUTSCRAPER.md`.
 - **Cliente (rol):** menú Dashboard / Empleados / Certificados / Informes (estas dos últimas son placeholders); encuesta CSAT oculta en navegación; branding del panel con nombre del negocio y logo en el menú de perfil.
 - **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial).
 - **Imágenes:** logos/fotos bajo `storage/app/public/img/{code}/…` (comando de migración `clients:migrate-images`).
@@ -72,7 +73,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 - API con límites por IP y dispositivo; validación de opciones de mejora del cliente; `positive_scores_used` como histórico.
 - Vista pública con idioma por `Accept-Language` y fallback a `default_locale` y `es`.
-- Tras valoración positiva: mensaje configurable multidioma, contador 5→1 y redirección automática a reseña en Google Maps (`google_place_id` por cliente, obligatorio al guardar encuesta en Filament; sin botón manual).
+- Tras valoración positiva: mensaje configurable multidioma, contador 5→1 y redirección automática a reseña en Google Maps (`clients.google_place_id` en ficha del cliente; sin botón manual).
 - NFC: token estable por empleado; validaciones de cliente/empleado/token activos.
 
 ### Pulse
@@ -97,7 +98,9 @@ Detalle por clase: `DESCRIPCION_CLASES.md`.
 
 ## Pendiente / no implementado
 
-- Tablas previstas en migraciones sin app completa: contratos, documentos, Google (OAuth, reseñas, métricas), alertas, benchmarks, ajustes legacy de settings.
+- **Reputación Google agregada (Outscraper Places):** código fases 1–7 listo (UI, cron, alertas, gráficos). Falta API key real (`OUTSCRAPER_*`), prueba con clientes reales y cierre operativo — ver [`docs/PLAN_REPUTACION_OUTSCRAPER.md`](docs/PLAN_REPUTACION_OUTSCRAPER.md) y handoff 2026-08-14 en [`docs/HANDOFFS.md`](docs/HANDOFFS.md).
+- Tablas previstas en migraciones sin app completa: contratos, documentos, Google **OAuth/GBP** (descartado para el flujo Outscraper), benchmarks, ajustes legacy de settings.
+- Email opcional al detectar alertas 1★/2★.
 - Posible estrategia futura para textos persistidos en BD (traducciones de datos).
 
 ---
@@ -108,4 +111,4 @@ Detalle por clase: `DESCRIPCION_CLASES.md`.
 - `CONTEXTO_PARA_IA.md` suele estar más al día en detalles técnicos puntuales; este resumen prioriza **qué existe** a nivel funcional.
 - Operación del servidor (comandos): [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
-**Última revisión documental:** mayo 2026 (reorganización de docs + mantenimiento de contenido alineado con código).
+**Última revisión documental:** agosto 2026 (reputación externa Outscraper fases 1–7 + handoff).

@@ -71,7 +71,7 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ], $this->googleReviewViewData($config, $surveyLocale)))->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($client, $config, $surveyLocale)))->header('Vary', 'Accept-Language');
     }
 
     /**
@@ -152,18 +152,18 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ], $this->googleReviewViewData($config, $surveyLocale)))->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($client, $config, $surveyLocale)))->header('Vary', 'Accept-Language');
     }
 
     /**
      * @return array{googleReviewMessage: string, googleReviewUrl: string|null}
      */
-    private function googleReviewViewData(?ClientImprovementConfig $config, string $surveyLocale): array
+    private function googleReviewViewData(Client $client, ?ClientImprovementConfig $config, string $surveyLocale): array
     {
         return [
             'googleReviewMessage' => $config?->googleReviewMessageForLocale($surveyLocale)
                 ?? ClientImprovementConfig::defaultGoogleReviewMessages()[ClientImprovementConfig::DEFAULT_LOCALE],
-            'googleReviewUrl' => $config?->googleReviewUrl(),
+            'googleReviewUrl' => $client->googleReviewUrl(),
         ];
     }
 

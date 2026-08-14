@@ -41,6 +41,10 @@ class Client extends Model
         'fecha_inicio_alta',
         'fecha_fin',
         'logo',
+        'google_place_id',
+        'google_id',
+        'external_reputation_last_synced_at',
+        'external_reputation_last_error',
         'last_call_at',
         'next_call_at',
     ];
@@ -56,6 +60,9 @@ class Client extends Model
             'id' => 'string',
             'owner_id' => 'string',
             'created_by' => 'string',
+            'google_place_id' => 'string',
+            'google_id' => 'string',
+            'external_reputation_last_synced_at' => 'datetime',
             'is_active' => 'boolean',
             'fecha_inicio_alta' => 'date',
             'fecha_fin' => 'date',
@@ -129,11 +136,63 @@ class Client extends Model
     }
 
     /**
+     * Instantáneas de reputación externa (Google vía Outscraper).
+     */
+    public function externalReputationSnapshots(): HasMany
+    {
+        return $this->hasMany(ClientExternalReputationSnapshot::class, 'client_id')
+            ->orderByDesc('captured_at');
+    }
+
+    /**
+     * Alertas de reputación externa (p. ej. subida de 1★/2★ entre escaneos).
+     */
+    public function externalReputationAlerts(): HasMany
+    {
+        return $this->hasMany(ClientExternalReputationAlert::class, 'client_id')
+            ->orderByDesc('detected_at');
+    }
+
+    /**
+     * Último snapshot de reputación externa, o el último del día indicado.
+     */
+    public function latestExternalReputationSnapshot(?\DateTimeInterface $onDate = null): ?ClientExternalReputationSnapshot
+    {
+        $query = $this->externalReputationSnapshots();
+
+        if ($onDate !== null) {
+            $query->whereDate('snapshot_date', $onDate->format('Y-m-d'));
+        }
+
+        return $query->orderByDesc('captured_at')->first();
+    }
+
+    /**
      * Historial de llamadas del cliente.
      */
     public function calls(): HasMany
     {
         return $this->hasMany(ClientCall::class, 'client_id')
             ->orderByDesc('called_at');
+    }
+
+    /**
+     * Normaliza Place ID o URL de Google Maps (misma lógica que la encuesta).
+     */
+    public static function normalizeGooglePlaceId(?string $value): ?string
+    {
+        return ClientImprovementConfig::normalizeGooglePlaceId($value);
+    }
+
+    /**
+     * URL de writereview en Google Maps a partir del Place ID del cliente.
+     */
+    public function googleReviewUrl(): ?string
+    {
+        $placeId = self::normalizeGooglePlaceId($this->google_place_id);
+
+        return $placeId !== null
+            ? 'https://search.google.com/local/writereview?placeid=' . rawurlencode($placeId)
+            : null;
     }
 }

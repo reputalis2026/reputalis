@@ -18,7 +18,8 @@
 - **Imágenes por cliente:** rutas `storage/app/public/img/{code}/logo/` y `img/{code}/employees/{employee_id}/` vía `App\Support\ClientImagePaths`. Migración de legacy: `php artisan clients:migrate-images`. Galería: `ClientImagesGallery` desde **Herramientas adicionales** (`AdditionalTools`); acceso superadmin + distribuidor (`created_by`).
 - **Rol cliente (nav):** Dashboard, Empleados, Certificados e Informes (placeholders); encuesta/CSAT ocultos en menú; listado de clientes redirige al dashboard.
 - **Encuesta pública y NFC:** `SurveyController` (web), vistas `survey.blade.php`, `survey-nfc-invalid.blade.php`; API `POST /api/surveys/create`.
-- **Encuesta por cliente:** subpágina Filament `PuntosDeMejora` (UI **Encuesta**): `ClientImprovementConfig` + `ClientImprovementOption`, multidioma `es`/`pt`/`en`, `default_locale`, `positive_scores`, `display_mode` (`numbers` | `faces`), **`google_place_id`** (obligatorio al guardar) y mensajes multidioma de reseña en Google (`google_review_message_*`).
+- **Encuesta por cliente:** subpágina Filament `PuntosDeMejora` (UI **Encuesta**): `ClientImprovementConfig` + `ClientImprovementOption`, multidioma `es`/`pt`/`en`, `default_locale`, `positive_scores`, `display_mode` (`numbers` | `faces`), mensajes multidioma de reseña en Google (`google_review_message_*`). El **Place ID** vive en **`clients.google_place_id`** (alta/ficha); la encuesta solo lo muestra en lectura.
+- **Reputación externa (Google / Outscraper):** contenido en `ReputacionExterna`, acceso desde Dashboard → pestaña externa (badge si hay alertas no leídas); sync `external-reputation:sync` 3×/día; alertas 1★/2★ + anomalía `total_drop`; plan en `docs/PLAN_REPUTACION_OUTSCRAPER.md`.
 - **Empleados:** `EmployeeResource::canAccess()` = `canViewAny() || canCreate()` (evita 403 al abrir rutas del recurso). UUID en `Employee::booted()` al crear. FK `nfctokens.employee_id` → **ON DELETE CASCADE** (migración `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`). Borrado solo empleados **inactivos**; pestañas activos/inactivos en `ClientResource → Empleados`.
 - **Traducciones panel autenticado:** `lang/*`, `SetPanelLocale`, `/admin/language/{locale}`; separado del idioma de encuesta pública.
 - **Seguridad de páginas:** `canAccess()` en `AdminNotifications`, `ClientCalls`, `DistributorMessages`, `AdditionalTools`, `ClientImagesGallery`.
@@ -49,7 +50,7 @@ Detalle de producto, stack y módulos: [`RESUMEN_PROYECTO.md`](RESUMEN_PROYECTO.
 - **`App\Http\Controllers\PulseController`:** login propietario cliente, métricas con `CsatMetrics`.
 - **`App\Support\CsatMetrics`:** agregados y caché; respeta `positive_scores_used` en encuestas.
 - **`App\Support\PanelMessageService`:** notificaciones activación cliente; **generar UUID de `PanelMessage` en PHP** antes de recipients.
-- **Vista encuesta:** `resources/views/survey.blade.php` — flujo positivo/mejor según `POSITIVE_SCORES`; tras valoración positiva muestra mensaje configurable, **contador 5→1** y redirección automática a `https://search.google.com/local/writereview?placeid=...` si hay `google_place_id` (sin botón manual); assets `public/survey-rating/`; SW encuesta con caché versionada (p. ej. `v5` en código actual).
+- **Vista encuesta:** `resources/views/survey.blade.php` — flujo positivo/mejor según `POSITIVE_SCORES`; tras valoración positiva muestra mensaje configurable, **contador 5→1** y redirección automática a `https://search.google.com/local/writereview?placeid=...` si el cliente tiene `google_place_id` (sin botón manual); assets `public/survey-rating/`; SW encuesta con caché versionada (p. ej. `v5` en código actual).
 
 ---
 
@@ -74,7 +75,10 @@ Listado por clase (recursos, páginas, permisos): [`DESCRIPCION_CLASES.md`](DESC
 ## Migraciones que suelen importar
 
 - Renombre `pharmacies` → `clients` y columnas `pharmacy_id` → `client_id`.
-- `client_improvement_configs` / `client_improvement_options` y campos multidioma + `positive_scores` + `display_mode` + **`google_place_id`** + **`google_review_message_*`** (reseña Google tras valoración positiva).
+- `clients` incluye **`google_place_id`** / **`google_id`** (Place ID fuente única; encuesta y reputación externa).
+- `client_improvement_configs` / `client_improvement_options` y campos multidioma + `positive_scores` + `display_mode` + **`google_review_message_*`** (reseña Google tras valoración positiva; columna `google_place_id` legacy).
+- `client_external_reputation_snapshots` / `client_external_reputation_alerts` (fotos agregadas Google vía Outscraper + alertas 1★/2★).
+- Sync: `App\Support\ExternalReputation\*` + `OUTSCRAPER_*` en `.env` (`OUTSCRAPER_DRIVER=fake|http`).
 - `csat_surveys.positive_scores_used` (snapshot).
 - `2026_04_08_161000_nfctokens_employee_fk_cascade_on_delete`.
 

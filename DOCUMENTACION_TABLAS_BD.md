@@ -25,6 +25,10 @@ Este archivo resume tablas relevantes y el sentido de cada campo.
 - `fecha_fin`: fecha de finalizacion (si aplica).
 - `deleted_at`: borrado logico (soft delete).
 - `logo`: ruta o referencia al logo del cliente.
+- `google_place_id`: Place ID de Google Maps del negocio (fuente única; encuesta y reputación externa lo reutilizan).
+- `google_id`: Feature ID de Google Maps (`0x…:0x…`), rellenado en sync Outscraper (opcional).
+- `external_reputation_last_synced_at`: última sincronización de reputación externa correcta.
+- `external_reputation_last_error`: último error de sync (texto; se limpia en éxito).
 - `last_call_at`: fecha/hora de la ultima llamada registrada.
 - `next_call_at`: fecha/hora prevista de proxima llamada.
 
@@ -159,7 +163,7 @@ Este archivo resume tablas relevantes y el sentido de cada campo.
 - `survey_question_text_pt`: pregunta principal en portugues.
 - `survey_question_text_en`: pregunta principal en ingles.
 - `positive_scores`: JSONB/array de puntuaciones que siguen el flujo positivo.
-- `google_place_id`: Place ID de Google Maps del negocio (obligatorio al guardar la encuesta en Filament); se usa para redirigir al formulario de reseña.
+- `google_place_id`: **legacy** (copiado a `clients.google_place_id`); la fuente viva del Place ID es `clients`. Se mantiene la columna por compatibilidad; la encuesta ya no lo edita.
 - `google_review_message`: mensaje legacy sincronizado con español (compatibilidad).
 - `google_review_message_es`: mensaje mostrado tras valoración positiva en espanol.
 - `google_review_message_pt`: mensaje mostrado tras valoración positiva en portugues.
@@ -177,6 +181,36 @@ Este archivo resume tablas relevantes y el sentido de cada campo.
 - `sort_order`: orden de aparicion.
 - `created_at`: fecha de creacion.
 - `updated_at`: fecha de actualizacion.
+
+### `client_external_reputation_snapshots`
+**Para que sirve:** fotografías agregadas de reputación Google (Outscraper Places) por cliente; base del histórico día/mes/año y de alertas por delta.
+
+- `id`: UUID.
+- `client_id`: FK → `clients` (cascade).
+- `captured_at`: momento real del sync.
+- `snapshot_date`: día del histórico (fecha civil; UI sin hora).
+- `rating`: nota visible de Google.
+- `reviews_total`: número total de reseñas.
+- `stars_1` … `stars_5`: desglose por estrellas.
+- `calculated_rating`: media aritmética propia a partir del desglose.
+- `source`: origen (`outscraper`, `manual`, …).
+- `raw_payload`: JSON opcional de depuración (sin textos/autores de reseñas).
+- `created_at` / `updated_at`.
+
+Índices: `(client_id, snapshot_date)`, `(client_id, captured_at)`. Pueden coexistir varios snapshots el mismo día (cron 3×); la UI toma el último por `captured_at`.
+
+### `client_external_reputation_alerts`
+**Para que sirve:** alertas cuando entre dos snapshots aumentan las reseñas de 1★ o 2★, o anomalía si baja el total sin esa subida.
+
+- `id`: UUID.
+- `client_id`: FK → `clients` (cascade).
+- `detected_at`: momento de detección.
+- `kind`: `negative_increase` (subida 1★/2★) o `total_drop` (bajada de total sin nuevas 1★/2★).
+- `delta_stars_1` / `delta_stars_2`: incremento detectado (0 en anomalías).
+- `delta_reviews_total`: variación del total de reseñas (puede ser negativa).
+- `from_snapshot_id` / `to_snapshot_id`: FK nullable → snapshots (`nullOnDelete`).
+- `read_at`: marcado como leído en panel (nullable).
+- `created_at` / `updated_at`.
 
 ## Mensajeria interna de panel
 

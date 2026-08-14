@@ -241,7 +241,11 @@ class ClientImprovementConfig extends Model
 
     public function googleReviewUrl(): ?string
     {
-        $placeId = self::normalizeGooglePlaceId($this->google_place_id);
+        $this->loadMissing('client');
+
+        // Fuente preferente: Place ID en ficha del cliente; fallback a columna legacy de encuesta.
+        $placeId = self::normalizeGooglePlaceId($this->client?->google_place_id)
+            ?? self::normalizeGooglePlaceId($this->google_place_id);
 
         return $placeId !== null
             ? 'https://search.google.com/local/writereview?placeid=' . rawurlencode($placeId)

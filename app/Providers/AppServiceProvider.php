@@ -16,7 +16,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Support\ExternalReputation\PlacesReputationGateway::class,
+            function () {
+                $driver = (string) config('services.outscraper.driver', 'http');
+
+                if ($driver === 'fake') {
+                    return new \App\Support\ExternalReputation\FakeOutscraperPlacesClient;
+                }
+
+                return \App\Support\ExternalReputation\OutscraperPlacesClient::fromConfig();
+            }
+        );
+
+        $this->app->singleton(\App\Support\ExternalReputation\ExternalReputationSyncService::class, function ($app) {
+            return new \App\Support\ExternalReputation\ExternalReputationSyncService(
+                $app->make(\App\Support\ExternalReputation\PlacesReputationGateway::class)
+            );
+        });
     }
 
     /**

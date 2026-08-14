@@ -100,7 +100,6 @@ class PuntosDeMejora extends Page
             'title_es' => $config?->title_es ?? $defaultTitles['es'],
             'title_pt' => $config?->title_pt ?? $defaultTitles['pt'],
             'title_en' => $config?->title_en ?? $defaultTitles['en'],
-            'google_place_id' => $config?->google_place_id ?? '',
             'google_review_message_es' => $config?->google_review_message_es ?? $defaultGoogleReviewMessages['es'],
             'google_review_message_pt' => $config?->google_review_message_pt ?? $defaultGoogleReviewMessages['pt'],
             'google_review_message_en' => $config?->google_review_message_en ?? $defaultGoogleReviewMessages['en'],
@@ -232,21 +231,17 @@ class PuntosDeMejora extends Page
                         \Filament\Forms\Components\Section::make(__('client.survey.google_review_section'))
                             ->description(__('client.survey.google_review_section_help'))
                             ->schema([
-                                \Filament\Forms\Components\TextInput::make('google_place_id')
+                                \Filament\Forms\Components\Placeholder::make('google_place_id_from_client')
                                     ->label(__('client.survey.google_place_id'))
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->placeholder('ChIJxxxxxxxxxxxxxxxx')
-                                    ->helperText(__('client.survey.google_place_id_help'))
-                                    ->columnSpanFull()
-                                    ->suffixAction(
-                                        \Filament\Forms\Components\Actions\Action::make('googlePlaceIdHelp')
-                                            ->icon('heroicon-o-question-mark-circle')
-                                            ->tooltip(__('client.survey.google_place_id_help_link'))
-                                            ->url(ClientImprovementConfig::GOOGLE_PLACE_ID_FINDER_URL)
-                                            ->openUrlInNewTab()
-                                    )
-                                    ->disabled($readOnly),
+                                    ->content(function (): string {
+                                        $placeId = $this->getRecord()->google_place_id;
+
+                                        return filled($placeId)
+                                            ? (string) $placeId
+                                            : __('client.survey.google_place_id_missing');
+                                    })
+                                    ->helperText(__('client.survey.google_place_id_from_client_help'))
+                                    ->columnSpanFull(),
                                 ...$this->localizedTextInputs('google_review_message', [
                                     'es' => 'Le agradeceríamos que deje una reseña en Google Maps.',
                                     'pt' => 'Agradecíamos que deixasse uma avaliação no Google Maps.',
@@ -330,17 +325,6 @@ class PuntosDeMejora extends Page
         $surveyQuestionTexts = $this->trimLocalizedState($data, 'survey_question_text');
         $titles = $this->trimLocalizedState($data, 'title');
         $googleReviewMessages = $this->trimLocalizedState($data, 'google_review_message');
-        $googlePlaceId = ClientImprovementConfig::normalizeGooglePlaceId($data['google_place_id'] ?? null);
-
-        if ($googlePlaceId === null) {
-            Notification::make()
-                ->danger()
-                ->title(__('client.survey.validation.google_place_id_title'))
-                ->body(__('client.survey.validation.google_place_id_body'))
-                ->send();
-
-            return;
-        }
 
         if (! ClientImprovementConfig::positiveScoresAreValid($positiveScores)) {
             Notification::make()
@@ -389,7 +373,7 @@ class PuntosDeMejora extends Page
             }
         }
 
-        DB::transaction(function () use ($client, $defaultLocale, $surveyQuestionTexts, $titles, $googleReviewMessages, $googlePlaceId, $displayMode, $positiveScores, $labels): void {
+        DB::transaction(function () use ($client, $defaultLocale, $surveyQuestionTexts, $titles, $googleReviewMessages, $displayMode, $positiveScores, $labels): void {
             $config = ClientImprovementConfig::firstOrNew(['client_id' => $client->id]);
             if (! $config->exists) {
                 $config->id = (string) Str::uuid();
@@ -403,7 +387,6 @@ class PuntosDeMejora extends Page
             $config->title_es = $titles['es'];
             $config->title_pt = $titles['pt'];
             $config->title_en = $titles['en'];
-            $config->google_place_id = $googlePlaceId;
             $config->google_review_message = $googleReviewMessages['es'];
             $config->google_review_message_es = $googleReviewMessages['es'];
             $config->google_review_message_pt = $googleReviewMessages['pt'];
@@ -501,7 +484,7 @@ class PuntosDeMejora extends Page
             'default_locale' => ClientImprovementConfig::normalizeDefaultLocale($config?->default_locale),
             'positive_scores' => $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores(),
             'positive_scores_label' => implode(', ', $config?->positiveScores() ?? ClientImprovementConfig::defaultPositiveScores()),
-            'google_place_id' => $config?->google_place_id ?: '—',
+            'google_place_id' => $client->google_place_id ?: '—',
             'google_review_messages' => [
                 'es' => $config?->google_review_message_es ?: $defaultGoogleReviewMessages['es'],
                 'pt' => $config?->google_review_message_pt ?: $defaultGoogleReviewMessages['pt'],

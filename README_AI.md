@@ -14,6 +14,7 @@
 6. [`docs/OPERACIONES_SERVIDOR.md`](docs/OPERACIONES_SERVIDOR.md) — qué está configurado en el VPS (sin secretos).
 7. [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — comandos operativos (SSH, Fail2Ban, Git, informe, logs).
 8. [`docs/HANDOFFS.md`](docs/HANDOFFS.md) — registro de cambios y pendientes por fecha.
+9. [`docs/PLAN_REPUTACION_OUTSCRAPER.md`](docs/PLAN_REPUTACION_OUTSCRAPER.md) — plan reputación Google vía Outscraper Places (**fases 1–7 hechas**; falta API real + cierre deploy).
 
 ---
 
@@ -29,6 +30,7 @@
 | `docs/OPERACIONES_SERVIDOR.md` | Estado del VPS: SSH, Fail2Ban, correo relay, informes, Git deploy key (sin secretos). |
 | `docs/RUNBOOK.md` | Comandos rutinarios: conexión, comprobaciones, logs. |
 | `docs/HANDOFFS.md` | Bitácora: fecha, cambio, motivo, pendientes, riesgos. |
+| `docs/PLAN_REPUTACION_OUTSCRAPER.md` | Plan reputación Google Outscraper Places: Place ID, snapshots, cron, UI, gráficos, alertas. Fases 1–7 implementadas; pendiente API real (Fase 0/8). |
 
 ---
 

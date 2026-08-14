@@ -69,6 +69,50 @@ Copias locales habituales: `/root/reports/security/`. El cron suele estar en `/e
 
 ---
 
+## Reputación externa Google (Outscraper)
+
+Sincroniza nota, total y desglose 1–5★ y guarda snapshots/alertas.
+
+```bash
+cd /var/www/reputalis
+
+# Listar sin llamar a Outscraper
+sudo -u www-data php artisan external-reputation:sync --dry-run
+
+# Un cliente (code o UUID)
+sudo -u www-data php artisan external-reputation:sync --client=CLIEN000001
+
+# Solo clientes sin ningún snapshot
+sudo -u www-data php artisan external-reputation:sync --only-missing
+
+# Todos los clientes con Place ID
+sudo -u www-data php artisan external-reputation:sync
+```
+
+Driver: sin `OUTSCRAPER_API_KEY` usa **fake** (datos inventados). Con clave: `OUTSCRAPER_API_KEY=...` en `.env` (no commitear).
+
+Horarios programados (Europe/Madrid): **10:00**, **17:00**, **23:55** vía Laravel Scheduler. Comprobar:
+
+```bash
+sudo -u www-data php artisan schedule:list
+```
+
+El VPS debe tener cron cada minuto:
+
+```cron
+* * * * * www-data cd /var/www/reputalis && php artisan schedule:run >> /dev/null 2>&1
+```
+
+(archivo típico: `/etc/cron.d/reputalis-scheduler`; ver `OPERACIONES_SERVIDOR.md`).
+
+Logs de fallo de sync: canal Laravel habitual + campo `clients.external_reputation_last_error`.
+
+UI: desde Dashboard → pestaña **Reputación externa** (`/admin/clients/{id}/reputacion-externa`; no aparece en el subnav superior).
+
+Botón **Simular sync (fake +1)** (quien pueda editar el cliente): crea un snapshot sin Outscraper sumando +1 a 1★ y +1 a 5★ sobre el último; dispara alerta de 1★. No usar en producción como dato real.
+
+---
+
 ## Cómo revisar logs clave
 
 **Nginx (acceso y error):**

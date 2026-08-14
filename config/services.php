@@ -28,6 +28,17 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'outscraper' => [
+        // Sin API key → fake por defecto (desarrollo). Con key → http salvo que se fuerce fake.
+        'driver' => env('OUTSCRAPER_DRIVER', env('OUTSCRAPER_API_KEY') ? 'http' : 'fake'),
+        'key' => env('OUTSCRAPER_API_KEY'),
+        'base_url' => env('OUTSCRAPER_BASE_URL', 'https://api.outscraper.com'),
+        'timeout' => (int) env('OUTSCRAPER_TIMEOUT', 60),
+        'retries' => (int) env('OUTSCRAPER_RETRIES', 2),
+        'language' => env('OUTSCRAPER_LANGUAGE', 'es'),
+        'region' => env('OUTSCRAPER_REGION', 'ES'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

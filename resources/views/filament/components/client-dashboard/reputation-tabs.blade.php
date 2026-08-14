@@ -16,7 +16,18 @@
                 'bg-white text-gray-700 ring-1 ring-gray-950/10 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:ring-white/10 dark:hover:bg-gray-800' => $activeTab !== $key,
             ])
         >
-            {{ $tab['label'] }}
+            <span class="inline-flex items-center gap-2">
+                <span>{{ $tab['label'] }}</span>
+                @if (! empty($tab['badge']))
+                    <span @class([
+                        'inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
+                        'bg-white/20 text-white' => $activeTab === $key,
+                        'bg-danger-500 text-white' => $activeTab !== $key,
+                    ])>
+                        {{ $tab['badge'] }}
+                    </span>
+                @endif
+            </span>
         </button>
     @endforeach
 </div>
