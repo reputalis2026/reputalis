@@ -159,7 +159,7 @@
             return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
         };
 
-        const defaultScoreColors = ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'];
+        const defaultScoreColors = ['#EE2737', '#FF6A13', '#FFB81C', '#A4D65E', '#00B140'];
 
         const buildBreakdownTooltip = (config, breakdownData) => ({
             theme: false,

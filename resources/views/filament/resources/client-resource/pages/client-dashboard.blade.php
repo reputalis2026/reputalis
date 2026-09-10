@@ -12,11 +12,11 @@
         $forceSurveyHistoryHours = $this->shouldForceSurveyHistoryHours();
         $scoreTrend = $this->getScoreTrend();
         $scoreColors = [
-            1 => '#FF3901',
-            2 => '#FF9880',
-            3 => '#FFC60F',
-            4 => '#8DFFA8',
-            5 => '#01FF01',
+            1 => '#EE2737',
+            2 => '#FF6A13',
+            3 => '#FFB81C',
+            4 => '#A4D65E',
+            5 => '#00B140',
         ];
         $mainSummaryChartConfig = [
             'gaugePercent' => $mainReputationSummary['gauge_percent'],
@@ -1082,7 +1082,7 @@
             min-width: 0;
             height: 100%;
             border-radius: inherit;
-            background: #FF9880;
+            background: #FF6A13;
         }
 
         .client-dashboard-improvement-detail-employee-count {

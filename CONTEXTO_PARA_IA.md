@@ -50,7 +50,7 @@ Detalle de producto, stack y módulos: [`RESUMEN_PROYECTO.md`](RESUMEN_PROYECTO.
 - **`App\Http\Controllers\PulseController`:** login propietario cliente, métricas con `CsatMetrics`.
 - **`App\Support\CsatMetrics`:** agregados y caché; respeta `positive_scores_used` en encuestas.
 - **`App\Support\PanelMessageService`:** notificaciones activación cliente; **generar UUID de `PanelMessage` en PHP** antes de recipients.
-- **Vista encuesta:** `resources/views/survey.blade.php` — flujo positivo/mejor según `POSITIVE_SCORES`; tras valoración positiva muestra mensaje configurable, **contador 5→1** y redirección automática a `https://search.google.com/local/writereview?placeid=...` si el cliente tiene `google_place_id` (sin botón manual); assets `public/survey-rating/`; SW encuesta con caché versionada (p. ej. `v5` en código actual).
+- **Vista encuesta:** `resources/views/survey.blade.php` — pantalla de valoración con layout tipo mockup (logo `public/img/logoReputalis.png`, pregunta editable grande, textos fijos, sin tarjeta Cliente/Empleado; contenido pegado al logo y viewport `100dvh` sin scroll); **caritas y assets de números** sin rediseñar aún. Flujo positivo/mejor según `POSITIVE_SCORES`; tras valoración positiva mensaje configurable, **contador 5→1** y redirección a `writereview?placeid=...` si hay `google_place_id`; SW encuesta caché **v8**.
 
 ---
 

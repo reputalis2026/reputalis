@@ -72,20 +72,6 @@
                     </dl>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('client.survey.google_review_section') }}</p>
-                    <p class="mt-1 text-base font-medium text-gray-950 dark:text-white">
-                        {{ __('client.survey.google_place_id') }}: {{ $readOnly['google_place_id'] }}
-                    </p>
-                    <dl class="mt-2 grid gap-3 md:grid-cols-3">
-                        @foreach (['es', 'pt', 'en'] as $locale)
-                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                                <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ __("survey.language_names.{$locale}") }}</dt>
-                                <dd class="mt-1 text-base font-medium text-gray-950 dark:text-white">{{ $readOnly['google_review_messages'][$locale] }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
-                </div>
-                <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('client.survey.answers') }}</p>
                     <div class="mt-2 space-y-3 text-base text-gray-700 dark:text-gray-300">
                         @forelse ($readOnly['options'] as $option)

@@ -73,6 +73,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 - API con límites por IP y dispositivo; validación de opciones de mejora del cliente; `positive_scores_used` como histórico.
 - Vista pública con idioma por `Accept-Language` y fallback a `default_locale` y `es`.
+- Layout de valoración (fase 1 mockup): logo Reputalis, pregunta editable, textos fijos de ayuda/escala/footer; caritas y assets de números pendientes de rediseño.
 - Tras valoración positiva: mensaje configurable multidioma, contador 5→1 y redirección automática a reseña en Google Maps (`clients.google_place_id` en ficha del cliente; sin botón manual).
 - NFC: token estable por empleado; validaciones de cliente/empleado/token activos.
 

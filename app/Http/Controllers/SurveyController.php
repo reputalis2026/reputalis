@@ -71,7 +71,7 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ], $this->googleReviewViewData($client, $config, $surveyLocale)))->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($client)))->header('Vary', 'Accept-Language');
     }
 
     /**
@@ -152,17 +152,15 @@ class SurveyController extends Controller
             'surveyQuestion' => $surveyQuestion,
             'surveyLocale' => $surveyLocale,
             'surveyPositiveScores' => $surveyPositiveScores,
-        ], $this->googleReviewViewData($client, $config, $surveyLocale)))->header('Vary', 'Accept-Language');
+        ], $this->googleReviewViewData($client)))->header('Vary', 'Accept-Language');
     }
 
     /**
-     * @return array{googleReviewMessage: string, googleReviewUrl: string|null}
+     * @return array{googleReviewUrl: string|null}
      */
-    private function googleReviewViewData(Client $client, ?ClientImprovementConfig $config, string $surveyLocale): array
+    private function googleReviewViewData(Client $client): array
     {
         return [
-            'googleReviewMessage' => $config?->googleReviewMessageForLocale($surveyLocale)
-                ?? ClientImprovementConfig::defaultGoogleReviewMessages()[ClientImprovementConfig::DEFAULT_LOCALE],
             'googleReviewUrl' => $client->googleReviewUrl(),
         ];
     }
@@ -224,7 +222,7 @@ class SurveyController extends Controller
             'display' => 'standalone',
             'orientation' => 'portrait',
             'background_color' => '#f8fafc',
-            'theme_color' => '#f59e0b',
+            'theme_color' => '#ffffff',
             'icons' => [
                 ['src' => $baseUrl . '/favicon.ico', 'sizes' => '48x48', 'type' => 'image/x-icon', 'purpose' => 'any'],
                 ['src' => $baseUrl . '/favicon.ico', 'sizes' => '192x192', 'type' => 'image/x-icon', 'purpose' => 'any'],
@@ -248,7 +246,7 @@ class SurveyController extends Controller
             ->firstOrFail();
 
         $code = $client->code;
-        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v5';
+        $cacheName = 'reputalis-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v11';
         $manifestUrl = url("/manifest/{$code}.json");
         $surveyUrl = url("/survey/{$code}");
         $apiUrl = url('/api/surveys/create');

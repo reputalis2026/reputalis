@@ -280,11 +280,11 @@ class ClientDashboard extends Page
 
         $avgScoreRaw = (float) $employee['avg_score'];
         $scoreColors = [
-            1 => '#FF3901',
-            2 => '#FF9880',
-            3 => '#FFC60F',
-            4 => '#8DFFA8',
-            5 => '#01FF01',
+            1 => '#EE2737',
+            2 => '#FF6A13',
+            3 => '#FFB81C',
+            4 => '#A4D65E',
+            5 => '#00B140',
         ];
         $trend = app(InternalReputationMetrics::class)->getEmployeeScoreTrend(
             $this->getClientRecord()->id,

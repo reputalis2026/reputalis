@@ -9,14 +9,14 @@
         $chartConfig = $this->getHistoryChartConfig();
         $maxStars = $snapshot ? max(1, max($snapshot->starsBreakdown())) : 1;
         $scoreColors = [
-            1 => '#FF3901',
-            2 => '#FF9880',
-            3 => '#FFC60F',
-            4 => '#8DFFA8',
-            5 => '#01FF01',
+            1 => '#EE2737',
+            2 => '#FF6A13',
+            3 => '#FFB81C',
+            4 => '#A4D65E',
+            5 => '#00B140',
         ];
         $rangeKey = $chartConfig['range_key'];
-        $scoreColorsList = ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'];
+        $scoreColorsList = ['#EE2737', '#FF6A13', '#FFB81C', '#A4D65E', '#00B140'];
         $ratingRaw = $snapshot ? (float) ($snapshot->rating ?? 0) : 0;
         $totalReviews = $snapshot ? (int) $snapshot->reviews_total : 0;
         $breakdownConfig = $snapshot ? [

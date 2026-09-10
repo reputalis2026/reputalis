@@ -27,6 +27,27 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-09-10 — Encuesta: pantalla puntos de mejora (mockup)
+
+- **Qué se cambió:** `step-reason` en `survey.blade.php` alineado al mockup: logo Reputalis, título editable (mismo estilo que la pregunta de valoración), texto fijo «Selecciona una opción», cards centradas con fondo `#eef2f6` y bordes redondeados. `step-thanks-low` (tras puntos de mejora): logo, check cyan, «¡Gracias!», subtítulo y footer «Encuesta gestionada por REPUTALIS». Sin tocar SW/PWA.
+- **Por qué:** Misma línea visual que la pantalla de puntuación.
+- **Qué falta:** —
+- **Riesgos o pendientes:** Con muchas opciones la lista hace scroll interno; el título de mejora sigue siendo el configurado en Filament Encuesta. Place ID sigue en la **ficha del cliente** (no en Encuesta). Los campos `google_review_message_*` pueden quedar en BD sin UI.
+
+### 2026-09-10 — Escala CSAT Pantone en números/caritas
+
+- **Qué se cambió:** Recoloración de assets `public/survey-rating/numbers/{1-5}.{png,webp}` y `faces/cara{1-5}.{png,webp}` a la escala oficial: 1 `#EE2737`, 2 `#FF6A13`, 3 `#FFB81C`, 4 `#A4D65E`, 5 `#00B140` (misma forma; solo círculo de color). Alineados los hex de dashboard/gráficos reputación interna-externa.
+- **Por qué:** Unificar encuesta y panel con la guía «Escala de valoración CSAT» Pantone.
+- **Qué falta:** (opcional) centralizar la paleta en un único helper/config PHP para no duplicar hex.
+- **Riesgos o pendientes:** Caché de navegador puede mostrar imágenes viejas hasta hard-refresh; no se ha tocado el SW de la PWA (rediseño futuro).
+
+### 2026-09-10 — Encuesta pública: layout mockup (fase 1)
+
+- **Qué se cambió:** Rediseño visual de `step-rating` en `resources/views/survey.blade.php`: fondo blanco, logo `public/img/logoReputalis.png`, pregunta editable **más grande**, textos fijos multidioma, sin card ámbar ni bloque Cliente/Empleado. Contenido pegado al logo (sin hueco grande), viewport `100dvh` sin scroll en móvil, footer siempre visible. SW PWA encuesta a **v8**. **No** se tocaron caritas ni imágenes de números.
+- **Por qué:** Alinear la primera pantalla de la encuesta con el mockup de producto, dejando puntuación (círculos de color / caritas) para fases siguientes.
+- **Qué falta:** Fase 2 — círculos 1–5 de colores del mockup (modo números). Fase 3 — adaptar modo caritas al mismo estilo.
+- **Riesgos o pendientes:** PWA con caché antigua puede requerir recarga/cerrar pestaña; la demo NFC sigue visible solo cuando `showNfcDemo` es true. El empleado NFC sigue asociándose en backend aunque no se muestre en UI.
+
 ### 2026-08-14 — Handoff reputación Outscraper (fases 1–7) + qué falta
 
 - **Qué se cambió (resumen completo):** reputación externa Google vía Outscraper Places, fases **1–7**:
