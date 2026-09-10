@@ -495,13 +495,245 @@
             }
         };
 
+        const renderSingleGauge = async (chartElement, config, cacheKey) => {
+            const card = chartElement.closest('[data-external-reputation-gauge-card]');
+            if (!card) return;
+
+            const signature = JSON.stringify({ type: cacheKey, config });
+            if (chartElement._gaugeRenderingSig === signature) return;
+            if (chartElement._gaugeSig === signature && hasRenderedChart(chartElement)) return;
+            if (!isVisibleForRender(chartElement) && !isVisibleForRender(card)) { queueRetry(); return; }
+
+            chartElement._gaugeRenderingSig = signature;
+
+            try {
+                const ApexCharts = await loadApexCharts();
+                await new Promise((resolve) => window.requestAnimationFrame(resolve));
+                if (!isVisibleForRender(chartElement) && !isVisibleForRender(card)) { queueRetry(); return; }
+
+                destroyChart(chartElement);
+                const { valueColor } = theme();
+
+                chartElement._reputalisChart = new ApexCharts(chartElement, {
+                    chart: {
+                        type: 'radialBar',
+                        height: 150,
+                        parentHeightOffset: 0,
+                        sparkline: { enabled: true },
+                    },
+                    series: [Number(config.gaugePercent || 0)],
+                    colors: [config.gaugeColor || '#9ca3af'],
+                    plotOptions: {
+                        radialBar: {
+                            hollow: { size: '55%' },
+                            track: {
+                                background: config.trackColor || '#e5e7eb',
+                                strokeWidth: '100%',
+                            },
+                            dataLabels: {
+                                show: true,
+                                name: {
+                                    show: true,
+                                    offsetY: 20,
+                                    color: config.labelColor || '#6b7280',
+                                    fontSize: '9px',
+                                    fontWeight: 500,
+                                },
+                                value: {
+                                    show: true,
+                                    offsetY: -6,
+                                    color: valueColor,
+                                    fontSize: '22px',
+                                    fontWeight: 700,
+                                    formatter: () => config.gaugeValue || '',
+                                },
+                            },
+                        },
+                    },
+                    labels: [config.gaugeLabel || ''],
+                    stroke: { lineCap: 'round' },
+                });
+
+                await chartElement._reputalisChart.render();
+                chartElement._gaugeSig = signature;
+            } finally {
+                chartElement._gaugeRenderingSig = null;
+            }
+        };
+
+        const renderGaugeChart = async () => {
+            const card = document.querySelector('[data-external-reputation-gauge-card]');
+            if (!card) return;
+
+            for (const key of ['google', 'real']) {
+                const chartEl = card.querySelector(`[data-external-reputation-chart="gauge-${key}"]`);
+                const configNode = card.querySelector(`[data-external-reputation-gauge-config="${key}"]`);
+                if (!chartEl || !configNode) continue;
+
+                let config;
+                try { config = JSON.parse(configNode.textContent || '{}'); } catch (_e) { continue; }
+                await renderSingleGauge(chartEl, config, `gauge-${key}`);
+            }
+        };
+
+        const lightenHexColor = (hex, ratio = 0.38) => {
+            const normalized = String(hex || '').replace('#', '');
+            if (normalized.length !== 6) return '#f3f4f6';
+            const channels = [0, 2, 4].map((start) => parseInt(normalized.substring(start, start + 2), 16));
+            const mixed = channels.map((ch) => Math.round(ch + (255 - ch) * ratio));
+            return `#${mixed.map((ch) => ch.toString(16).padStart(2, '0')).join('')}`;
+        };
+
+        const defaultScoreColors = ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'];
+
+        const renderBreakdownChart = async (card) => {
+            const chartElement = card.querySelector('[data-external-reputation-chart="breakdown"]');
+            if (!chartElement) {
+                return;
+            }
+
+            const configNode = card.querySelector('[data-external-reputation-breakdown-config]');
+            if (!configNode) {
+                return;
+            }
+
+            let config;
+            try {
+                config = JSON.parse(configNode.textContent || '{}');
+            } catch (_e) {
+                return;
+            }
+
+            const signature = JSON.stringify({ type: 'breakdown', config });
+            if (card._breakdownRenderingSignature === signature) {
+                return;
+            }
+            if (card._breakdownSignature === signature && hasRenderedChart(chartElement)) {
+                return;
+            }
+            if (!isVisibleForRender(chartElement) && !isVisibleForRender(card)) {
+                queueRetry();
+                return;
+            }
+
+            card._breakdownRenderingSignature = signature;
+
+            try {
+                const ApexCharts = await loadApexCharts();
+                await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+                if (!isVisibleForRender(chartElement) && !isVisibleForRender(card)) {
+                    queueRetry();
+                    return;
+                }
+
+                destroyChart(chartElement);
+
+                const breakdownData = (config.scoreLabels || [])
+                    .map((label, index) => ({
+                        score: Number(label),
+                        percentage: Number((config.scorePercentages || [])[index] || 0),
+                        count: Number((config.scoreCounts || [])[index] || 0),
+                    }))
+                    .sort((a, b) => a.score - b.score);
+
+                const chartWidth = chartElement.clientWidth || 400;
+                const compactLabels = chartWidth < 300;
+                const veryCompactLabels = chartWidth < 220;
+
+                chartElement._reputalisChart = new ApexCharts(chartElement, {
+                    chart: {
+                        type: 'bar',
+                        height: '100%',
+                        width: '100%',
+                        parentHeightOffset: 0,
+                        toolbar: { show: false },
+                        animations: { enabled: false },
+                    },
+                    series: [{
+                        name: '',
+                        data: breakdownData.map((item) => item.percentage),
+                    }],
+                    colors: config.scoreColors?.length ? config.scoreColors : defaultScoreColors,
+                    legend: { show: false },
+                    plotOptions: {
+                        bar: {
+                            distributed: true,
+                            horizontal: false,
+                            borderRadius: 5,
+                            columnWidth: veryCompactLabels ? '58%' : compactLabels ? '64%' : '72%',
+                        },
+                    },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: breakdownData.map((item) => `${item.score} ⭐`),
+                        labels: {
+                            rotate: veryCompactLabels ? -45 : compactLabels ? -35 : 0,
+                            rotateAlways: veryCompactLabels || compactLabels,
+                            hideOverlappingLabels: true,
+                            trim: true,
+                            style: {
+                                fontSize: veryCompactLabels ? '9px' : compactLabels ? '10px' : '11px',
+                                fontWeight: 600,
+                                colors: config.labelColor || '#6b7280',
+                            },
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                    },
+                    yaxis: {
+                        min: 0,
+                        max: 100,
+                        tickAmount: 4,
+                        labels: { show: false },
+                    },
+                    grid: {
+                        show: false,
+                        padding: { top: 36, right: 4, bottom: 0, left: 4 },
+                    },
+                    tooltip: {
+                        theme: false,
+                        cssClass: 'reputalis-breakdown-tooltip',
+                        followCursor: false,
+                        shared: false,
+                        intersect: true,
+                        offsetY: -10,
+                        fixed: {
+                            enabled: true,
+                            position: 'topLeft',
+                            offsetX: 8,
+                            offsetY: 4,
+                        },
+                        custom: ({ dataPointIndex }) => {
+                            const item = breakdownData[dataPointIndex] || { count: 0 };
+                            const label = config.surveysTooltipLabel || 'Nº de reseñas:';
+                            const barColor = (config.scoreColors || defaultScoreColors)[dataPointIndex] || defaultScoreColors[0];
+                            const bg = lightenHexColor(barColor, 0.4);
+                            return '<div style="background:' + bg + ';color:#fff;border:1px solid rgba(15,23,42,.08);border-radius:.5rem;box-shadow:0 4px 12px rgba(15,23,42,.12);font-size:.8125rem;font-weight:650;line-height:1.25rem;padding:.45rem .65rem;white-space:nowrap;">' + label + ' ' + item.count + '</div>';
+                        },
+                    },
+                });
+
+                await chartElement._reputalisChart.render();
+                card._breakdownSignature = signature;
+            } finally {
+                card._breakdownRenderingSignature = null;
+            }
+        };
+
         const renderCard = async (card) => {
+            const type = card.getAttribute('data-external-reputation-chart-card');
+
+            if (type === 'breakdown') {
+                await renderBreakdownChart(card);
+                return;
+            }
+
             const config = parseConfig(card);
             if (!config) {
                 return;
             }
 
-            const type = card.getAttribute('data-external-reputation-chart-card');
             if (type === 'rating') {
                 await renderRatingChart(card, config);
             } else if (type === 'total') {
@@ -512,6 +744,8 @@
         };
 
         window.reputalisInitExternalReputationCharts = () => {
+            renderGaugeChart().catch(() => queueRetry(200));
+
             document.querySelectorAll('[data-external-reputation-chart-card]').forEach((card) => {
                 renderCard(card).catch(() => {
                     queueRetry(200);
@@ -526,7 +760,10 @@
 
         if (window.Livewire?.hook) {
             window.Livewire.hook('morphed', () => queueRetry(80));
+            window.Livewire.hook('morph.updated', () => queueRetry(80));
         }
+
+        document.addEventListener('livewire:update', () => queueRetry(150));
 
         window.reputalisInitExternalReputationCharts();
         [80, 200, 500].forEach((delay) => {

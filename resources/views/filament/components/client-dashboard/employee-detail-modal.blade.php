@@ -68,7 +68,7 @@
                     <div class="client-dashboard-employee-detail-metric-value">
                         <div
                             class="client-dashboard-employee-detail-score"
-                            style="border-color: {{ $employeeDetail['gauge_color'] }};"
+                            style="--employee-score-percent: {{ $employeeDetail['gauge_percent'] }}; --employee-score-color: {{ $employeeDetail['gauge_color'] }};"
                         >
                             <span>{{ $employeeDetail['avg_score'] }}<small>/5</small></span>
                         </div>

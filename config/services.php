@@ -32,11 +32,12 @@ return [
         // Sin API key → fake por defecto (desarrollo). Con key → http salvo que se fuerce fake.
         'driver' => env('OUTSCRAPER_DRIVER', env('OUTSCRAPER_API_KEY') ? 'http' : 'fake'),
         'key' => env('OUTSCRAPER_API_KEY'),
-        'base_url' => env('OUTSCRAPER_BASE_URL', 'https://api.outscraper.com'),
+        'base_url' => env('OUTSCRAPER_BASE_URL', 'https://api.outscraper.cloud'),
         'timeout' => (int) env('OUTSCRAPER_TIMEOUT', 60),
         'retries' => (int) env('OUTSCRAPER_RETRIES', 2),
         'language' => env('OUTSCRAPER_LANGUAGE', 'es'),
         'region' => env('OUTSCRAPER_REGION', 'ES'),
+        'endpoint' => env('OUTSCRAPER_ENDPOINT', '/google-maps-search'),
     ],
 
     'slack' => [

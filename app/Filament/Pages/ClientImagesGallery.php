@@ -116,7 +116,7 @@ class ClientImagesGallery extends Page implements HasForms
 
     protected function scopedClientsQuery(): Builder
     {
-        $query = Client::query();
+        $query = Client::query()->where('is_active', true);
         $user = auth()->user();
 
         if ($user?->isSuperAdmin()) {

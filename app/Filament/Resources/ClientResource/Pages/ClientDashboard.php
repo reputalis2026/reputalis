@@ -443,7 +443,7 @@ class ClientDashboard extends Page
             ],
             'external' => [
                 'label' => __('client.dashboard.tabs.external'),
-                'badge' => $unread > 0 ? $unread : null,
+                'badge' => null,
             ],
             'sector' => [
                 'label' => __('client.dashboard.tabs.sector'),
@@ -659,7 +659,7 @@ class ClientDashboard extends Page
     }
 
     /**
-     * @return array<int, array{id: string, name: string, photo_url: string|null, initials: string, is_active: bool, surveys: int, avg_score: string, score_counts: array<int, int>, score_percentages: array<int, float>}>
+     * @return array<int, array{id: string, name: string, photo_url: string|null, initials: string, is_active: bool, surveys: int, avg_score: string, avg_score_raw: float, gauge_percent: float, gauge_color: string, score_counts: array<int, int>, score_percentages: array<int, float>}>
      */
     public function getEmployeeRanking(): array
     {
@@ -667,17 +667,30 @@ class ClientDashboard extends Page
             $this->getClientRecord()->id,
             $this->getInternalReputationDateRange(),
         ))
-            ->map(fn (array $employee): array => [
-                'id' => $employee['id'],
-                'name' => $employee['name'],
-                'photo_url' => $employee['photo'] ? Storage::disk('public')->url($employee['photo']) : null,
-                'initials' => $this->getEmployeeInitials($employee['name']),
-                'is_active' => (bool) ($employee['is_active'] ?? true),
-                'surveys' => $employee['surveys'],
-                'avg_score' => number_format((float) $employee['avg_score'], 2, ',', ' '),
-                'score_counts' => $employee['score_counts'],
-                'score_percentages' => $employee['score_percentages'],
-            ])
+            ->map(function (array $employee): array {
+                $avgScoreRaw = (float) $employee['avg_score'];
+                $surveys = (int) $employee['surveys'];
+
+                return [
+                    'id' => $employee['id'],
+                    'name' => $employee['name'],
+                    'photo_url' => $employee['photo'] ? Storage::disk('public')->url($employee['photo']) : null,
+                    'initials' => $this->getEmployeeInitials($employee['name']),
+                    'is_active' => (bool) ($employee['is_active'] ?? true),
+                    'surveys' => $surveys,
+                    'avg_score' => number_format($avgScoreRaw, 2, ',', ' '),
+                    'avg_score_raw' => $avgScoreRaw,
+                    'gauge_percent' => round(($avgScoreRaw / 5) * 100, 1),
+                    'gauge_color' => match (true) {
+                        $surveys === 0 => '#9ca3af',
+                        $avgScoreRaw >= 4 => '#22c55e',
+                        $avgScoreRaw >= 3 => '#f59e0b',
+                        default => '#ef4444',
+                    },
+                    'score_counts' => $employee['score_counts'],
+                    'score_percentages' => $employee['score_percentages'],
+                ];
+            })
             ->all();
     }
 

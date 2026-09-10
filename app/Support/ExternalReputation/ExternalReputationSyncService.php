@@ -17,11 +17,17 @@ class ExternalReputationSyncService
     ) {}
 
     /**
-     * Query para Outscraper: place_id si existe; si no, google_id.
-     * (place_id es la fuente de alta; google_id se guarda tras el primer sync.)
+     * Query preferida para Outscraper Places.
+     * Tras el bootstrap se usa la search_query de texto (1 ficha + desglose).
+     * Si aún no existe: place_id / google_id (bootstrap).
      */
     public function resolveQuery(Client $client): ?string
     {
+        $searchQuery = trim((string) ($client->external_reputation_search_query ?? ''));
+        if ($searchQuery !== '') {
+            return $searchQuery;
+        }
+
         $placeId = Client::normalizeGooglePlaceId($client->google_place_id);
         if ($placeId !== null) {
             return $placeId;
@@ -35,10 +41,15 @@ class ExternalReputationSyncService
     /**
      * Sincroniza un cliente: snapshot + posible alerta 1★/2★.
      *
+     * Coste Outscraper:
+     * - Bootstrap (sin search_query): hasta 2 fichas (place_id + nombre/ciudad si hace falta).
+     * - Syncs posteriores (con search_query): 1 ficha.
+     *
      * @return array{ok: bool, snapshot: ?ClientExternalReputationSnapshot, alert: ?ClientExternalReputationAlert, error: ?string}
      */
     public function syncClient(Client $client): array
     {
+        $isBootstrap = trim((string) ($client->external_reputation_search_query ?? '')) === '';
         $query = $this->resolveQuery($client);
         if ($query === null) {
             $error = 'Cliente sin google_place_id ni google_id.';
@@ -58,6 +69,54 @@ class ExternalReputationSyncService
                 return ['ok' => false, 'snapshot' => null, 'alert' => null, 'error' => $error];
             }
 
+            $searchQueryToPersist = null;
+
+            if ($isBootstrap) {
+                // place_id / google_id a menudo no traen reviews_per_score; 2ª ficha solo en bootstrap.
+                if (! $metrics->hasStarsBreakdown()) {
+                    $fallbackQuery = $this->buildNameLocationQuery($metrics)
+                        ?? $this->buildNameLocationQueryFromClient($client);
+
+                    if ($fallbackQuery !== null && $fallbackQuery !== $query) {
+                        $fallbackResults = $this->gateway->fetchPlaces([$fallbackQuery], 1);
+                        $fallbackMetrics = $fallbackResults[$fallbackQuery] ?? null;
+
+                        if ($fallbackMetrics instanceof PlaceMetrics && $fallbackMetrics->hasStarsBreakdown()) {
+                            if (! $this->placeIdMatchesClient($client, $fallbackMetrics)) {
+                                $error = 'La ficha de Outscraper no coincide con el Place ID del cliente.';
+                                $this->markError($client, $error);
+
+                                return ['ok' => false, 'snapshot' => null, 'alert' => null, 'error' => $error];
+                            }
+
+                            $metrics = new PlaceMetrics(
+                                query: $fallbackQuery,
+                                placeId: $fallbackMetrics->placeId ?: $metrics->placeId,
+                                googleId: $fallbackMetrics->googleId ?: $metrics->googleId,
+                                name: $fallbackMetrics->name ?: $metrics->name,
+                                rating: $fallbackMetrics->rating ?? $metrics->rating,
+                                reviewsTotal: $fallbackMetrics->reviewsTotal,
+                                stars: $fallbackMetrics->stars,
+                                raw: $fallbackMetrics->raw ?? $metrics->raw,
+                            );
+                            $searchQueryToPersist = $fallbackQuery;
+                        }
+                    }
+                } else {
+                    // Raro: la 1ª query ya trajo desglose; guardar query de texto para siguientes syncs.
+                    $searchQueryToPersist = $this->buildNameLocationQuery($metrics)
+                        ?? $this->buildNameLocationQueryFromClient($client);
+                }
+            } else {
+                // Sync barato: validar que sigue siendo el mismo negocio.
+                if (! $this->placeIdMatchesClient($client, $metrics)) {
+                    $error = 'La ficha de Outscraper no coincide con el Place ID del cliente.';
+                    $this->markError($client, $error);
+
+                    return ['ok' => false, 'snapshot' => null, 'alert' => null, 'error' => $error];
+                }
+            }
+
             if (! $metrics->hasStarsBreakdown()) {
                 $error = 'La respuesta no incluye reviews_per_score usable.';
                 $this->markError($client, $error);
@@ -65,7 +124,12 @@ class ExternalReputationSyncService
                 return ['ok' => false, 'snapshot' => null, 'alert' => null, 'error' => $error];
             }
 
-            return $this->persistSnapshot($client, $metrics, ClientExternalReputationSnapshot::SOURCE_OUTSCRAPER);
+            return $this->persistSnapshot(
+                $client,
+                $metrics,
+                ClientExternalReputationSnapshot::SOURCE_OUTSCRAPER,
+                $searchQueryToPersist,
+            );
         } catch (Throwable $e) {
             Log::warning('external_reputation.sync_failed', [
                 'client_id' => $client->id,
@@ -80,6 +144,47 @@ class ExternalReputationSyncService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Outscraper suele devolver reviews_per_score en búsquedas por texto, no por place_id.
+     */
+    private function buildNameLocationQuery(PlaceMetrics $metrics): ?string
+    {
+        $name = trim((string) ($metrics->name ?? ''));
+        if ($name === '') {
+            return null;
+        }
+
+        $city = trim((string) (($metrics->raw['city'] ?? null) ?: ''));
+        $parts = array_values(array_filter([$name, $city !== '' ? $city : null]));
+
+        return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    private function buildNameLocationQueryFromClient(Client $client): ?string
+    {
+        $name = trim((string) ($client->namecommercial ?? ''));
+        if ($name === '') {
+            return null;
+        }
+
+        $city = trim((string) ($client->ciudad ?? ''));
+        $parts = array_values(array_filter([$name, $city !== '' ? $city : null]));
+
+        return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    private function placeIdMatchesClient(Client $client, PlaceMetrics $metrics): bool
+    {
+        $expected = Client::normalizeGooglePlaceId($client->google_place_id);
+        if ($expected === null) {
+            return true;
+        }
+
+        $actual = Client::normalizeGooglePlaceId($metrics->placeId);
+
+        return $actual === null || $actual === $expected;
     }
 
     /**
@@ -150,9 +255,13 @@ class ExternalReputationSyncService
     /**
      * @return array{ok: bool, snapshot: ?ClientExternalReputationSnapshot, alert: ?ClientExternalReputationAlert, error: ?string}
      */
-    private function persistSnapshot(Client $client, PlaceMetrics $metrics, string $source): array
-    {
-        return DB::transaction(function () use ($client, $metrics, $source) {
+    private function persistSnapshot(
+        Client $client,
+        PlaceMetrics $metrics,
+        string $source,
+        ?string $searchQueryToPersist = null,
+    ): array {
+        return DB::transaction(function () use ($client, $metrics, $source, $searchQueryToPersist) {
             $previous = $client->externalReputationSnapshots()
                 ->orderByDesc('captured_at')
                 ->first();
@@ -177,13 +286,19 @@ class ExternalReputationSyncService
                 'raw_payload' => $metrics->raw,
             ]);
 
-            $client->forceFill([
+            $clientFill = [
                 'google_id' => $metrics->googleId ?: $client->google_id,
                 'google_place_id' => $client->google_place_id
                     ?: (Client::normalizeGooglePlaceId($metrics->placeId) ?? null),
                 'external_reputation_last_synced_at' => $now,
                 'external_reputation_last_error' => null,
-            ])->save();
+            ];
+
+            if ($searchQueryToPersist !== null && trim($searchQueryToPersist) !== '') {
+                $clientFill['external_reputation_search_query'] = trim($searchQueryToPersist);
+            }
+
+            $client->forceFill($clientFill)->save();
 
             $alert = $this->maybeCreateAlert($client, $previous, $snapshot);
 
@@ -194,6 +309,88 @@ class ExternalReputationSyncService
                 'error' => null,
             ];
         });
+    }
+
+    /**
+     * @return array{ok: bool, snapshot: ?ClientExternalReputationSnapshot, alert: ?ClientExternalReputationAlert, error: ?string}
+     */
+    public function simulateSingleReview(Client $client, int $starRating): array
+    {
+        try {
+            $previous = $client->externalReputationSnapshots()
+                ->orderByDesc('captured_at')
+                ->first();
+
+            $metrics = $this->buildSingleReviewFakeMetrics($client, $previous, $starRating);
+
+            return $this->persistSnapshot(
+                $client,
+                $metrics,
+                ClientExternalReputationSnapshot::SOURCE_SIMULATED,
+            );
+        } catch (Throwable $e) {
+            Log::warning('external_reputation.simulate_review_failed', [
+                'client_id' => $client->id,
+                'message' => $e->getMessage(),
+            ]);
+            $this->markError($client, $e->getMessage());
+
+            return [
+                'ok' => false,
+                'snapshot' => null,
+                'alert' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function buildSingleReviewFakeMetrics(
+        Client $client,
+        ?ClientExternalReputationSnapshot $previous,
+        int $starRating,
+    ): PlaceMetrics {
+        $starRating = max(1, min(5, $starRating));
+
+        if ($previous) {
+            $stars = [
+                1 => (int) $previous->stars_1,
+                2 => (int) $previous->stars_2,
+                3 => (int) $previous->stars_3,
+                4 => (int) $previous->stars_4,
+                5 => (int) $previous->stars_5,
+            ];
+        } else {
+            $stars = [1 => 0, 2 => 0, 3 => 2, 4 => 8, 5 => 20];
+        }
+
+        $stars[$starRating]++;
+
+        $total = array_sum($stars);
+        $weighted = 1 * $stars[1] + 2 * $stars[2] + 3 * $stars[3] + 4 * $stars[4] + 5 * $stars[5];
+        $rating = $total > 0 ? round($weighted / $total, 1) : null;
+
+        $placeId = Client::normalizeGooglePlaceId($client->google_place_id)
+            ?? ('ChIJSim'.substr(str_replace('-', '', (string) $client->id), 0, 20));
+        $googleId = trim((string) ($client->google_id ?? '')) !== ''
+            ? (string) $client->google_id
+            : ('0xsim:'.substr(md5((string) $client->id), 0, 12));
+
+        return new PlaceMetrics(
+            query: $placeId,
+            placeId: $placeId,
+            googleId: $googleId,
+            name: 'Simulated place '.$client->code,
+            rating: $rating,
+            reviewsTotal: $total,
+            stars: $stars,
+            raw: [
+                'name' => 'Simulated place '.$client->code,
+                'rating' => $rating,
+                'reviews' => $total,
+                'reviews_per_score' => $stars,
+                'simulated_review' => $starRating.'★',
+            ],
+        );
     }
 
     private function buildIncrementalFakeMetrics(

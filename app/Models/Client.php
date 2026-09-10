@@ -45,6 +45,7 @@ class Client extends Model
         'google_id',
         'external_reputation_last_synced_at',
         'external_reputation_last_error',
+        'external_reputation_search_query',
         'last_call_at',
         'next_call_at',
     ];

@@ -98,6 +98,8 @@ final class PlaceMetrics
             'reviews_per_score_4',
             'reviews_per_score_5',
             'query',
+            'city',
+            'address',
         ];
 
         $out = [];

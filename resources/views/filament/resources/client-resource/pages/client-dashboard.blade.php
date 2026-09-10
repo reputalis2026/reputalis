@@ -203,6 +203,12 @@
             min-height: clamp(11rem, 32cqw, 15rem);
         }
 
+        .client-dashboard-main-summary-metric--breakdown {
+            overflow: visible;
+            position: relative;
+            z-index: 3;
+        }
+
         .client-dashboard-main-summary-chart-wrap {
             display: flex;
             min-height: clamp(6.5rem, 30cqw, 12rem);
@@ -226,6 +232,7 @@
             width: 100%;
             max-width: 100%;
             min-height: clamp(8.5rem, 22cqw, 12rem);
+            overflow: visible;
         }
 
         .client-dashboard-main-summary-header {
@@ -233,9 +240,15 @@
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            background: #79ad99;
-            color: #ffffff;
+            background: transparent;
+            color: #475569;
+            border-bottom: 1px solid rgba(15, 23, 42, .08);
             padding: .75rem 1rem;
+        }
+
+        .dark .client-dashboard-main-summary-header {
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, .1);
         }
 
         .client-dashboard-main-summary-header h3 {
@@ -250,17 +263,29 @@
             align-items: center;
             gap: .35rem;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, .18);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
             padding: .3rem .55rem;
             font-size: .64rem;
             font-weight: 650;
             white-space: nowrap;
         }
 
+        .dark .client-dashboard-main-summary-count {
+            background: rgba(10, 154, 185, .22);
+            color: #5ec4d8;
+        }
+
         .client-dashboard-filter-header {
-            background: #f39c12;
-            color: #ffffff;
+            background: transparent;
+            color: #475569;
+            border-bottom: 1px solid rgba(15, 23, 42, .08);
             padding: .75rem 1rem;
+        }
+
+        .dark .client-dashboard-filter-header {
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, .1);
         }
 
         .client-dashboard-filter-header h3 {
@@ -274,16 +299,14 @@
             margin-top: .15rem;
             padding: 1.1rem 1rem 1.15rem;
             border-radius: .8rem;
-            background: linear-gradient(145deg, #6fb842 0%, #85cc56 55%, #9ad86a 100%);
-            box-shadow:
-                0 10px 24px rgba(133, 204, 86, .32),
-                inset 0 1px 0 rgba(255, 255, 255, .22);
+            background: rgba(10, 154, 185, .14);
+            box-shadow: none;
             text-align: center;
         }
 
         .client-dashboard-filter-surveys-label {
             margin: 0;
-            color: rgba(255, 255, 255, .94);
+            color: #0A9AB9;
             font-size: .64rem;
             font-weight: 700;
             letter-spacing: .05em;
@@ -293,12 +316,12 @@
 
         .client-dashboard-filter-surveys-value {
             margin: .4rem 0 0;
-            color: #ffffff;
+            color: #0A9AB9;
             font-size: 2.45rem;
             font-weight: 800;
             line-height: 1;
             letter-spacing: -.03em;
-            text-shadow: 0 1px 2px rgba(45, 90, 25, .2);
+            text-shadow: none;
         }
 
         .client-dashboard-filter-dates {
@@ -320,6 +343,9 @@
             border: none !important;
             box-shadow: none !important;
             padding: 0 !important;
+            z-index: 60 !important;
+            overflow: visible !important;
+            pointer-events: none;
         }
 
         .apexcharts-tooltip.reputalis-breakdown-tooltip .apexcharts-tooltip-series-group {
@@ -371,9 +397,15 @@
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            background: #ef7f83;
-            color: #ffffff;
+            background: transparent;
+            color: #475569;
+            border-bottom: 1px solid rgba(15, 23, 42, .08);
             padding: .75rem 1rem;
+        }
+
+        .dark .client-dashboard-improvement-ranking-header {
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, .1);
         }
 
         .client-dashboard-improvement-ranking-header h3 {
@@ -388,11 +420,17 @@
             align-items: center;
             gap: .35rem;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, .18);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
             padding: .3rem .55rem;
             font-size: .64rem;
             font-weight: 650;
             white-space: nowrap;
+        }
+
+        .dark .client-dashboard-improvement-ranking-order {
+            background: rgba(10, 154, 185, .22);
+            color: #5ec4d8;
         }
 
         .client-dashboard-improvement-ranking-body {
@@ -1121,8 +1159,13 @@
             align-items: center;
             justify-content: center;
             border-radius: 9999px;
-            background: #f59e0b;
-            color: #ffffff;
+            background: rgba(100, 116, 139, .14);
+            color: #64748b;
+        }
+
+        .dark .client-dashboard-survey-history-icon {
+            background: rgba(148, 163, 184, .16);
+            color: #cbd5e1;
         }
 
         .client-dashboard-survey-history-actions {
@@ -1152,9 +1195,9 @@
         }
 
         .client-dashboard-survey-history-pill.is-active {
-            border-color: #f59e0b;
-            background: #f59e0b;
-            color: #ffffff;
+            border-color: rgba(10, 154, 185, .45);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
         }
 
         .client-dashboard-hour-shift-actions {
@@ -1191,6 +1234,16 @@
         .client-dashboard-survey-history-chart {
             min-height: 16rem;
             overflow: visible;
+        }
+
+        [data-dashboard-chart="survey-history"] .apexcharts-area-series .apexcharts-area,
+        [data-dashboard-chart="survey-history"] .apexcharts-line {
+            filter: drop-shadow(0 0 3px rgba(118, 169, 156, .28));
+        }
+
+        [data-dashboard-chart="score-trend"] .apexcharts-line-series .apexcharts-line,
+        [data-dashboard-chart="score-trend"] .apexcharts-series path {
+            filter: drop-shadow(0 0 3px rgba(110, 161, 203, .28));
         }
 
         .client-dashboard-insights-row > .client-dashboard-survey-history-card:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-chart {
@@ -1302,9 +1355,15 @@
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            background: linear-gradient(135deg, #7db5db, #93c5e3);
-            color: #ffffff;
+            background: transparent;
+            color: #475569;
+            border-bottom: 1px solid rgba(15, 23, 42, .08);
             padding: .75rem 1rem;
+        }
+
+        .dark .client-dashboard-employee-ranking-header {
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, .1);
         }
 
         .client-dashboard-employee-ranking-header h3 {
@@ -1319,11 +1378,17 @@
             align-items: center;
             gap: .35rem;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, .18);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
             padding: .3rem .55rem;
             font-size: .64rem;
             font-weight: 650;
             white-space: nowrap;
+        }
+
+        .dark .client-dashboard-employee-ranking-order {
+            background: rgba(10, 154, 185, .22);
+            color: #5ec4d8;
         }
 
         .client-dashboard-employee-ranking-body {
@@ -1589,6 +1654,10 @@
         }
 
         .client-dashboard-employee-score {
+            --employee-score-percent: 0;
+            --employee-score-color: #9ca3af;
+            --employee-score-track: #e5e7eb;
+            position: relative;
             display: flex;
             width: 3.15rem;
             height: 3.15rem;
@@ -1596,13 +1665,39 @@
             align-items: center;
             justify-content: center;
             justify-self: end;
-            border: 3px solid #22c55e;
+            border: 0;
             border-radius: 9999px;
+            background: conic-gradient(
+                var(--employee-score-color) calc(var(--employee-score-percent) * 1%),
+                var(--employee-score-track) 0
+            );
             color: #64748b;
             font-size: .82rem;
             font-weight: 800;
             line-height: 1;
             text-align: center;
+        }
+
+        .client-dashboard-employee-score::before {
+            content: "";
+            position: absolute;
+            inset: 3px;
+            border-radius: 9999px;
+            background: #ffffff;
+        }
+
+        .dark .client-dashboard-employee-score {
+            --employee-score-track: rgba(148, 163, 184, .28);
+            color: #cbd5e1;
+        }
+
+        .dark .client-dashboard-employee-score::before {
+            background: rgb(17 24 39);
+        }
+
+        .client-dashboard-employee-score > span {
+            position: relative;
+            z-index: 1;
         }
 
         .client-dashboard-employee-score small {
@@ -1690,9 +1785,9 @@
         }
 
         .client-dashboard-employee-detail-filter-pill.is-active {
-            border-color: #f59e0b;
-            background: #f59e0b;
-            color: #ffffff;
+            border-color: rgba(10, 154, 185, .45);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
         }
 
         .dark .client-dashboard-employee-detail-filter-pill {
@@ -1757,17 +1852,47 @@
         }
 
         .client-dashboard-employee-detail-score {
+            --employee-score-percent: 0;
+            --employee-score-color: #9ca3af;
+            --employee-score-track: #e5e7eb;
+            position: relative;
             display: flex;
             width: 7rem;
             height: 7rem;
             align-items: center;
             justify-content: center;
-            border: 3px solid #22c55e;
+            border: 0;
             border-radius: 9999px;
+            background: conic-gradient(
+                var(--employee-score-color) calc(var(--employee-score-percent) * 1%),
+                var(--employee-score-track) 0
+            );
             color: #64748b;
             font-size: 1.35rem;
             font-weight: 800;
             line-height: 1;
+        }
+
+        .client-dashboard-employee-detail-score::before {
+            content: "";
+            position: absolute;
+            inset: 5px;
+            border-radius: 9999px;
+            background: #ffffff;
+        }
+
+        .dark .client-dashboard-employee-detail-score {
+            --employee-score-track: rgba(148, 163, 184, .28);
+            color: #cbd5e1;
+        }
+
+        .dark .client-dashboard-employee-detail-score::before {
+            background: rgb(17 24 39);
+        }
+
+        .client-dashboard-employee-detail-score > span {
+            position: relative;
+            z-index: 1;
         }
 
         .client-dashboard-employee-detail-score small {
@@ -2236,7 +2361,7 @@
                     </div>
 
                     <section
-                        class="client-dashboard-main-summary-card flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+                        class="client-dashboard-main-summary-card flex flex-col overflow-visible rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
                         data-dashboard-section="main-reputation-summary"
                         data-dashboard-summary-chart
                         wire:key="main-summary-{{ $range_type }}-{{ $date_from ?? 'empty' }}-{{ $date_to ?? 'empty' }}"
@@ -2451,7 +2576,10 @@
                                             <dd>{{ $employee['surveys'] }}</dd>
                                         </dl>
 
-                                        <div class="client-dashboard-employee-score">
+                                        <div
+                                            class="client-dashboard-employee-score"
+                                            style="--employee-score-percent: {{ $employee['gauge_percent'] }}; --employee-score-color: {{ $employee['gauge_color'] }};"
+                                        >
                                             <span>{{ $employee['avg_score'] }}<small>/5</small></span>
                                         </div>
                                     </article>

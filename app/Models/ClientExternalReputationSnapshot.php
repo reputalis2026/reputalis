@@ -149,7 +149,7 @@ class ClientExternalReputationSnapshot extends Model
             return 0;
         }
 
-        // (weighted + 5n) / (total + n) >= R  =>  n >= (R*total - weighted) / (5 - R)
+        // (weighted + 5n) / (total + n) >= target  =>  n >= (target*total - weighted) / (5 - target)
         if ($targetRating >= 5) {
             return null;
         }

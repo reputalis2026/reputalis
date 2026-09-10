@@ -53,7 +53,6 @@ class ReputacionExterna extends Page
             ],
             'external' => [
                 'label' => __('client.dashboard.tabs.external'),
-                'badge' => $unread > 0 ? $unread : null,
             ],
             'sector' => [
                 'label' => __('client.dashboard.tabs.sector'),
@@ -122,15 +121,6 @@ class ReputacionExterna extends Page
     protected function getHeaderActions(): array
     {
         return [
-            HeaderAction::make('simulateSync')
-                ->label(__('client.external_reputation.simulate_sync'))
-                ->icon('heroicon-o-beaker')
-                ->color('warning')
-                ->visible(fn (): bool => $this->canSync())
-                ->requiresConfirmation()
-                ->modalHeading(__('client.external_reputation.simulate_sync_modal_title'))
-                ->modalDescription(__('client.external_reputation.simulate_sync_modal_body'))
-                ->action('simulateSync'),
             HeaderAction::make('syncNow')
                 ->label(__('client.external_reputation.sync_now'))
                 ->icon('heroicon-o-arrow-path')
@@ -176,6 +166,39 @@ class ReputacionExterna extends Page
         }
 
         $this->record = $client->fresh();
+    }
+
+    public function simulate5Star(): void
+    {
+        $this->simulateReview(5);
+    }
+
+    public function simulate1Star(): void
+    {
+        $this->simulateReview(1);
+    }
+
+    private function simulateReview(int $stars): void
+    {
+        abort_unless($this->canSync(), 403);
+
+        $client = $this->getClientRecord();
+        $result = app(ExternalReputationSyncService::class)->simulateSingleReview($client->fresh(), $stars);
+
+        if ($result['ok']) {
+            Notification::make()
+                ->success()
+                ->title(__('client.external_reputation.simulate_review_ok', ['stars' => $stars]))
+                ->send();
+        } else {
+            Notification::make()
+                ->danger()
+                ->title(__('client.external_reputation.simulate_fail_title'))
+                ->body($result['error'] ?? __('client.external_reputation.sync_fail_body'))
+                ->send();
+        }
+
+        $this->redirect(request()->header('Referer', request()->url()), navigate: true);
     }
 
     public function syncNow(): void

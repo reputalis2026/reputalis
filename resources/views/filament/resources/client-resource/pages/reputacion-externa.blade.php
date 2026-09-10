@@ -16,6 +16,36 @@
             5 => '#01FF01',
         ];
         $rangeKey = $chartConfig['range_key'];
+        $scoreColorsList = ['#FF3901', '#FF9880', '#FFC60F', '#8DFFA8', '#01FF01'];
+        $ratingRaw = $snapshot ? (float) ($snapshot->rating ?? 0) : 0;
+        $totalReviews = $snapshot ? (int) $snapshot->reviews_total : 0;
+        $breakdownConfig = $snapshot ? [
+            'scoreLabels' => ['1', '2', '3', '4', '5'],
+            'scorePercentages' => collect([1,2,3,4,5])->map(fn ($s) => $totalReviews > 0 ? round(((int) $snapshot->{"stars_{$s}"} / $totalReviews) * 100, 1) : 0)->values()->all(),
+            'scoreCounts' => collect([1,2,3,4,5])->map(fn ($s) => (int) $snapshot->{"stars_{$s}"})->values()->all(),
+            'scoreColors' => $scoreColorsList,
+            'labelColor' => '#6b7280',
+            'surveysTooltipLabel' => __('client.external_reputation.reviews_total') . ':',
+        ] : null;
+        $realRating = ($snapshot && $totalReviews > 0)
+            ? round(collect([1,2,3,4,5])->sum(fn ($s) => $s * (int) $snapshot->{"stars_{$s}"}) / $totalReviews, 2)
+            : 0;
+        $makeGaugeConfig = fn (float $value, int $decimals = 1) => [
+            'gaugePercent' => $value > 0 ? round(($value / 5) * 100, 1) : 0,
+            'gaugeColor' => match (true) {
+                $value === 0.0 => '#9ca3af',
+                $value >= 4 => '#22c55e',
+                $value >= 3 => '#f59e0b',
+                default => '#ef4444',
+            },
+            'gaugeValue' => $snapshot ? number_format($value, $decimals, ',', '') : '—',
+            'gaugeLabel' => __('client.dashboard.main_summary.out_of_five'),
+            'trackColor' => '#e5e7eb',
+            'labelColor' => '#6b7280',
+        ];
+        $gaugeGoogleConfig = $makeGaugeConfig($ratingRaw, 1);
+        $gaugeRealConfig = $makeGaugeConfig($realRating, 2);
+        $gaugeRealConfig['gaugeColor'] = '#3b82f6';
     @endphp
 
     <div class="external-reputation-page space-y-6">
@@ -27,7 +57,7 @@
             .external-reputation-card {
                 display: flex;
                 min-width: 0;
-                overflow: hidden;
+                overflow: visible;
                 flex-direction: column;
                 border-radius: .875rem;
                 background: #ffffff;
@@ -149,7 +179,7 @@
 
             @media (min-width: 1024px) {
                 .external-reputation-metrics-grid {
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.4fr);
                 }
 
                 .external-reputation-charts-grid {
@@ -164,10 +194,65 @@
                 }
             }
 
+            .external-reputation-chart-filters {
+                display: flex;
+                gap: .25rem;
+            }
+
+            .external-reputation-chart-filter-btn {
+                padding: .25rem .625rem;
+                font-size: .75rem;
+                font-weight: 500;
+                border-radius: .375rem;
+                border: 1px solid #e5e7eb;
+                background: #fff;
+                color: #6b7280;
+                cursor: pointer;
+                transition: all .15s ease;
+                line-height: 1.25rem;
+            }
+
+            .external-reputation-chart-filter-btn:hover {
+                background: #f3f4f6;
+                color: #374151;
+            }
+
+            .external-reputation-chart-filter-btn.active {
+                background: #059669;
+                color: #fff;
+                border-color: #059669;
+            }
+
+            .external-reputation-chart-filter-btn.disabled {
+                opacity: .45;
+                cursor: not-allowed;
+            }
+
             .external-reputation-metric {
                 border-radius: .75rem;
                 background: #f8fafc;
                 padding: .9rem 1rem;
+            }
+
+            .external-reputation-metric[data-external-reputation-chart-card="breakdown"] {
+                overflow: visible;
+                position: relative;
+                z-index: 3;
+            }
+
+            .apexcharts-tooltip.reputalis-breakdown-tooltip {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                z-index: 60 !important;
+                overflow: visible !important;
+                pointer-events: none;
+            }
+
+            .apexcharts-tooltip.reputalis-breakdown-tooltip .apexcharts-tooltip-series-group {
+                background: transparent !important;
+                padding: 0 !important;
             }
 
             .dark .external-reputation-metric {
@@ -202,35 +287,13 @@
                 margin-top: .35rem;
                 font-size: .75rem;
                 color: #64748b;
+                text-align: center;
             }
 
             .dark .external-reputation-metric-help {
                 color: #94a3b8;
             }
 
-            .external-reputation-star-row {
-                display: flex;
-                align-items: center;
-                gap: .75rem;
-                font-size: .875rem;
-            }
-
-            .external-reputation-star-track {
-                height: .5rem;
-                flex: 1;
-                overflow: hidden;
-                border-radius: 999px;
-                background: #e2e8f0;
-            }
-
-            .dark .external-reputation-star-track {
-                background: rgba(255, 255, 255, .1);
-            }
-
-            .external-reputation-star-fill {
-                height: 100%;
-                border-radius: 999px;
-            }
 
             .external-reputation-table-wrap {
                 overflow-x: auto;
@@ -283,6 +346,75 @@
                 background: rgb(17 24 39);
                 color: #e2e8f0;
             }
+
+            @media (min-width: 1024px) {
+                .external-reputation-row-1 {
+                    display: grid;
+                    grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+                    gap: 1rem;
+                    align-items: start;
+                }
+
+                .external-reputation-row-estado-desglose {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                    align-items: start;
+                }
+            }
+
+            .external-reputation-filter-header {
+                background: #f39c12;
+                color: #ffffff;
+                padding: .5rem .75rem;
+            }
+
+            .external-reputation-filter-header h3 {
+                margin: 0;
+                font-size: .84rem;
+                font-weight: 700;
+                line-height: 1.25rem;
+            }
+
+            .client-dashboard-filter-surveys-highlight {
+                margin-top: .15rem;
+                padding: 1.1rem 1rem 1.15rem;
+                border-radius: .8rem;
+                background: rgba(10, 154, 185, .14);
+                box-shadow: none;
+                text-align: center;
+            }
+
+            .client-dashboard-filter-surveys-label {
+                margin: 0;
+                color: #0A9AB9;
+                font-size: .64rem;
+                font-weight: 700;
+                letter-spacing: .05em;
+                line-height: 1.2;
+                text-transform: uppercase;
+            }
+
+            .client-dashboard-filter-surveys-value {
+                margin: .4rem 0 0;
+                color: #0A9AB9;
+                font-size: 2.45rem;
+                font-weight: 800;
+                line-height: 1;
+            }
+
+            .external-reputation-gauge-metric {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .external-reputation-gauge-wrap {
+                width: 100%;
+                max-width: 10rem;
+                margin-top: .25rem;
+            }
+
         </style>
 
         @include('filament.components.client-dashboard.reputation-tabs', [
@@ -309,59 +441,28 @@
             </div>
         @endif
 
-        {{-- Filtros de periodo --}}
-        <section class="external-reputation-card">
-            <div class="external-reputation-card-header">
-                <div class="external-reputation-card-title">
-                    <span class="external-reputation-card-icon">
-                        <x-filament::icon icon="heroicon-m-calendar-days" class="h-4 w-4" />
-                    </span>
-                    <span>{{ __('client.external_reputation.period_heading') }}</span>
-                </div>
-
-                <div class="external-reputation-card-actions">
-                    @foreach (['days' => __('client.external_reputation.mode_days'), 'month' => __('client.external_reputation.mode_month'), 'year' => __('client.external_reputation.mode_year')] as $mode => $label)
-                        <button
-                            type="button"
-                            wire:click="setHistoryMode('{{ $mode }}')"
-                            @class(['external-reputation-pill', 'is-active' => $this->historyMode === $mode])
-                        >{{ $label }}</button>
-                    @endforeach
-
-                    @if ($this->historyMode !== 'days')
-                        <select wire:model.live="filterYear" class="external-reputation-select">
-                            @foreach ($this->getAvailableYears() as $year)
-                                <option value="{{ $year }}">{{ $year }}</option>
-                            @endforeach
-                        </select>
-                    @endif
-
-                    @if ($this->historyMode === 'month')
-                        <select wire:model.live="filterMonth" class="external-reputation-select">
-                            @for ($m = 1; $m <= 12; $m++)
-                                <option value="{{ $m }}">{{ str_pad((string) $m, 2, '0', STR_PAD_LEFT) }}</option>
-                            @endfor
-                        </select>
-                    @endif
-                </div>
-            </div>
-
-            <div class="external-reputation-card-body">
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ __('client.external_reputation.last_sync_label') }}:
-                    {{ $client->external_reputation_last_synced_at?->timezone('Europe/Madrid')->format('d/m/Y H:i') ?? __('client.external_reputation.never_synced') }}
-                </p>
-            </div>
-        </section>
-
         {{-- Estado actual --}}
-        <section class="external-reputation-card">
-            <div class="external-reputation-card-header">
-                <div class="external-reputation-card-title">
+        <section class="external-reputation-card" data-external-reputation-gauge-card>
+            <script type="application/json" data-external-reputation-gauge-config="google">
+                {!! json_encode($gaugeGoogleConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
+            </script>
+            <script type="application/json" data-external-reputation-gauge-config="real">
+                {!! json_encode($gaugeRealConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
+            </script>
+            <div class="external-reputation-card-header" style="display:flex;align-items:center;gap:.75rem;">
+                <div class="external-reputation-card-title" style="flex:1;">
                     <span class="external-reputation-card-icon">
                         <x-filament::icon icon="heroicon-m-star" class="h-4 w-4" />
                     </span>
                     <span>{{ __('client.external_reputation.current_heading') }}</span>
+                </div>
+                <div class="client-dashboard-filter-surveys-highlight" style="margin:0;padding:.35rem .75rem .3rem;flex-shrink:0;">
+                    <p class="client-dashboard-filter-surveys-label">
+                        {{ __('client.external_reputation.reviews_total') }}
+                    </p>
+                    <p class="client-dashboard-filter-surveys-value" style="font-size:1.6rem;">
+                        {{ number_format($totalReviews, 0, ',', '.') }}
+                    </p>
                 </div>
             </div>
 
@@ -372,50 +473,81 @@
                     </p>
                 @else
                     <div class="external-reputation-metrics-grid">
-                        <div class="external-reputation-metric">
+                        <div class="external-reputation-metric external-reputation-gauge-metric">
                             <p class="external-reputation-metric-label">{{ __('client.external_reputation.google_rating') }}</p>
-                            <p class="external-reputation-metric-value">{{ $snapshot->rating ?? '—' }}</p>
-                        </div>
-                        <div class="external-reputation-metric">
-                            <p class="external-reputation-metric-label">{{ __('client.external_reputation.reviews_total') }}</p>
-                            <p class="external-reputation-metric-value">{{ number_format((int) $snapshot->reviews_total, 0, ',', '.') }}</p>
-                        </div>
-                        <div class="external-reputation-metric">
-                            <p class="external-reputation-metric-label">{{ __('client.external_reputation.calculated_rating') }}</p>
-                            <p class="external-reputation-metric-value">{{ $snapshot->calculated_rating ?? '—' }}</p>
-                            <p class="external-reputation-metric-help">{{ __('client.external_reputation.calculated_rating_help') }}</p>
-                        </div>
-                        <div class="external-reputation-metric">
-                            <p class="external-reputation-metric-label">{{ __('client.external_reputation.projection_heading') }}</p>
-                            <p class="mt-2 text-sm font-semibold text-gray-950 dark:text-white">
-                                {{ __('client.external_reputation.projection_text', [
-                                    'n' => $starsNeeded ?? '—',
-                                    'target' => number_format($this->targetRating, 1, ',', ''),
-                                ]) }}
-                            </p>
-                            <p class="external-reputation-metric-help">{{ __('client.external_reputation.projection_disclaimer') }}</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2.5">
-                        <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ __('client.external_reputation.stars_breakdown') }}</p>
-                        @foreach ([5, 4, 3, 2, 1] as $star)
-                            @php $count = (int) $snapshot->{"stars_{$star}"}; @endphp
-                            <div class="external-reputation-star-row">
-                                <span class="w-10 shrink-0 text-gray-600 dark:text-gray-300">{{ $star }}★</span>
-                                <div class="external-reputation-star-track">
-                                    <div
-                                        class="external-reputation-star-fill"
-                                        style="width: {{ min(100, ($count / $maxStars) * 100) }}%; background: {{ $scoreColors[$star] }};"
-                                    ></div>
-                                </div>
-                                <span class="w-14 shrink-0 text-right tabular-nums text-gray-700 dark:text-gray-200">{{ number_format($count, 0, ',', '.') }}</span>
+                            <div class="external-reputation-gauge-wrap">
+                                <div wire:ignore data-external-reputation-chart="gauge-google"></div>
                             </div>
-                        @endforeach
+                            <p class="external-reputation-metric-label" style="margin-top:.75rem;">{{ __('client.external_reputation.calculated_rating') }}</p>
+                            <div class="external-reputation-gauge-wrap">
+                                <div wire:ignore data-external-reputation-chart="gauge-real"></div>
+                            </div>
+                        </div>
+                        @php
+                            $currentTruncated = round(floor(round($realRating, 4) * 10) / 10, 1);
+                            $nextLevel = round($currentTruncated + 0.1, 1);
+                            $nextLevelFmt = number_format($nextLevel, 1, ',', '');
+                            $currentTruncatedFmt = number_format($currentTruncated, 1, ',', '');
+                            $rawReal = ($totalReviews > 0)
+                                ? collect([1,2,3,4,5])->sum(fn ($s) => $s * (int) $snapshot->{"stars_{$s}"}) / $totalReviews
+                                : 0.0;
+                            $diff = $rawReal - $currentTruncated;
+                            $progressInRange = min(100, max(0, (int) (floor($diff / 0.1 * 100 / 5) * 5)));
+                            $starsNeededNextLevel = $snapshot
+                                ? \App\Support\ExternalReputation\RatingProjection::fiveStarsNeededForTarget($snapshot->starsBreakdown(), $nextLevel)
+                                : null;
+                            if ($starsNeededNextLevel !== null && $starsNeededNextLevel <= 0) $starsNeededNextLevel = 0;
+                            $arcTotal = 173;
+                            $arcProgress = round($progressInRange * $arcTotal / 100);
+                            $angle = -180 + ($progressInRange / 100) * 180;
+                            $rad = deg2rad($angle);
+                            $cx = 70; $cy = 75; $r = 55;
+                            $starX = round($cx + $r * cos($rad), 1);
+                            $starY = round($cy + $r * sin($rad), 1);
+                        @endphp
+                        <div class="external-reputation-metric external-reputation-gauge-metric" style="justify-content:space-between;gap:.75rem;">
+                            <div style="text-align:center;">
+                            <p class="external-reputation-metric-label">{{ __('client.external_reputation.projection_progress_title', ['target' => $nextLevelFmt]) }} ⭐</p>
+                            <div style="margin:.5rem auto 0;width:11rem;height:7.5rem;position:relative;">
+                                <svg viewBox="0 0 140 95" style="width:100%;height:100%;overflow:visible;">
+                                    <path d="M15,75 A55,55 0 0,1 125,75" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round"/>
+                                    @if($progressInRange > 0)
+                                        <path d="M15,75 A55,55 0 0,1 125,75" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round"
+                                              stroke-dasharray="{{ $arcProgress }} {{ $arcTotal }}" />
+                                    @endif
+                                    <text x="{{ $starX }}" y="{{ $starY }}" text-anchor="middle" dominant-baseline="central" font-size="14">⭐</text>
+                                    <text x="70" y="68" text-anchor="middle" font-size="22" font-weight="800" fill="currentColor">{{ $progressInRange }}%</text>
+                                    <text x="12" y="92" text-anchor="middle" font-size="11" font-weight="600" fill="#9ca3af">{{ $currentTruncatedFmt }}</text>
+                                    <text x="128" y="92" text-anchor="middle" font-size="11" font-weight="600" fill="#9ca3af">{{ $nextLevelFmt }}</text>
+                                </svg>
+                            </div>
+                            </div>
+                            <div style="text-align:center;">
+                            <p class="external-reputation-metric-label" style="margin-bottom:.5rem;">{{ __('client.external_reputation.projection_reviews_needed') }}</p>
+                            <div style="margin-top:.5rem;padding:.7rem 1.2rem;border-radius:.75rem;background:linear-gradient(145deg, #f97316 0%, #fb923c 55%, #fdba74 100%);box-shadow:0 8px 20px rgba(249,115,22,.3);text-align:center;">
+                                <p style="font-size:2.4rem;font-weight:800;line-height:1;color:#fff;margin:0;text-shadow:0 1px 3px rgba(0,0,0,.15);">{{ $starsNeededNextLevel ?? '—' }}</p>
+                                <p style="font-size:.7rem;font-weight:600;color:rgba(255,255,255,.9);margin:.2rem 0 0;text-transform:uppercase;letter-spacing:.04em;">{{ __('client.external_reputation.projection_five_star') }}</p>
+                            </div>
+                            </div>
+                        </div>
+                        @if ($breakdownConfig)
+                            <div
+                                class="external-reputation-metric external-reputation-gauge-metric"
+                                data-external-reputation-chart-card="breakdown"
+                                wire:key="external-breakdown-{{ $rangeKey }}"
+                            >
+                                <script type="application/json" data-external-reputation-breakdown-config>
+                                    {!! json_encode($breakdownConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
+                                </script>
+                                <p class="external-reputation-metric-label" style="margin-bottom:.25rem;">{{ __('client.external_reputation.stars_breakdown') }}</p>
+                                <div wire:ignore data-external-reputation-chart="breakdown" style="min-height:10rem;"></div>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>
         </section>
+        {{-- /Estado actual --}}
 
         {{-- Gráficos en cards independientes --}}
         <div class="external-reputation-charts-grid space-y-4 lg:space-y-0">
@@ -427,16 +559,21 @@
                 <script type="application/json" data-external-reputation-chart-config>
                     {!! json_encode($chartConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                 </script>
-                <div class="external-reputation-card-header">
+                <div class="external-reputation-card-header" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
                     <div class="external-reputation-card-title">
                         <span class="external-reputation-card-icon">
                             <x-filament::icon icon="heroicon-m-chart-bar" class="h-4 w-4" />
                         </span>
                         <span>{{ __('client.external_reputation.chart_rating_title') }}</span>
                     </div>
+                    <div class="external-reputation-chart-filters">
+                        @foreach (['days', 'month', 'year'] as $mode)
+                            <button type="button" disabled class="external-reputation-chart-filter-btn disabled">{{ __("client.external_reputation.chart_filter_{$mode}") }}</button>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="external-reputation-card-body">
-                    <div wire:ignore data-external-reputation-chart="rating" class="external-reputation-chart"></div>
+                    <div wire:ignore data-external-reputation-chart="rating" class="external-reputation-chart" style="min-height:15rem;"></div>
                 </div>
             </section>
 
@@ -448,16 +585,21 @@
                 <script type="application/json" data-external-reputation-chart-config>
                     {!! json_encode($chartConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
                 </script>
-                <div class="external-reputation-card-header">
+                <div class="external-reputation-card-header" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
                     <div class="external-reputation-card-title">
                         <span class="external-reputation-card-icon">
                             <x-filament::icon icon="heroicon-m-presentation-chart-line" class="h-4 w-4" />
                         </span>
                         <span>{{ __('client.external_reputation.chart_total_title') }}</span>
                     </div>
+                    <div class="external-reputation-chart-filters">
+                        @foreach (['days', 'month', 'year'] as $mode)
+                            <button type="button" disabled class="external-reputation-chart-filter-btn disabled">{{ __("client.external_reputation.chart_filter_{$mode}") }}</button>
+                        @endforeach
+                    </div>
                 </div>
                 <div class="external-reputation-card-body">
-                    <div wire:ignore data-external-reputation-chart="total" class="external-reputation-chart"></div>
+                    <div wire:ignore data-external-reputation-chart="total" class="external-reputation-chart" style="min-height:15rem;"></div>
                 </div>
             </section>
 
@@ -629,5 +771,7 @@
         </section>
     </div>
 
-    @include('filament.components.external-reputation-charts-script')
+    @push('scripts')
+        @include('filament.components.external-reputation-charts-script')
+    @endpush
 </x-filament-panels::page>

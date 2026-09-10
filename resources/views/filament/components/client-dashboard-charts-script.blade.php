@@ -164,6 +164,16 @@
         const buildBreakdownTooltip = (config, breakdownData) => ({
             theme: false,
             cssClass: 'reputalis-breakdown-tooltip',
+            followCursor: false,
+            shared: false,
+            intersect: true,
+            offsetY: -10,
+            fixed: {
+                enabled: true,
+                position: 'topLeft',
+                offsetX: 8,
+                offsetY: 4,
+            },
             custom: ({ dataPointIndex }) => {
                 const item = breakdownData[dataPointIndex] || { count: 0 };
                 const label = config.surveysTooltipLabel || 'Número de encuestas:';
@@ -461,7 +471,7 @@
                     borderColor: 'rgba(148, 163, 184, 0.18)',
                     strokeDashArray: 3,
                     padding: {
-                        top: 10,
+                        top: 36,
                         right: veryCompactLabels ? 4 : 0,
                         bottom: veryCompactLabels ? -2 : compactLabels ? -4 : -6,
                         left: veryCompactLabels ? 4 : 0,
@@ -701,6 +711,15 @@
                     toolbar: { show: false },
                     zoom: { enabled: false },
                     animations: { enabled: false },
+                    dropShadow: {
+                        enabled: true,
+                        enabledOnSeries: [0],
+                        top: 1,
+                        left: 0,
+                        blur: 6,
+                        color: '#76a99c',
+                        opacity: 0.22,
+                    },
                     events: isHoursGrouping ? {
                         mounted: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                         updated: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
@@ -713,14 +732,14 @@
                 colors: ['#76a99c'],
                 stroke: {
                     curve: 'smooth',
-                    width: 3,
+                    width: 3.5,
                 },
                 fill: {
                     type: 'gradient',
                     gradient: {
-                        shadeIntensity: 0,
-                        opacityFrom: 0.28,
-                        opacityTo: 0.04,
+                        shadeIntensity: 0.2,
+                        opacityFrom: 0.32,
+                        opacityTo: 0.05,
                         stops: [0, 90, 100],
                     },
                 },
@@ -887,6 +906,15 @@
                         toolbar: { show: false },
                         zoom: { enabled: false },
                         animations: { enabled: false },
+                        dropShadow: {
+                            enabled: true,
+                            enabledOnSeries: [0],
+                            top: 1,
+                            left: 0,
+                            blur: 6,
+                            color: '#6ea1cb',
+                            opacity: 0.22,
+                        },
                         events: isHourlyTrend ? {
                             mounted: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                             updated: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
@@ -899,7 +927,7 @@
                     colors: ['#6ea1cb'],
                     stroke: {
                         curve: 'straight',
-                        width: 3,
+                        width: 3.5,
                     },
                     markers: {
                         size: values.length > 40 ? 0 : 5,

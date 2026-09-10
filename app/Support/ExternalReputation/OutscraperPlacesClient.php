@@ -15,23 +15,24 @@ class OutscraperPlacesClient implements PlacesReputationGateway
 {
     public function __construct(
         private readonly ?string $apiKey = null,
-        private readonly string $baseUrl = 'https://api.outscraper.com',
+        private readonly string $baseUrl = 'https://api.outscraper.cloud',
         private readonly int $timeout = 60,
         private readonly int $retries = 2,
         private readonly string $language = 'es',
         private readonly string $region = 'ES',
-        private readonly string $endpoint = '/maps/search',
+        private readonly string $endpoint = '/google-maps-search',
     ) {}
 
     public static function fromConfig(): self
     {
         return new self(
             apiKey: config('services.outscraper.key'),
-            baseUrl: rtrim((string) config('services.outscraper.base_url', 'https://api.outscraper.com'), '/'),
+            baseUrl: rtrim((string) config('services.outscraper.base_url', 'https://api.outscraper.cloud'), '/'),
             timeout: (int) config('services.outscraper.timeout', 60),
             retries: (int) config('services.outscraper.retries', 2),
             language: (string) config('services.outscraper.language', 'es'),
             region: (string) config('services.outscraper.region', 'ES'),
+            endpoint: (string) config('services.outscraper.endpoint', '/google-maps-search'),
         );
     }
 
