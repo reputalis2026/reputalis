@@ -43,6 +43,8 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 
 - **App\Support\CsatMetrics**: Servicio de dominio que calcula métricas agregadas de CSAT (media, porcentaje satisfechos, total, encuestas de hoy) para un cliente o globalmente, aplicando ventanas temporales (hoy, 7, 30 días, todo), caché de 5 minutos y el snapshot histórico `positive_scores_used` de cada encuesta.
 
+- **App\Support\ClientDashboard\InternalReputationDateRange**: Ventana temporal del dashboard interno (`all`, `today`, `last_week`, `last_month`, `last_year`, `custom`). El rol cliente la elige con pastillas; superadmin/distribuidor siguen con `<select>`.
+
 - **App\Support\PanelMessageService**: Servicio que centraliza la creación de mensajes de panel relacionados con la activación de clientes: notifica a superadmins cuando un distribuidor crea un cliente pendiente de activar y avisa al distribuidor cuando el superadmin lo activa.
 
 - **App\Support\ImprovementReasonLabelResolver**: Servicio que resuelve el texto final de los motivos de mejora combinando las etiquetas personalizadas por cliente (`ClientImprovementReasonLabel`) con un conjunto de textos por defecto, y devuelve listados completos para usarlos en encuestas o APIs.
@@ -52,13 +54,14 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 - **App\Http\SetPanelLocale**: Middleware registrado en `AdminPanelProvider` después de `StartSession`; aplica `app()->setLocale()` para el panel Filament a partir de la sesión del usuario autenticado. Mantiene separado el idioma del panel autenticado de `ClientImprovementConfig::default_locale` y de la detección `Accept-Language` de la encuesta pública/NFC.
 
 - **App\Filament\Resources\ClientResource**: Recurso Filament que define formularios, tablas, permisos y navegación para gestionar clientes en el panel (`/admin`), incluyendo bloques de facturación, administrador, acceso a plataforma, estado y vigencia, acciones para **Encuesta** (subpágina `PuntosDeMejora`), **Reputación externa** (`ReputacionExterna`), empleados, llamadas, soft deletes y control de acceso según rol.
-- **App\Filament\Resources\ClientResource\Pages\ReputacionExterna**: Contenido de reputación Google agregada (Outscraper): métricas, desglose 1–5, proyección, alertas, histórico, gráficos ApexCharts (nota / total / stars) y sync manual. Se abre desde las pestañas del Dashboard (no figura en el subnav del cliente).
+- **App\Filament\Resources\ClientResource\Pages\ReputacionExterna**: Contenido de reputación Google agregada (Outscraper): métricas, desglose 1–5, proyección, alertas, histórico, gráficos ApexCharts (nota / total / stars) y sync manual. Superadmin/distribuidor la abren desde las pestañas del Dashboard (no figura en el subnav del registro). El rol cliente la abre desde el menú **Panel principal**.
 
 - **Traducciones del panel autenticado (fase 2-3):** `ClientResource`, `DistributorResource`, `EmployeeResource`, `CsatSurveyResource`, `SectorResource`, `NfcTokenResource`, `AdminNotifications`, `DistributorMessages`, `Dashboard`, `ClientCalls`, `CsatStatsOverviewWidget`, `ClientsOverviewWidget`, `EditProfile` y páginas cliente usan `__()` con claves de `lang/`. El panel autenticado queda cubierto todo lo posible sin base de datos; quedan fuera textos persistidos/dinámicos, Pulse y encuesta pública.
 
 - **App\Filament\Resources\ClientResource\Pages\PuntosDeMejora**: Subpágina **Encuesta** en `ClientResource`; edición (superadmin/distribuidor) o solo lectura (cliente). `display_mode`, `default_locale`, valoraciones positivas 1..5 (bloque final consecutivo hasta 5, no vacío ni las cinco), textos en `es`/`pt`/`en`, mensajes multidioma de reseña en Google; **Place ID solo lectura** desde `clients.google_place_id`. UUID en PHP para config y opciones nuevas; si falta configuración (legacy), la página la crea al abrir con valores base y `[4,5]`.
 
-- **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre, como vista amigable dentro del menú del cliente.
+- **App\Support\ClientPanel**: Detecta el panel del rol cliente y construye la navegación lateral (grupos Panel principal / Gestión / Documentos) más URLs de reputación interna, externa y sector. El tema CSS y el pie con nombre/ciudad del negocio solo se aplican si `isActive()`.
+- **App\Filament\Pages\ClientEmpleados**: Página Filament de solo lectura para el rol cliente que lista los empleados (`Employee`) de su `ownedClient`, ordenados por nombre; en el menú va bajo el grupo **Gestión**.
 
 - **App\Http\Controllers\Api\SurveyController**: Controlador API que recibe y valida las encuestas CSAT (`POST /api/surveys/create`), resuelve cliente activo y empleado, consulta `positive_scores` para saber si el score requiere punto de mejora, guarda ese set en `positive_scores_used`, valida que los motivos/opciones de mejora sean válidos para ese cliente, aplica límites por dispositivo y persiste la encuesta registrando logs.
 
@@ -77,7 +80,7 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 - **App\Filament\Resources\SectorResource**: Recurso Filament de configuración para el catálogo de sectores; permite crear, editar y eliminar sectores controlando que no tengan clientes asociados antes de borrarlos. **Sin entrada propia en el menú** (`shouldRegisterNavigation = false`); se abre desde **Herramientas adicionales**.
 - **App\Filament\Pages\AdditionalTools**: Hub «Herramientas adicionales» (grupo Configuración). Visible a superadmin y distribuidor. Cards: Sectores (solo superadmin) e Imágenes de clientes.
 - **App\Filament\Pages\ClientImagesGallery**: Galería de logos y fotos por cliente (acordeón + filtro). Superadmin ve todos; distribuidor solo `created_by = auth()->id()`. Usa `ClientImagePaths` (negocio vs empleados, badge actual, carpetas por empleado).
-- **App\Filament\Pages\ClientCertificados** / **ClientInformes**: Placeholders del menú del rol cliente (solo lectura / sin lógica aún).
+- **App\Filament\Pages\ClientCertificados** / **ClientInformes**: Placeholders del menú del rol cliente (grupo **Documentos**; solo lectura / sin lógica aún).
 - **App\Support\ClientImagePaths**: Rutas y listado de imágenes bajo `img/{code}/logo` e `img/{code}/employees/{employee_id}`; `ensureEmployeePhotoInFolder()` tras crear/editar empleado; URLs públicas vía `/storage/...`.
 - **App\Console\Commands\MigrateClientImages**: `php artisan clients:migrate-images` mueve logos/fotos legacy (`clients/`, `employees/`, o planos bajo `employees/`) a la estructura `img/{code}/…` y actualiza BD.
 

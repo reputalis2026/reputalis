@@ -63,7 +63,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 - **ClientResource** con subpáginas Dashboard, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. Listado de clientes muestra logo pequeño junto al nombre comercial.
 - **Reputación externa (Google / Outscraper):** página `ReputacionExterna` accesible desde Dashboard → pestaña externa (métricas, gráficos, histórico, alertas 1★/2★, sync manual + simulación fake). Cron 3×/día. Plan: `docs/PLAN_REPUTACION_OUTSCRAPER.md`.
-- **Cliente (rol):** menú Dashboard / Empleados / Certificados / Informes (estas dos últimas son placeholders); encuesta CSAT oculta en navegación; branding del panel con nombre del negocio y logo en el menú de perfil.
+- **Cliente (rol):** menú **Panel principal** (reputación interna/externa/sector), **Gestión** (Empleados) y **Documentos** (Certificados e Informes, placeholders); encuesta CSAT oculta en navegación; cromo propio (sidebar oscuro, marca Reputalis, pie con el negocio). En reputación interna, filtro en pastillas y primera fila en 4 KPI (el resto de gráficos aún al estilo anterior). Superadmin/distribuidor conservan agujas y `<select>`.
 - **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial).
 - **Imágenes:** logos/fotos bajo `storage/app/public/img/{code}/…` (comando de migración `clients:migrate-images`).
 - **Notificaciones:** `PanelMessage` / `PanelMessageService` en alta y activación de cliente.

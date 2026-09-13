@@ -16,6 +16,14 @@ return [
         'calls' => 'Llamadas',
         'external_reputation' => 'Reputación externa',
     ],
+    'nav' => [
+        'tagline' => 'Controla tu reputación',
+        'groups' => [
+            'main' => 'Panel principal',
+            'management' => 'Gestión',
+            'documents' => 'Documentos',
+        ],
+    ],
     'certificates' => [
         'title' => 'Certificados',
         'placeholder' => 'Esta sección estará disponible próximamente.',
@@ -128,10 +136,24 @@ return [
             'internal' => 'Reputación interna',
             'external' => 'Reputación externa',
             'sector' => 'Comparativa sector',
+            'internal_short' => 'Interna',
+            'external_short' => 'Externa',
+            'sector_short' => 'Sector',
         ],
         'internal' => [
             'heading' => 'Reputación interna',
             'description' => 'Lectura operativa de las valoraciones recogidas desde la encuesta interna del cliente.',
+            'realtime_subheading' => 'Satisfacción del cliente · actualización en tiempo real',
+        ],
+        'hero' => [
+            'avg_satisfaction' => 'Satisfacción media',
+            'surveys' => 'Encuestas',
+            'positive_ratings' => 'Valoraciones positivas',
+            'score_distribution' => 'Distribución de puntuaciones',
+            'this_month' => 'este mes',
+            'and' => 'y',
+            'positive_scores_hint' => 'puntuaciones de :scores',
+            'responses_today' => '{0} :count respuestas hoy|{1} :count respuesta hoy|[2,*] :count respuestas hoy',
         ],
         'external' => [
             'heading' => 'Reputación externa',
@@ -156,8 +178,17 @@ return [
                 'all' => 'TODO',
                 'last_month' => 'ÚLTIMO MES',
                 'last_week' => 'ÚLTIMA SEMANA',
+                'last_year' => '12 MESES',
                 'today' => 'HOY',
                 'custom' => 'PERSONALIZADO',
+            ],
+            'pills' => [
+                'all' => 'Acumulado',
+                'today' => 'Hoy',
+                'last_week' => '7 días',
+                'last_month' => '30 días',
+                'last_year' => '12 meses',
+                'custom' => 'Personalizado',
             ],
         ],
         'csat' => [

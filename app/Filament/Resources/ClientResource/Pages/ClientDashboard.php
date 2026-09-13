@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
-use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Models\Client;
+use App\Models\ClientImprovementConfig;
 use App\Models\Employee;
 use App\Support\ClientDashboard\InternalReputationDateRange;
 use App\Support\ClientDashboard\InternalReputationMetrics;
@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Storage;
 
 class ClientDashboard extends Page
 {
-    use HasClientPageTitle;
     use InteractsWithRecord;
 
     protected static string $resource = ClientResource::class;
@@ -51,6 +50,17 @@ class ClientDashboard extends Page
     public static function getNavigationLabel(): string
     {
         return __('client.menu.dashboard');
+    }
+
+    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        if (\App\Support\ClientPanel::isActive()) {
+            return $this->activeReputationTab === 'sector'
+                ? __('client.dashboard.tabs.sector')
+                : __('client.dashboard.tabs.internal');
+        }
+
+        return (string) ($this->getRecord()?->namecommercial ?? __('client.resource.model_label'));
     }
 
     public function mount(int|string $record): void
@@ -460,8 +470,24 @@ class ClientDashboard extends Page
             InternalReputationDateRange::TYPE_ALL => __('client.dashboard.filters.range_types.all'),
             InternalReputationDateRange::TYPE_LAST_MONTH => __('client.dashboard.filters.range_types.last_month'),
             InternalReputationDateRange::TYPE_LAST_WEEK => __('client.dashboard.filters.range_types.last_week'),
+            InternalReputationDateRange::TYPE_LAST_YEAR => __('client.dashboard.filters.range_types.last_year'),
             InternalReputationDateRange::TYPE_TODAY => __('client.dashboard.filters.range_types.today'),
             InternalReputationDateRange::TYPE_CUSTOM => __('client.dashboard.filters.range_types.custom'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getClientRangePillOptions(): array
+    {
+        return [
+            InternalReputationDateRange::TYPE_ALL => __('client.dashboard.filters.pills.all'),
+            InternalReputationDateRange::TYPE_TODAY => __('client.dashboard.filters.pills.today'),
+            InternalReputationDateRange::TYPE_LAST_WEEK => __('client.dashboard.filters.pills.last_week'),
+            InternalReputationDateRange::TYPE_LAST_MONTH => __('client.dashboard.filters.pills.last_month'),
+            InternalReputationDateRange::TYPE_LAST_YEAR => __('client.dashboard.filters.pills.last_year'),
+            InternalReputationDateRange::TYPE_CUSTOM => __('client.dashboard.filters.pills.custom'),
         ];
     }
 
@@ -522,19 +548,43 @@ class ClientDashboard extends Page
     }
 
     /**
-     * @return array{avg_score: string, avg_score_raw: float|null, gauge_percent: float, gauge_color: string, satisfied_pct: string, satisfied_pct_raw: float|null, total_surveys: int, score_breakdown: array<int, array{score: int, count: int, percentage: float}>}
+     * @return array{
+     *     avg_score: string,
+     *     avg_score_precise: string,
+     *     avg_score_raw: float|null,
+     *     avg_delta: float|null,
+     *     avg_delta_formatted: string|null,
+     *     avg_delta_positive: bool|null,
+     *     gauge_percent: float,
+     *     gauge_color: string,
+     *     satisfied_pct: string,
+     *     satisfied_pct_raw: float|null,
+     *     total_surveys: int,
+     *     today_count: int,
+     *     positive_scores_hint: string,
+     *     score_breakdown: array<int, array{score: int, count: int, percentage: float}>
+     * }
      */
     public function getMainReputationSummary(): array
     {
         $metrics = $this->getInternalCsatMetrics();
         $avgScoreRaw = $metrics['avg_score'] !== null ? (float) $metrics['avg_score'] : null;
         $satisfiedPctRaw = $metrics['satisfied_pct'] !== null ? (float) $metrics['satisfied_pct'] : null;
+        $avgDelta = $this->getMonthOverMonthScoreDelta();
 
         return [
             'avg_score' => $avgScoreRaw !== null
                 ? number_format($avgScoreRaw, 1, ',', ' ')
                 : __('common.placeholders.empty'),
+            'avg_score_precise' => $avgScoreRaw !== null
+                ? number_format($avgScoreRaw, 2, ',', '')
+                : __('common.placeholders.empty'),
             'avg_score_raw' => $avgScoreRaw,
+            'avg_delta' => $avgDelta,
+            'avg_delta_formatted' => $avgDelta !== null
+                ? ($avgDelta >= 0 ? '+' : '').number_format($avgDelta, 2, ',', '')
+                : null,
+            'avg_delta_positive' => $avgDelta !== null ? $avgDelta >= 0 : null,
             'gauge_percent' => $avgScoreRaw !== null ? round(($avgScoreRaw / 5) * 100, 1) : 0.0,
             'gauge_color' => match (true) {
                 $avgScoreRaw === null => '#9ca3af',
@@ -545,6 +595,10 @@ class ClientDashboard extends Page
             'satisfied_pct' => $this->formatSatisfiedPercent($satisfiedPctRaw),
             'satisfied_pct_raw' => $satisfiedPctRaw,
             'total_surveys' => (int) $metrics['total'],
+            'today_count' => (int) ($metrics['today_count'] ?? 0),
+            'positive_scores_hint' => __('client.dashboard.hero.positive_scores_hint', [
+                'scores' => $this->formatPositiveScoreList($this->getPositiveScores()),
+            ]),
             'score_breakdown' => app(InternalReputationMetrics::class)->getScoreBreakdown(
                 $this->getClientRecord()->id,
                 $this->getInternalReputationDateRange(),
@@ -865,6 +919,7 @@ class ClientDashboard extends Page
             InternalReputationDateRange::TYPE_TODAY,
             InternalReputationDateRange::TYPE_LAST_WEEK,
             InternalReputationDateRange::TYPE_LAST_MONTH,
+            InternalReputationDateRange::TYPE_LAST_YEAR,
             InternalReputationDateRange::TYPE_ALL,
             InternalReputationDateRange::TYPE_CUSTOM,
         ], true)
@@ -878,6 +933,20 @@ class ClientDashboard extends Page
             $this->employee_detail_range_type = InternalReputationDateRange::TYPE_CUSTOM;
             $this->employee_detail_date_from = $this->date_from;
             $this->employee_detail_date_to = $this->date_to;
+
+            return;
+        }
+
+        if ($this->range_type === InternalReputationDateRange::TYPE_LAST_YEAR) {
+            $range = InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_LAST_YEAR,
+                null,
+                null,
+            );
+            [$from, $to] = $range->bounds();
+            $this->employee_detail_range_type = InternalReputationDateRange::TYPE_CUSTOM;
+            $this->employee_detail_date_from = $from?->toDateString();
+            $this->employee_detail_date_to = $to?->toDateString();
 
             return;
         }
@@ -935,6 +1004,62 @@ class ClientDashboard extends Page
                 ->map(fn (): float => 0.0)
                 ->all(),
         ];
+    }
+
+    private function getMonthOverMonthScoreDelta(): ?float
+    {
+        $metrics = app(InternalReputationMetrics::class);
+        $clientId = $this->getClientRecord()->id;
+
+        $thisMonth = InternalReputationDateRange::fromState(
+            InternalReputationDateRange::TYPE_CUSTOM,
+            now()->copy()->startOfMonth()->toDateString(),
+            now()->toDateString(),
+        );
+        $lastMonth = InternalReputationDateRange::fromState(
+            InternalReputationDateRange::TYPE_CUSTOM,
+            now()->copy()->startOfMonth()->subMonth()->toDateString(),
+            now()->copy()->startOfMonth()->subDay()->toDateString(),
+        );
+
+        $current = $metrics->getCsatMetrics($clientId, $thisMonth);
+        $previous = $metrics->getCsatMetrics($clientId, $lastMonth);
+
+        if ($current['avg_score'] === null || $previous['avg_score'] === null) {
+            return null;
+        }
+
+        return round((float) $current['avg_score'] - (float) $previous['avg_score'], 2);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function getPositiveScores(): array
+    {
+        return $this->getClientRecord()->improvementConfig?->positiveScores()
+            ?? ClientImprovementConfig::defaultPositiveScores();
+    }
+
+    /**
+     * @param  array<int, int>  $scores
+     */
+    private function formatPositiveScoreList(array $scores): string
+    {
+        $scores = array_values(array_unique(array_map('intval', $scores)));
+        sort($scores);
+
+        if ($scores === []) {
+            $scores = ClientImprovementConfig::defaultPositiveScores();
+        }
+
+        if (count($scores) === 1) {
+            return (string) $scores[0];
+        }
+
+        $last = (string) array_pop($scores);
+
+        return implode(', ', $scores).' '.__('client.dashboard.hero.and').' '.$last;
     }
 
     private function formatSatisfiedPercent(?float $value): string

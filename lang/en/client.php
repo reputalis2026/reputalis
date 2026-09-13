@@ -16,6 +16,14 @@ return [
         'calls' => 'Calls',
         'external_reputation' => 'External reputation',
     ],
+    'nav' => [
+        'tagline' => 'Control your reputation',
+        'groups' => [
+            'main' => 'Main panel',
+            'management' => 'Management',
+            'documents' => 'Documents',
+        ],
+    ],
     'certificates' => [
         'title' => 'Certificates',
         'placeholder' => 'This section will be available soon.',
@@ -128,10 +136,24 @@ return [
             'internal' => 'Internal reputation',
             'external' => 'External reputation',
             'sector' => 'Sector comparison',
+            'internal_short' => 'Internal',
+            'external_short' => 'External',
+            'sector_short' => 'Sector',
         ],
         'internal' => [
             'heading' => 'Internal reputation',
             'description' => 'Operational view of the ratings collected through the client internal survey.',
+            'realtime_subheading' => 'Customer satisfaction · real-time updates',
+        ],
+        'hero' => [
+            'avg_satisfaction' => 'Average satisfaction',
+            'surveys' => 'Surveys',
+            'positive_ratings' => 'Positive ratings',
+            'score_distribution' => 'Score distribution',
+            'this_month' => 'this month',
+            'and' => 'and',
+            'positive_scores_hint' => 'scores of :scores',
+            'responses_today' => '{0} :count responses today|{1} :count response today|[2,*] :count responses today',
         ],
         'external' => [
             'heading' => 'External reputation',
@@ -156,8 +178,17 @@ return [
                 'all' => 'ALL',
                 'last_month' => 'LAST MONTH',
                 'last_week' => 'LAST WEEK',
+                'last_year' => '12 MONTHS',
                 'today' => 'TODAY',
                 'custom' => 'CUSTOM',
+            ],
+            'pills' => [
+                'all' => 'All time',
+                'today' => 'Today',
+                'last_week' => '7 days',
+                'last_month' => '30 days',
+                'last_year' => '12 months',
+                'custom' => 'Custom',
             ],
         ],
         'csat' => [

@@ -8,7 +8,12 @@ class ClientInformes extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('client.nav.groups.documents');
+    }
 
     protected static string $view = 'filament.pages.client-informes';
 

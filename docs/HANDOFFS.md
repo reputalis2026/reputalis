@@ -27,6 +27,41 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-09-13 — Reputación interna: filtro y primera fila (rol cliente)
+
+- **Qué se cambió:** En el dashboard de reputación interna del **rol cliente**, el `<select>` de rango y la card de agujas Apex se sustituyen por pastillas (Acumulado / Hoy / 7 días / 30 días / 12 meses / Personalizado) y cuatro KPI: satisfacción media (2 decimales + delta vs mes anterior), encuestas (total + respuestas de hoy), % valoraciones positivas y barras 1–5. Nuevo tipo de rango `last_year`. Superadmin/distribuidor conservan el filtro y las agujas.
+- **Por qué:** Primera pieza del rediseño de gráficos al mockup, sin tocar el resto del dashboard.
+- **Qué falta:** Evolución, ranking de empleados, puntos de mejora y el resto de bloques internos.
+- **Riesgos o pendientes:** El delta «este mes» compara el mes calendario actual con el anterior, independiente del rango de pastillas. Tras editar Blade, `sudo -u nobody php artisan view:clear` (PHP-FPM corre como `nobody`).
+
+### 2026-09-13 — Cuenta cliente en el sidebar (sin pastillas móviles)
+
+- **Qué se cambió:** Eliminadas las pastillas Interna/Externa/Sector. El cambio de reputación en móvil queda solo en el menú hamburguesa. El logo del cliente, perfil, idiomas y logout pasan al pie del sidebar; se ocultan en la esquina superior derecha.
+- **Por qué:** El usuario pidió no usar pastillas bajo el título y llevar la cuenta (logo + logout) al lateral.
+- **Qué falta:** —
+- **Riesgos o pendientes:** En móvil la topbar queda solo con el hamburguesa; hay que abrir el menú para cambiar de sección o cerrar sesión.
+
+### 2026-09-13 — Navegación reputación en móvil (rol cliente)
+
+- **Qué se cambió:** El CSS ya no oculta toda la topbar (eso escondía el hamburguesa). En pantallas &lt;1024px el rol cliente ve pastillas **Interna / Externa / Sector** y puede abrir el menú lateral. En escritorio el cambio sigue siendo solo por el sidebar.
+- **Por qué:** En móvil el panel principal desaparecía y no había forma de pasar de reputación interna a externa.
+- **Qué falta:** —
+- **Riesgos o pendientes:** —
+
+### 2026-09-13 — Paleta cliente persistente en navegación SPA
+
+- **Qué se cambió:** La clase `reputalis-client-panel` se vuelve a poner en `<html>`/`<body>` en el evento `livewire:navigated` (mismo patrón que el dark mode de Filament). El CSS del tema pasa al hook `STYLES_AFTER` con `id` estable.
+- **Por qué:** Al pinchar Reputación externa u otra opción del menú, el SPA quitaba la clase y se perdía la paleta hasta recargar.
+- **Qué falta:** —
+- **Riesgos o pendientes:** —
+
+### 2026-09-13 — Contorno dashboard rol cliente (sidebar y colores)
+
+- **Qué se cambió:** Shell visual **solo para rol cliente**: sidebar oscuro, marca Reputalis + tagline, canvas menta, pie con nombre/ciudad del negocio. Menú en tres grupos — **Panel principal** (Reputación interna / externa / Comparativa sector), **Gestión** (Empleados), **Documentos** (Certificados, Informes). Las pestañas de reputación de la página se ocultan en ese rol (el lateral las sustituye). Gráficos y métricas **sin tocar**. Superadmin/distribuidor conservan el cromo ámbar de Filament. Piezas: `App\Support\ClientPanel`, tema CSS `client-panel-theme`, i18n `client.nav.*`.
+- **Por qué:** Primera fase del rediseño al mockup: contorno (lateral y colores) antes de retocar gráficos uno a uno.
+- **Qué falta:** Afinar gráficos y bloques nuevos del mockup (alertas internas, notificaciones, crecimiento acumulado, mini barras 1–5 por empleado). Opcional: rellenar ciudad en ficha para el pie del sidebar.
+- **Riesgos o pendientes:** El tema vive en la clase `reputalis-client-panel` y se reaplica en `livewire:navigated` porque el SPA de Filament la quita al cambiar de página. Comparativa sector sigue siendo placeholder. No aplicar este look al panel de superadmin.
+
 ### 2026-09-10 — Encuesta: pantalla puntos de mejora (mockup)
 
 - **Qué se cambió:** `step-reason` en `survey.blade.php` alineado al mockup: logo Reputalis, título editable (mismo estilo que la pregunta de valoración), texto fijo «Selecciona una opción», cards centradas con fondo `#eef2f6` y bordes redondeados. `step-thanks-low` (tras puntos de mejora): logo, check cyan, «¡Gracias!», subtítulo y footer «Encuesta gestionada por REPUTALIS». Sin tocar SW/PWA.

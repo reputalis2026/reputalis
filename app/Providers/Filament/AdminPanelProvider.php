@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\EditProfile;
 use App\Http\SetPanelLocale;
+use App\Support\ClientPanel;
 use App\Support\PanelLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -34,10 +35,8 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->profile(EditProfile::class)
             ->brandName(function (): string {
-                $user = auth()->user();
-
-                if ($user?->isClientOwner() && filled($user->ownedClient?->namecommercial)) {
-                    return (string) $user->ownedClient->namecommercial;
+                if (ClientPanel::isActive()) {
+                    return 'Reputalis';
                 }
 
                 return (string) config('app.name');
@@ -54,6 +53,8 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->sidebarWidth('18rem')
+            ->navigationGroups(ClientPanel::navigationGroups())
+            ->navigationItems(ClientPanel::navigationItems())
             ->userMenuItems([
                 'language_es' => MenuItem::make()
                     ->label(fn (): string => $this->languageMenuLabel('es'))
@@ -68,6 +69,14 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => route('panel.language.switch', ['locale' => 'pt']))
                     ->icon('heroicon-o-language'),
             ])
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): string => view('filament.components.client-panel-theme')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_FOOTER,
+                fn (): string => view('filament.components.client-sidebar-footer')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::BODY_START,
                 fn (): string => view('filament.components.panel-loading-overlay-markup')->render(),

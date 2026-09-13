@@ -8,7 +8,12 @@ class ClientCertificados extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('client.nav.groups.documents');
+    }
 
     protected static string $view = 'filament.pages.client-certificados';
 

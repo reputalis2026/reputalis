@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\ClientResource\Pages;
 
 use App\Filament\Resources\ClientResource;
-use App\Filament\Resources\ClientResource\Pages\Concerns\HasClientPageTitle;
 use App\Models\Client;
 use App\Models\ClientExternalReputationAlert;
 use App\Models\ClientExternalReputationSnapshot;
@@ -19,7 +18,6 @@ use Illuminate\Support\Collection;
 
 class ReputacionExterna extends Page
 {
-    use HasClientPageTitle;
     use InteractsWithRecord;
 
     protected static string $resource = ClientResource::class;
@@ -38,6 +36,15 @@ class ReputacionExterna extends Page
     public static function getNavigationLabel(): string
     {
         return __('client.menu.external_reputation');
+    }
+
+    public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        if (\App\Support\ClientPanel::isActive()) {
+            return __('client.dashboard.tabs.external');
+        }
+
+        return (string) ($this->getRecord()?->namecommercial ?? __('client.resource.model_label'));
     }
 
     /**

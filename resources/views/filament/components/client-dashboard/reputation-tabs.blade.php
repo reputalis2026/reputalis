@@ -2,7 +2,7 @@
     $tabs = $tabs ?? [];
     $activeTab = $activeTab ?? 'internal';
 @endphp
-
+@unless (\App\Support\ClientPanel::isActive())
 <div class="flex flex-wrap gap-2" role="tablist" aria-label="{{ __('client.dashboard.tabs.aria_label') }}">
     @foreach ($tabs as $key => $tab)
         <button
@@ -31,3 +31,4 @@
         </button>
     @endforeach
 </div>
+@endunless

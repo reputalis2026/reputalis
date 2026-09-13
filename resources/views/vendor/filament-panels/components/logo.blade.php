@@ -1,6 +1,7 @@
 @php
     $brandName = filament()->getBrandName();
     $brandLogo = filament()->getBrandLogo();
+    $isClientPanel = \App\Support\ClientPanel::isActive();
     $darkModeBrandLogo = filament()->getDarkModeBrandLogo();
     $hasDarkModeBrandLogo = filled($darkModeBrandLogo);
     $displayBrandName = \Illuminate\Support\Str::upper((string) $brandName);
@@ -60,6 +61,12 @@
     }
 </style>
 
+@if ($isClientPanel)
+    <div class="fi-logo reputalis-client-brand">
+        <span class="reputalis-client-brand-name">Reputalis</span>
+        <span class="reputalis-client-brand-tagline">{{ __('client.nav.tagline') }}</span>
+    </div>
+@else
 @capture($content, $logo, $isDarkMode = false)
     @if ($logo instanceof \Illuminate\Contracts\Support\Htmlable)
         <div {{ $attributes->class([$getLogoWrapperClasses($isDarkMode)]) }}>
@@ -99,4 +106,5 @@
 
 @if ($hasDarkModeBrandLogo)
     {{ $content($darkModeBrandLogo, isDarkMode: true) }}
+@endif
 @endif

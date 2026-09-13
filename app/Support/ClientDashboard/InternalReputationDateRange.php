@@ -13,6 +13,8 @@ class InternalReputationDateRange
 
     public const TYPE_LAST_WEEK = 'last_week';
 
+    public const TYPE_LAST_YEAR = 'last_year';
+
     public const TYPE_TODAY = 'today';
 
     public const TYPE_CUSTOM = 'custom';
@@ -43,6 +45,7 @@ class InternalReputationDateRange
             self::TYPE_ALL,
             self::TYPE_LAST_MONTH,
             self::TYPE_LAST_WEEK,
+            self::TYPE_LAST_YEAR,
             self::TYPE_TODAY,
             self::TYPE_CUSTOM,
         ];
@@ -97,6 +100,7 @@ class InternalReputationDateRange
         return match ($this->rangeType) {
             self::TYPE_LAST_MONTH => [Carbon::today()->subDays(30)->startOfDay(), Carbon::today()->endOfDay()],
             self::TYPE_LAST_WEEK => [Carbon::today()->subDays(7)->startOfDay(), Carbon::today()->endOfDay()],
+            self::TYPE_LAST_YEAR => [Carbon::today()->subYear()->startOfDay(), Carbon::today()->endOfDay()],
             self::TYPE_TODAY => [Carbon::today()->startOfDay(), Carbon::today()->endOfDay()],
             default => [null, null],
         };

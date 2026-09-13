@@ -19,6 +19,11 @@ class Dashboard extends BaseDashboard
         }
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! \App\Support\ClientPanel::isActive();
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('dashboard.navigation_label');
