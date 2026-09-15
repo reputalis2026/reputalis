@@ -127,7 +127,9 @@
             ])>
                 <div class="client-dashboard-employee-detail-trend">
                     <h5 class="client-dashboard-employee-detail-trend-title">
-                        {{ __('client.dashboard.score_trend.heading') }}
+                        {{ \App\Support\ClientPanel::isActive()
+                            ? __('client.dashboard.score_trend.heading_client')
+                            : __('client.dashboard.score_trend.heading') }}
                     </h5>
 
                     <div wire:ignore data-dashboard-chart="employee-trend" class="client-dashboard-employee-detail-trend-chart"></div>

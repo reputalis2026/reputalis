@@ -157,12 +157,28 @@ class InternalReputationMetrics
     }
 
     /**
-     * @return array{labels: array<int, string>, counts: array<int, int>, granularity: string, grouping: string, total: int}
+     * Encuestas creadas en el mes calendario en curso (para el chip «+N este mes»).
+     */
+    public function getSurveysThisMonth(string $clientId): int
+    {
+        return (int) CsatSurvey::query()
+            ->where('client_id', $clientId)
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->count();
+    }
+
+    /**
+     * @return array{labels: array<int, string>, counts: array<int, int>, cumulative: array<int, int>, baseline: int, granularity: string, grouping: string, total: int}
      */
     private function getSurveyHistoryByRange(string $clientId, InternalReputationDateRange $range): array
     {
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
-        $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+        $granularity = $this->resolveSurveyGrowthGranularity($range, $from, $until);
+
+        $baseline = (int) CsatSurvey::query()
+            ->where('client_id', $clientId)
+            ->where('created_at', '<', $from)
+            ->count();
 
         $rows = $this->applyDateRange(
             CsatSurvey::query()->where('csat_surveys.client_id', $clientId),
@@ -182,17 +198,28 @@ class InternalReputationMetrics
                 Carbon::parse($row->bucket)->format('Y-m-d H:i:s') => (int) $row->aggregate,
             ]);
 
+        $sameYear = $from->year === $until->year;
+
         $labels = [];
         $counts = [];
+        $cumulative = [];
+        $running = $baseline;
         foreach ($this->historyPeriod($from, $until, $granularity) as $bucket) {
-            $key = $bucket->copy()->startOf($granularity)->format('Y-m-d H:i:s');
-            $labels[] = $this->formatHistoryLabel($bucket, $granularity);
-            $counts[] = (int) ($rows[$key] ?? 0);
+            $key = $this->bucketStart($bucket, $granularity)->format('Y-m-d H:i:s');
+            $count = (int) ($rows[$key] ?? 0);
+            $running += $count;
+            $labels[] = $granularity === 'month'
+                ? $this->formatGrowthMonthLabel($bucket)
+                : $this->formatHistoryLabel($bucket, $granularity, $sameYear);
+            $counts[] = $count;
+            $cumulative[] = $running;
         }
 
         return [
             'labels' => $labels,
             'counts' => $counts,
+            'cumulative' => $cumulative,
+            'baseline' => $baseline,
             'granularity' => $granularity,
             'grouping' => self::SURVEY_HISTORY_GROUPING_RANGE,
             'total' => array_sum($counts),
@@ -269,10 +296,12 @@ class InternalReputationMetrics
      *     granularity: string
      * }
      */
-    public function getScoreTrend(string $clientId, InternalReputationDateRange $range): array
+    public function getScoreTrend(string $clientId, InternalReputationDateRange $range, bool $clientStyle = false): array
     {
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
-        $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+        $granularity = $clientStyle
+            ? $this->resolveSurveyGrowthGranularity($range, $from, $until)
+            : $this->resolveHistoryGranularity($range, $from, $until);
 
         $rows = $this->applyDateRange(
             CsatSurvey::query()->where('csat_surveys.client_id', $clientId),
@@ -299,17 +328,33 @@ class InternalReputationMetrics
         $labels = [];
         $averages = [];
         $counts = [];
+        $cumulativeAverages = [];
         $tableRows = [];
+        $runningSum = 0.0;
+        $runningCount = 0;
+
+        $sameYear = $from->year === $until->year;
 
         foreach ($this->historyPeriod($from, $until, $granularity) as $bucket) {
-            $key = $bucket->copy()->startOf($granularity)->format('Y-m-d H:i:s');
-            $label = $this->formatHistoryLabel($bucket, $granularity);
+            $key = ($clientStyle ? $this->bucketStart($bucket, $granularity) : $bucket->copy()->startOf($granularity))
+                ->format('Y-m-d H:i:s');
+            $label = $clientStyle && $granularity === 'month'
+                ? $this->formatGrowthMonthLabel($bucket)
+                : $this->formatHistoryLabel($bucket, $granularity, $clientStyle && $sameYear);
             $average = $rows[$key]['average'] ?? null;
             $count = (int) ($rows[$key]['count'] ?? 0);
+
+            if ($count > 0 && $average !== null) {
+                $runningSum += ((float) $average) * $count;
+                $runningCount += $count;
+            }
 
             $labels[] = $label;
             $averages[] = $average;
             $counts[] = $count;
+            $cumulativeAverages[] = $runningCount > 0
+                ? round($runningSum / $runningCount, 2)
+                : null;
 
             if ($count > 0) {
                 $tableRows[] = [
@@ -323,6 +368,8 @@ class InternalReputationMetrics
         return [
             'labels' => $labels,
             'averages' => $averages,
+            'cumulative_averages' => $cumulativeAverages,
+            'overall_average' => $runningCount > 0 ? round($runningSum / $runningCount, 2) : null,
             'counts' => $counts,
             'rows' => $tableRows,
             'granularity' => $granularity,
@@ -342,11 +389,14 @@ class InternalReputationMetrics
         string $employeeId,
         InternalReputationDateRange $range,
         ?string $forceGranularity = null,
+        bool $clientStyle = false,
     ): array {
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
-        $granularity = $forceGranularity ?: $this->resolveHistoryGranularity($range, $from, $until);
+        $granularity = $forceGranularity ?: ($clientStyle
+            ? $this->resolveSurveyGrowthGranularity($range, $from, $until)
+            : $this->resolveHistoryGranularity($range, $from, $until));
 
-        if (! in_array($granularity, ['hour', 'day', 'month', 'year'], true)) {
+        if (! in_array($granularity, ['hour', 'day', 'week', 'month', 'year'], true)) {
             $granularity = $this->resolveHistoryGranularity($range, $from, $until);
         }
 
@@ -369,10 +419,14 @@ class InternalReputationMetrics
         $labels = [];
         $averages = [];
         $counts = [];
+        $sameYear = $from->year === $until->year;
 
         foreach ($this->historyPeriod($from, $until, $granularity) as $bucket) {
-            $key = $bucket->copy()->startOf($granularity)->format('Y-m-d H:i:s');
-            $labels[] = $this->formatHistoryLabel($bucket, $granularity);
+            $key = ($clientStyle ? $this->bucketStart($bucket, $granularity) : $bucket->copy()->startOf($granularity))
+                ->format('Y-m-d H:i:s');
+            $labels[] = $clientStyle && $granularity === 'month'
+                ? $this->formatGrowthMonthLabel($bucket)
+                : $this->formatHistoryLabel($bucket, $granularity, $clientStyle && $sameYear);
             $averages[] = $rows[$key]['average'] ?? null;
             $counts[] = (int) ($rows[$key]['count'] ?? 0);
         }
@@ -584,6 +638,7 @@ class InternalReputationMetrics
         string $optionId,
         InternalReputationDateRange $range,
         ?string $locale = null,
+        bool $clientStyle = false,
     ): ?array {
         $option = ClientImprovementOption::query()
             ->where('id', $optionId)
@@ -594,7 +649,9 @@ class InternalReputationMetrics
             ->first();
 
         [$from, $until] = $this->resolveHistoryBounds($clientId, $range);
-        $granularity = $this->resolveHistoryGranularity($range, $from, $until);
+        $granularity = $clientStyle
+            ? $this->resolveSurveyGrowthGranularity($range, $from, $until)
+            : $this->resolveHistoryGranularity($range, $from, $until);
 
         if (! $option) {
             $hasHistoricalSurveys = $this->applyDateRange(
@@ -644,10 +701,14 @@ class InternalReputationMetrics
         $counts = [];
         $totals = [];
         $tableRows = [];
+        $sameYear = $from->year === $until->year;
 
         foreach ($this->historyPeriod($from, $until, $granularity) as $bucket) {
-            $key = $bucket->copy()->startOf($granularity)->format('Y-m-d H:i:s');
-            $label = $this->formatHistoryLabel($bucket, $granularity);
+            $key = ($clientStyle ? $this->bucketStart($bucket, $granularity) : $bucket->copy()->startOf($granularity))
+                ->format('Y-m-d H:i:s');
+            $label = $clientStyle && $granularity === 'month'
+                ? $this->formatGrowthMonthLabel($bucket)
+                : $this->formatHistoryLabel($bucket, $granularity, $clientStyle && $sameYear);
             $count = (int) ($rows[$key]['count'] ?? 0);
             $total = (int) ($rows[$key]['total'] ?? 0);
             $percentage = $total > 0 ? round(($count / $total) * 100, 1) : null;
@@ -812,23 +873,62 @@ class InternalReputationMetrics
     }
 
     /**
+     * Granularidad del gráfico de crecimiento acumulado (rol cliente).
+     * 7 días → día; 30 días → semana (evita ~31 etiquetas); más largo → mes.
+     */
+    private function resolveSurveyGrowthGranularity(InternalReputationDateRange $range, Carbon $from, Carbon $until): string
+    {
+        if ($range->rangeType === InternalReputationDateRange::TYPE_TODAY) {
+            return 'hour';
+        }
+
+        $days = $from->copy()->startOfDay()->diffInDays($until->copy()->endOfDay());
+
+        if ($days <= 10) {
+            return 'day';
+        }
+
+        if ($days <= 60) {
+            return 'week';
+        }
+
+        return 'month';
+    }
+
+    private function bucketStart(Carbon $bucket, string $granularity): Carbon
+    {
+        return match ($granularity) {
+            'week' => $bucket->copy()->startOfWeek(Carbon::MONDAY),
+            default => $bucket->copy()->startOf($granularity),
+        };
+    }
+
+    /**
      * @return iterable<int, Carbon>
      */
     private function historyPeriod(Carbon $from, Carbon $until, string $granularity): iterable
     {
-        $start = $from->copy()->startOf($granularity);
-        $end = $until->copy()->startOf($granularity);
+        $start = $this->bucketStart($from, $granularity);
+        $end = $this->bucketStart($until, $granularity);
+        $step = $granularity === 'week' ? '1 week' : "1 {$granularity}";
 
-        return CarbonPeriod::create($start, "1 {$granularity}", $end);
+        return CarbonPeriod::create($start, $step, $end);
     }
 
-    private function formatHistoryLabel(Carbon $bucket, string $granularity): string
+    private function formatGrowthMonthLabel(Carbon $bucket): string
+    {
+        return ucfirst(str_replace('.', '', $bucket->isoFormat('MMM')));
+    }
+
+    private function formatHistoryLabel(Carbon $bucket, string $granularity, bool $sameYear = false): string
     {
         return match ($granularity) {
             'hour' => $bucket->format('H:00'),
-            'day' => $bucket->format('d/m'),
+            'day', 'week' => $bucket->format('j/n'),
             'year' => $bucket->format('Y'),
-            default => $bucket->isoFormat('MMM YY'),
+            default => $sameYear
+                ? ucfirst(str_replace('.', '', $bucket->isoFormat('MMM')))
+                : ucfirst(str_replace('.', '', $bucket->isoFormat('MMM YY'))),
         };
     }
 

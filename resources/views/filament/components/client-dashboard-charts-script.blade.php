@@ -217,6 +217,247 @@
             };
         };
 
+        const fillSeriesForward = (values) => {
+            const filled = values.slice();
+            let lastKnown = null;
+            for (let i = 0; i < filled.length; i++) {
+                if (filled[i] !== null && Number.isFinite(filled[i])) {
+                    lastKnown = filled[i];
+                } else if (lastKnown !== null) {
+                    filled[i] = lastKnown;
+                }
+            }
+
+            return filled;
+        };
+
+        const formatChartNumber = (value, digits, locale) => {
+            if (value === null || value === undefined || ! Number.isFinite(Number(value))) {
+                return '';
+            }
+
+            return Number(value).toLocaleString(locale || document.documentElement.lang || 'es', {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits,
+            });
+        };
+
+        const buildClientEvolutionOptions = ({
+            labels,
+            values,
+            counts = [],
+            badgeValue = null,
+            height = 280,
+            accent = '#2eb5d6',
+            yCeiling = 5,
+            yDecimals = 1,
+            badgeDecimals = 2,
+            badgeSuffix = '',
+            emptyLabel = '',
+            locale,
+            granularity = 'month',
+        }) => {
+            const isMobileChart = window.innerWidth < 768;
+            const axisColor = '#8a9ea4';
+            const hasEvents = counts.length === 0 || counts.some((count) => Number(count) > 0);
+            const seriesValues = hasEvents ? values : values.map(() => null);
+            const plotValues = fillSeriesForward(seriesValues);
+            const numericPlotValues = plotValues.filter((value) => value !== null && Number.isFinite(value));
+            const realCount = values.filter((value) => value !== null && Number.isFinite(value)).length;
+            const showPointMarkers = realCount > 0 && realCount <= 16;
+            let yMin = 0;
+            let yMax = yCeiling;
+            let yTickAmount = 5;
+
+            if (numericPlotValues.length) {
+                const dataMin = Math.min(...numericPlotValues);
+                const dataMax = Math.max(...numericPlotValues);
+                if (yCeiling <= 5) {
+                    yMin = Math.max(0, Math.floor((dataMin - 0.05) * 2) / 2);
+                    yMax = Math.min(yCeiling, Math.ceil((dataMax + 0.1) * 2) / 2);
+                    if (yMax - yMin < 1.5) {
+                        yMin = Math.max(0, Math.round((yMax - 1.5) * 2) / 2);
+                    }
+                    if (yMax <= yMin) {
+                        yMax = Math.min(yCeiling, yMin + 1.5);
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / 0.5));
+                } else {
+                    yMin = Math.max(0, Math.floor((dataMin - 2) / 5) * 5);
+                    yMax = Math.min(yCeiling, Math.ceil((dataMax + 2) / 5) * 5);
+                    if (yMax - yMin < 20) {
+                        yMin = Math.max(0, yMax - 20);
+                    }
+                    if (yMax <= yMin) {
+                        yMax = Math.min(yCeiling, yMin + 20);
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / 10));
+                }
+            }
+
+            let lastIndex = -1;
+            for (let i = plotValues.length - 1; i >= 0; i--) {
+                if (plotValues[i] !== null && Number.isFinite(plotValues[i])) {
+                    lastIndex = i;
+                    break;
+                }
+            }
+
+            const resolvedBadge = badgeValue !== null && badgeValue !== undefined && Number.isFinite(Number(badgeValue))
+                ? Number(badgeValue)
+                : (lastIndex >= 0 ? plotValues[lastIndex] : null);
+            const categoryKeys = labels.map((label, index) => `${index}:${label}`);
+            const rotateLabels = isMobileChart && granularity === 'month' && labels.length > 8;
+            const maxTicks = granularity === 'hour'
+                ? (isMobileChart ? 6 : 8)
+                : (granularity === 'day'
+                    ? (labels.length > 8 ? 8 : null)
+                    : (granularity === 'week' && labels.length > 8 ? 8 : null));
+            const visibleTickIndexes = (() => {
+                if (! maxTicks || labels.length <= maxTicks) {
+                    return null;
+                }
+
+                const indexes = new Set([0, labels.length - 1]);
+                const inner = maxTicks - 2;
+                for (let i = 1; i <= inner; i++) {
+                    indexes.add(Math.round((i * (labels.length - 1)) / (inner + 1)));
+                }
+
+                return indexes;
+            })();
+            const axisLabels = labels.map((label, index) => {
+                if (visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                    return '';
+                }
+
+                return label;
+            });
+
+            return {
+                chart: {
+                    type: 'area',
+                    height,
+                    parentHeightOffset: 8,
+                    toolbar: { show: false },
+                    zoom: { enabled: false },
+                    animations: { enabled: false },
+                    dropShadow: { enabled: false },
+                },
+                series: [{
+                    name: '',
+                    data: plotValues.map((value, index) => ({ x: categoryKeys[index], y: value })),
+                }],
+                colors: [accent],
+                stroke: { curve: 'straight', width: 2.75, connectNulls: true },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 0.2,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.06,
+                        stops: [0, 80, 100],
+                    },
+                },
+                markers: {
+                    size: 0,
+                    strokeWidth: 3,
+                    strokeColors: accent,
+                    colors: ['#ffffff'],
+                    hover: { sizeOffset: 1 },
+                    discrete: plotValues.map((value, index) => ({
+                        seriesIndex: 0,
+                        dataPointIndex: index,
+                        size: (
+                            showPointMarkers
+                            && value !== null
+                            && Number.isFinite(value)
+                            && (index === lastIndex || (counts[index] || 0) > 0)
+                        ) ? 6 : 0,
+                        fillColor: '#ffffff',
+                        strokeColor: accent,
+                        strokeWidth: 3,
+                    })),
+                },
+                annotations: lastIndex >= 0 && resolvedBadge !== null ? {
+                    points: [{
+                        x: categoryKeys[lastIndex],
+                        y: plotValues[lastIndex],
+                        marker: { size: 0 },
+                        label: {
+                            text: `${formatChartNumber(resolvedBadge, badgeDecimals, locale)}${badgeSuffix}`,
+                            offsetY: isMobileChart ? -14 : -12,
+                            offsetX: isMobileChart ? -8 : 6,
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            style: {
+                                background: '#1e293b',
+                                color: '#ffffff',
+                                fontSize: isMobileChart ? '10px' : '11px',
+                                fontWeight: 700,
+                                padding: { left: 8, right: 8, top: 3, bottom: 3 },
+                            },
+                        },
+                    }],
+                } : {},
+                dataLabels: { enabled: false },
+                xaxis: {
+                    type: 'category',
+                    categories: categoryKeys,
+                    overwriteCategories: axisLabels,
+                    tickPlacement: 'on',
+                    labels: {
+                        show: true,
+                        rotate: rotateLabels ? -45 : 0,
+                        rotateAlways: rotateLabels,
+                        hideOverlappingLabels: false,
+                        trim: false,
+                        minHeight: rotateLabels ? 48 : 28,
+                        offsetY: 4,
+                        style: {
+                            colors: axisColor,
+                            fontSize: isMobileChart ? '10px' : '11px',
+                            fontWeight: 500,
+                        },
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    tooltip: { enabled: false },
+                },
+                yaxis: {
+                    min: yMin,
+                    max: yMax,
+                    tickAmount: yTickAmount,
+                    forceNiceScale: false,
+                    decimalsInFloat: yDecimals,
+                    title: { text: undefined },
+                    labels: {
+                        style: { colors: axisColor, fontSize: '11px' },
+                        formatter: (value) => formatChartNumber(value, yDecimals, locale),
+                    },
+                },
+                grid: {
+                    borderColor: 'rgba(18, 53, 60, 0.08)',
+                    strokeDashArray: 0,
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                    padding: {
+                        top: 22,
+                        right: 28,
+                        bottom: rotateLabels ? 36 : 16,
+                        left: 6,
+                    },
+                },
+                tooltip: { enabled: false },
+                noData: {
+                    text: emptyLabel,
+                    align: 'center',
+                    verticalAlign: 'middle',
+                    style: { color: '#334155', fontSize: '13px' },
+                },
+            };
+        };
+
         const resolveHourShift = () => {
             if (!window.reputalisSharedHourShift) {
                 window.reputalisSharedHourShift = getDefaultHourShift();
@@ -645,6 +886,10 @@
 
             const grouping = config.grouping || 'range';
             const isHoursGrouping = grouping === 'hours';
+            const isHourlyAxis = isHoursGrouping || config.granularity === 'hour';
+            const isDailyAxis = config.granularity === 'day';
+            const isMonthlyAxis = config.granularity === 'month';
+            const needsAxisRoom = isHourlyAxis || isDailyAxis || isMonthlyAxis;
             const useHourShift = isHoursGrouping && isMobileHourlyViewport();
             const hourShift = useHourShift ? resolveHourShift() : null;
             const signature = JSON.stringify({
@@ -694,25 +939,125 @@
                 syncHourShiftControls(card, hourShift);
             }
 
-            const maxCount = Math.max(...counts, 0);
+            const isCumulative = Array.isArray(config.cumulative) && config.cumulative.length === counts.length;
+            const isClientStyle = Boolean(config.clientStyle);
+            const seriesData = isCumulative
+                ? config.cumulative.map((value) => Number(value || 0))
+                : counts;
+            const hasAnySurvey = isCumulative
+                ? seriesData.some((value) => value > 0)
+                : counts.some((value) => value > 0);
+
+            const maxCount = Math.max(...seriesData, 0);
+            const minCount = isCumulative ? Math.min(...seriesData, maxCount) : 0;
             const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
             const gridColor = document.documentElement.classList.contains('dark')
                 ? 'rgba(148, 163, 184, 0.18)'
                 : 'rgba(100, 116, 139, 0.24)';
-            const xLabelRotate = isHoursGrouping ? 0 : (labels.length > 12 ? -35 : 0);
-            const chartHeight = isHoursGrouping ? (useHourShift ? 248 : 272) : 232;
-            const xAxisRightPadding = isHoursGrouping ? 14 : 36;
+            const isMobileChart = window.innerWidth < 768;
+            const xLabelRotate = isClientStyle
+                ? ((isMonthlyAxis && isMobileChart) ? -45 : 0)
+                : (isHoursGrouping ? 0 : (labels.length > 12 ? -35 : 0));
+            const chartHeight = isHourlyAxis
+                ? (useHourShift ? 248 : 280)
+                : (isClientStyle ? (isMonthlyAxis ? (isMobileChart ? 300 : 280) : (isMobileChart && needsAxisRoom ? 272 : 248)) : 232);
+            const xAxisRightPadding = isClientStyle && isMobileChart
+                ? 14
+                : (isHourlyAxis ? 18 : (isClientStyle ? 40 : 36));
+
+            const accent = isClientStyle ? '#12a37a' : '#76a99c';
+            const axisColor = isClientStyle ? '#8a9ea4' : valueColor;
+            const clientGridColor = 'rgba(18, 53, 60, 0.08)';
+
+            const maxTicks = isClientStyle
+                ? (isHourlyAxis
+                    ? (isMobileChart ? 6 : 8)
+                    : (isDailyAxis
+                        ? 8
+                        : (isMonthlyAxis
+                            ? null
+                            : (isMobileChart ? 6 : 16))))
+                : null;
+            const visibleTickIndexes = (() => {
+                if (! maxTicks || labels.length <= maxTicks) {
+                    return null;
+                }
+
+                const indexes = new Set([0, labels.length - 1]);
+                const inner = maxTicks - 2;
+                for (let i = 1; i <= inner; i++) {
+                    indexes.add(Math.round((i * (labels.length - 1)) / (inner + 1)));
+                }
+
+                return indexes;
+            })();
+            const axisLabels = labels.map((label, index) => {
+                if (isHoursGrouping) {
+                    const hourLabel = formatHourLabel(hourOffset + index);
+                    if (visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                        return '';
+                    }
+
+                    return hourLabel;
+                }
+
+                if (! isMonthlyAxis && visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                    return '';
+                }
+
+                return label;
+            });
+
+            let yAxisMin = 0;
+            let yAxisMax = maxCount > 0 ? undefined : 5;
+            if (isCumulative && maxCount > 0) {
+                const span = Math.max(maxCount - minCount, 1);
+                const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(span)) - 1)) * (span >= 50 ? 10 : 1);
+                yAxisMin = Math.max(0, Math.floor((minCount - span * 0.35) / step) * step);
+                yAxisMax = Math.ceil((maxCount + span * 0.18) / step) * step;
+                if (yAxisMax <= yAxisMin) {
+                    yAxisMax = yAxisMin + step;
+                }
+            }
+
+            const lastIndex = seriesData.length - 1;
+            const categoryKeys = isClientStyle
+                ? labels.map((label, index) => `${index}:${label}`)
+                : labels;
+            const lastPointAnnotation = isCumulative && hasAnySurvey && lastIndex >= 0 ? {
+                points: [{
+                    x: categoryKeys[lastIndex],
+                    y: seriesData[lastIndex],
+                    marker: {
+                        size: 0,
+                    },
+                    label: {
+                        text: String(seriesData[lastIndex]),
+                        offsetY: isMobileChart ? -14 : -10,
+                        offsetX: isMobileChart ? -10 : -4,
+                        borderWidth: 0,
+                        borderRadius: 8,
+                        style: {
+                            background: '#0f6b53',
+                            color: '#ffffff',
+                            fontSize: isMobileChart ? '10px' : '11px',
+                            fontWeight: 700,
+                            padding: { left: 8, right: 8, top: 3, bottom: 3 },
+                        },
+                    },
+                }],
+            } : {};
 
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
                 chart: {
                     type: 'area',
                     height: chartHeight,
-                    parentHeightOffset: 0,
+                    parentHeightOffset: needsAxisRoom ? 10 : 0,
                     toolbar: { show: false },
                     zoom: { enabled: false },
                     animations: { enabled: false },
                     dropShadow: {
-                        enabled: true,
+                        enabled: ! isClientStyle,
                         enabledOnSeries: [0],
                         top: 1,
                         left: 0,
@@ -727,54 +1072,88 @@
                 },
                 series: [{
                     name: config.seriesLabel || 'Encuestas',
-                    data: counts,
+                    data: isClientStyle
+                        ? seriesData.map((value, index) => ({ x: categoryKeys[index], y: value }))
+                        : seriesData,
                 }],
-                colors: ['#76a99c'],
+                colors: [accent],
                 stroke: {
-                    curve: 'smooth',
-                    width: 3.5,
+                    curve: isCumulative ? 'straight' : 'smooth',
+                    width: isClientStyle ? 2.5 : 3.5,
                 },
                 fill: {
                     type: 'gradient',
                     gradient: {
                         shadeIntensity: 0.2,
-                        opacityFrom: 0.32,
-                        opacityTo: 0.05,
+                        opacityFrom: isClientStyle ? 0.28 : 0.32,
+                        opacityTo: isClientStyle ? 0.02 : 0.05,
                         stops: [0, 90, 100],
                     },
                 },
-                markers: {
+                markers: isClientStyle ? {
+                    size: seriesData.length > 8 ? 0 : 5,
+                    strokeWidth: 2.5,
+                    strokeColors: accent,
+                    colors: ['#ffffff'],
+                    hover: { sizeOffset: 2 },
+                    discrete: seriesData.length > 8 ? [
+                        {
+                            seriesIndex: 0,
+                            dataPointIndex: 0,
+                            size: 5,
+                            fillColor: '#ffffff',
+                            strokeColor: accent,
+                            strokeWidth: 2.5,
+                        },
+                        {
+                            seriesIndex: 0,
+                            dataPointIndex: Math.max(seriesData.length - 1, 0),
+                            size: 5,
+                            fillColor: '#ffffff',
+                            strokeColor: accent,
+                            strokeWidth: 2.5,
+                        },
+                    ] : [],
+                } : {
                     size: grouping === 'range' && counts.length > 36 ? 0 : 4,
                     strokeWidth: 0,
                     colors: ['#76a99c'],
                 },
+                annotations: lastPointAnnotation,
                 dataLabels: { enabled: false },
                 xaxis: {
-                    categories: labels,
+                    type: 'category',
+                    categories: categoryKeys,
+                    overwriteCategories: isClientStyle || isHoursGrouping ? axisLabels : undefined,
+                    tickPlacement: 'on',
                     labels: {
+                        show: true,
                         rotate: xLabelRotate,
-                        hideOverlappingLabels: ! isHoursGrouping,
-                        trim: ! isHoursGrouping,
-                        minHeight: isHoursGrouping ? 42 : undefined,
-                        offsetY: isHoursGrouping ? 2 : 0,
+                        rotateAlways: xLabelRotate !== 0,
+                        hideOverlappingLabels: false,
+                        trim: false,
+                        minHeight: isMonthlyAxis ? 56 : (needsAxisRoom ? 36 : undefined),
+                        maxHeight: isMonthlyAxis ? 72 : undefined,
+                        offsetY: isMonthlyAxis ? 8 : (needsAxisRoom ? 4 : 0),
                         style: {
-                            colors: valueColor,
-                            fontSize: isHoursGrouping ? '10px' : '11px',
+                            colors: axisColor,
+                            fontSize: isClientStyle ? (isMonthlyAxis ? '9px' : (isMobileChart ? '10px' : '11px')) : (isHoursGrouping ? '10px' : '11px'),
                             fontWeight: 500,
                         },
-                        formatter: isHoursGrouping
+                        formatter: isHoursGrouping && ! isClientStyle
                             ? (_value, _timestamp, opts) => formatHourLabel(hourOffset + (opts?.i ?? 0))
                             : undefined,
                     },
-                    axisBorder: { color: gridColor },
+                    axisBorder: { show: ! isClientStyle, color: gridColor },
                     axisTicks: { show: false },
                     tooltip: { enabled: false },
                 },
                 yaxis: {
-                    min: 0,
-                    max: maxCount > 0 ? undefined : 5,
-                    forceNiceScale: true,
-                    title: {
+                    min: yAxisMin,
+                    max: yAxisMax,
+                    forceNiceScale: ! isCumulative,
+                    tickAmount: isCumulative ? 3 : undefined,
+                    title: isClientStyle ? { text: undefined } : {
                         text: config.seriesLabel || 'Encuestas',
                         style: {
                             color: valueColor,
@@ -784,25 +1163,40 @@
                     },
                     labels: {
                         style: {
-                            colors: valueColor,
+                            colors: axisColor,
                             fontSize: '11px',
                         },
+                        formatter: (value) => Number.isFinite(value) ? String(Math.round(value)) : '',
                     },
                 },
                 grid: {
-                    borderColor: gridColor,
+                    borderColor: isClientStyle ? clientGridColor : gridColor,
                     strokeDashArray: 0,
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
                     padding: {
-                        top: 6,
+                        top: isCumulative ? (isMobileChart ? 28 : 22) : 6,
                         right: xAxisRightPadding,
-                        bottom: isHoursGrouping ? 30 : 4,
-                        left: 8,
+                        bottom: isMonthlyAxis
+                            ? (isMobileChart ? 52 : 40)
+                            : (isHourlyAxis
+                                ? 36
+                                : (needsAxisRoom ? (isMobileChart ? 32 : 24) : (isClientStyle ? 8 : 4))),
+                        left: isMonthlyAxis ? 10 : 8,
                     },
                 },
                 tooltip: {
                     marker: { show: false },
+                    x: {
+                        formatter: (_value, opts) => {
+                            const index = opts?.dataPointIndex;
+                            return Number.isInteger(index) ? (labels[index] ?? '') : '';
+                        },
+                    },
                     y: {
-                        formatter: (value) => `${value} ${config.tooltipLabel || config.seriesLabel || ''}`.trim(),
+                        formatter: (value) => isCumulative
+                            ? `${config.seriesLabel || ''}: ${value}`.trim()
+                            : `${value} ${config.tooltipLabel || config.seriesLabel || ''}`.trim(),
                     },
                 },
                 noData: {
@@ -841,8 +1235,11 @@
                 return;
             }
 
+            const isClientStyle = Boolean(config.clientStyle);
             const isHourlyTrend = config.granularity === 'hour';
-            const useHourShift = isHourlyTrend && isMobileHourlyViewport();
+            const isDailyTrend = config.granularity === 'day';
+            const isMonthlyTrend = config.granularity === 'month';
+            const useHourShift = ! isClientStyle && isHourlyTrend && isMobileHourlyViewport();
             const hourShift = useHourShift ? resolveHourShift() : null;
             const signature = JSON.stringify({
                 config,
@@ -881,33 +1278,165 @@
 
                 let labels = config.labels || [];
                 let values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                let counts = (config.counts || []).map((count) => Number(count || 0));
                 let hourOffset = 0;
 
                 if (useHourShift) {
                     const sliced = sliceHourlySeries(labels, values, hourShift);
+                    const slicedCounts = sliceHourlySeries(labels, counts, hourShift);
                     labels = sliced.labels;
                     values = sliced.series;
+                    counts = slicedCounts.series;
                     hourOffset = sliced.hourOffset;
                     syncHourShiftControls(card, hourShift);
                 }
 
-                const xAxisRightPadding = isHourlyTrend ? 14 : 36;
-                const chartHeight = isHourlyTrend ? (useHourShift ? 248 : 272) : 238;
+                const isMobileChart = window.innerWidth < 768;
+                const xAxisRightPadding = isClientStyle
+                    ? (isMobileChart ? 18 : 28)
+                    : (isHourlyTrend ? 14 : 36);
+                const chartHeight = isClientStyle
+                    ? (isMonthlyTrend && isMobileChart ? 280 : 252)
+                    : (isHourlyTrend ? (useHourShift ? 248 : 272) : 238);
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
                     : 'rgba(100, 116, 139, 0.24)';
+                const accent = isClientStyle ? '#2eb5d6' : '#6ea1cb';
+                const axisColor = isClientStyle ? '#8a9ea4' : valueColor;
+                const clientGridColor = 'rgba(18, 53, 60, 0.08)';
+                const scoreLocale = config.locale || document.documentElement.lang || 'es';
+                const formatScore = (value, digits = 2) => {
+                    if (value === null || value === undefined || ! Number.isFinite(Number(value))) {
+                        return '';
+                    }
+
+                    return Number(value).toLocaleString(scoreLocale, {
+                        minimumFractionDigits: digits,
+                        maximumFractionDigits: digits,
+                    });
+                };
+
+                const numericValues = values.filter((value) => value !== null && Number.isFinite(value));
+                const showPointMarkers = isClientStyle && numericValues.length > 0 && numericValues.length <= 16;
+                const filledValues = values.slice();
+                if (isClientStyle && numericValues.length) {
+                    let lastKnown = null;
+                    for (let i = 0; i < filledValues.length; i++) {
+                        if (filledValues[i] !== null && Number.isFinite(filledValues[i])) {
+                            lastKnown = filledValues[i];
+                        } else if (lastKnown !== null) {
+                            filledValues[i] = lastKnown;
+                        }
+                    }
+                }
+
+                const plotValues = isClientStyle ? filledValues : values;
+                const numericPlotValues = plotValues.filter((value) => value !== null && Number.isFinite(value));
+
+                let yMin = 0;
+                let yMax = 5;
+                let yTickAmount = 5;
+                if (isClientStyle && numericPlotValues.length) {
+                    const dataMin = Math.min(...numericPlotValues);
+                    const dataMax = Math.max(...numericPlotValues);
+                    yMin = Math.max(0, Math.floor((dataMin - 0.05) * 2) / 2);
+                    yMax = Math.min(5, Math.ceil((dataMax + 0.1) * 2) / 2);
+                    if (yMax - yMin < 1.5) {
+                        yMin = Math.max(0, Math.round((yMax - 1.5) * 2) / 2);
+                    }
+                    if (yMax <= yMin) {
+                        yMax = Math.min(5, yMin + 1.5);
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / 0.5));
+                }
+
+                let lastIndex = -1;
+                for (let i = plotValues.length - 1; i >= 0; i--) {
+                    if (plotValues[i] !== null && Number.isFinite(plotValues[i])) {
+                        lastIndex = i;
+                        break;
+                    }
+                }
+                const overallAverage = config.overallAverage;
+                const badgeValue = overallAverage !== null && overallAverage !== undefined && Number.isFinite(Number(overallAverage))
+                    ? Number(overallAverage)
+                    : (lastIndex >= 0 ? plotValues[lastIndex] : null);
+
+                const categoryKeys = isClientStyle
+                    ? labels.map((label, index) => `${index}:${label}`)
+                    : labels;
+                const maxTicks = isClientStyle
+                    ? (isHourlyTrend
+                        ? (isMobileChart ? 6 : 8)
+                        : (isDailyTrend
+                            ? 8
+                            : (isMonthlyTrend ? null : (isMobileChart ? 6 : 16))))
+                    : null;
+                const visibleTickIndexes = (() => {
+                    if (! maxTicks || labels.length <= maxTicks) {
+                        return null;
+                    }
+
+                    const indexes = new Set([0, labels.length - 1]);
+                    const inner = maxTicks - 2;
+                    for (let i = 1; i <= inner; i++) {
+                        indexes.add(Math.round((i * (labels.length - 1)) / (inner + 1)));
+                    }
+
+                    return indexes;
+                })();
+                const axisLabels = labels.map((label, index) => {
+                    if (isHourlyTrend) {
+                        const hourLabel = formatHourLabel(hourOffset + index);
+                        if (visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                            return '';
+                        }
+
+                        return hourLabel;
+                    }
+
+                    if (! isMonthlyTrend && visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                        return '';
+                    }
+
+                    return label;
+                });
+                const xLabelRotate = isClientStyle
+                    ? ((isMonthlyTrend && isMobileChart && labels.length > 8) ? -45 : 0)
+                    : (isHourlyTrend ? 0 : -35);
+                const lastPointAnnotation = isClientStyle && lastIndex >= 0 && badgeValue !== null ? {
+                    points: [{
+                        x: categoryKeys[lastIndex],
+                        y: plotValues[lastIndex],
+                        marker: { size: 0 },
+                        label: {
+                            text: formatScore(badgeValue, 2),
+                            offsetY: isMobileChart ? -14 : -12,
+                            offsetX: isMobileChart ? -8 : 6,
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            style: {
+                                background: '#1e293b',
+                                color: '#ffffff',
+                                fontSize: isMobileChart ? '10px' : '11px',
+                                fontWeight: 700,
+                                padding: { left: 8, right: 8, top: 3, bottom: 3 },
+                            },
+                        },
+                    }],
+                } : {};
 
                 chartElement._reputalisChart = new ApexCharts(chartElement, {
                     chart: {
-                        type: 'line',
+                        type: isClientStyle ? 'area' : 'line',
                         height: chartHeight,
-                        parentHeightOffset: 0,
+                        parentHeightOffset: isClientStyle ? 8 : 0,
                         toolbar: { show: false },
                         zoom: { enabled: false },
                         animations: { enabled: false },
                         dropShadow: {
-                            enabled: true,
+                            enabled: ! isClientStyle,
                             enabledOnSeries: [0],
                             top: 1,
                             left: 0,
@@ -915,53 +1444,93 @@
                             color: '#6ea1cb',
                             opacity: 0.22,
                         },
-                        events: isHourlyTrend ? {
+                        events: isHourlyTrend && ! isClientStyle ? {
                             mounted: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                             updated: (chartContext) => formatHourAxisLabels(chartContext.el, hourOffset),
                         } : {},
                     },
                     series: [{
-                        name: config.seriesLabel || 'Promedio',
-                        data: values,
+                        name: isClientStyle ? '' : (config.seriesLabel || 'Promedio'),
+                        data: isClientStyle
+                            ? plotValues.map((value, index) => ({ x: categoryKeys[index], y: value }))
+                            : values,
                     }],
-                    colors: ['#6ea1cb'],
+                    colors: [accent],
                     stroke: {
                         curve: 'straight',
-                        width: 3.5,
+                        width: isClientStyle ? 2.75 : 3.5,
+                        connectNulls: isClientStyle,
                     },
-                    markers: {
+                    fill: {
+                        type: isClientStyle ? 'gradient' : 'solid',
+                        gradient: {
+                            shadeIntensity: 0.2,
+                            opacityFrom: 0.45,
+                            opacityTo: 0.06,
+                            stops: [0, 80, 100],
+                        },
+                    },
+                    markers: isClientStyle ? {
+                        size: 0,
+                        strokeWidth: 3,
+                        strokeColors: accent,
+                        colors: ['#ffffff'],
+                        hover: { sizeOffset: 1 },
+                        discrete: plotValues.map((value, index) => ({
+                            seriesIndex: 0,
+                            dataPointIndex: index,
+                            size: (
+                                showPointMarkers
+                                && value !== null
+                                && Number.isFinite(value)
+                                && (index === lastIndex || (counts[index] || 0) > 0)
+                            ) ? 6 : 0,
+                            fillColor: '#ffffff',
+                            strokeColor: accent,
+                            strokeWidth: 3,
+                        })),
+                    } : {
                         size: values.length > 40 ? 0 : 5,
                         strokeWidth: 0,
                         colors: ['#6ea1cb'],
                     },
+                    annotations: lastPointAnnotation,
                     dataLabels: { enabled: false },
                     xaxis: {
-                        categories: labels,
+                        type: 'category',
+                        categories: categoryKeys,
+                        overwriteCategories: isClientStyle ? axisLabels : undefined,
+                        tickPlacement: 'on',
                         labels: {
-                            rotate: isHourlyTrend ? 0 : -35,
-                            hideOverlappingLabels: ! isHourlyTrend,
-                            trim: ! isHourlyTrend,
-                            minHeight: isHourlyTrend ? 42 : undefined,
-                            offsetY: isHourlyTrend ? 2 : 0,
+                            show: true,
+                            rotate: xLabelRotate,
+                            rotateAlways: xLabelRotate !== 0,
+                            hideOverlappingLabels: isClientStyle ? false : ! isHourlyTrend,
+                            trim: isClientStyle ? false : ! isHourlyTrend,
+                            minHeight: isClientStyle
+                                ? (isMonthlyTrend && isMobileChart ? 48 : 28)
+                                : (isHourlyTrend ? 42 : undefined),
+                            offsetY: isClientStyle ? 4 : (isHourlyTrend ? 2 : 0),
                             style: {
-                                colors: valueColor,
-                                fontSize: isHourlyTrend ? '10px' : '11px',
+                                colors: axisColor,
+                                fontSize: isClientStyle ? (isMobileChart || isMonthlyTrend ? '10px' : '11px') : (isHourlyTrend ? '10px' : '11px'),
                                 fontWeight: 500,
                             },
-                            formatter: isHourlyTrend
+                            formatter: isHourlyTrend && ! isClientStyle
                                 ? (_value, _timestamp, opts) => formatHourLabel(hourOffset + (opts?.i ?? 0))
                                 : undefined,
                         },
-                        axisBorder: { color: '#111827' },
+                        axisBorder: { show: ! isClientStyle, color: '#111827' },
                         axisTicks: { show: false },
                         tooltip: { enabled: false },
                     },
                     yaxis: {
-                        min: 0,
-                        max: 5,
-                        tickAmount: 5,
-                        decimalsInFloat: 0,
-                        title: {
+                        min: yMin,
+                        max: yMax,
+                        tickAmount: yTickAmount,
+                        forceNiceScale: ! isClientStyle,
+                        decimalsInFloat: isClientStyle ? 1 : 0,
+                        title: isClientStyle ? { text: undefined } : {
                             text: config.seriesLabel || 'Promedio',
                             style: {
                                 color: valueColor,
@@ -971,22 +1540,30 @@
                         },
                         labels: {
                             style: {
-                                colors: valueColor,
-                                fontSize: '11px',
+                                colors: axisColor,
+                                fontSize: isClientStyle ? '11px' : '11px',
                             },
+                            formatter: isClientStyle
+                                ? (value) => formatScore(value, 1)
+                                : undefined,
                         },
                     },
                     grid: {
-                        borderColor: gridColor,
+                        borderColor: isClientStyle ? clientGridColor : gridColor,
                         strokeDashArray: 0,
+                        xaxis: { lines: { show: false } },
+                        yaxis: { lines: { show: true } },
                         padding: {
-                            top: 8,
+                            top: isClientStyle ? 22 : 8,
                             right: xAxisRightPadding,
-                            bottom: isHourlyTrend ? 30 : 0,
-                            left: 8,
+                            bottom: isClientStyle
+                                ? (isMonthlyTrend && isMobileChart ? 36 : 16)
+                                : (isHourlyTrend ? 30 : 0),
+                            left: isClientStyle ? 6 : 8,
                         },
                     },
                     tooltip: {
+                        enabled: ! isClientStyle,
                         marker: { show: false },
                         y: {
                             formatter: (value) => value === null || value === undefined
@@ -1007,7 +1584,7 @@
 
                 await chartElement._reputalisChart.render();
 
-                if (isHourlyTrend) {
+                if (isHourlyTrend && ! isClientStyle) {
                     formatHourAxisLabels(chartElement, hourOffset);
                 }
 
@@ -1061,13 +1638,29 @@
 
                 const labels = config.labels || [];
                 const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                const isClientStyle = Boolean(config.clientStyle);
                 const isYearlyTrend = config.granularity === 'year';
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
                     : 'rgba(100, 116, 139, 0.24)';
 
-                chartElement._reputalisChart = new ApexCharts(chartElement, {
+                chartElement._reputalisChart = new ApexCharts(chartElement, isClientStyle
+                    ? buildClientEvolutionOptions({
+                        labels,
+                        values,
+                        counts: config.counts || [],
+                        badgeValue: config.overallAverage,
+                        height: Math.min(340, Math.max(220, chartElement.clientHeight || 280)),
+                        accent: '#2eb5d6',
+                        yCeiling: 5,
+                        yDecimals: 1,
+                        badgeDecimals: 2,
+                        emptyLabel: config.emptyLabel || '',
+                        locale: config.locale,
+                        granularity: config.granularity || 'month',
+                    })
+                    : {
                     chart: {
                         type: 'line',
                         height: 340,
@@ -1262,12 +1855,29 @@
 
                 const labels = config.labels || [];
                 const values = (config.values || []).map((value) => value === null ? null : Number(value || 0));
+                const isClientStyle = Boolean(config.clientStyle);
                 const valueColor = document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#334155';
                 const gridColor = document.documentElement.classList.contains('dark')
                     ? 'rgba(148, 163, 184, 0.18)'
                     : 'rgba(100, 116, 139, 0.24)';
 
-                chartElement._reputalisChart = new ApexCharts(chartElement, {
+                chartElement._reputalisChart = new ApexCharts(chartElement, isClientStyle
+                    ? buildClientEvolutionOptions({
+                        labels,
+                        values,
+                        counts: config.counts || [],
+                        badgeValue: config.overallAverage,
+                        height: Math.min(280, Math.max(200, chartElement.clientHeight || 240)),
+                        accent: '#2eb5d6',
+                        yCeiling: 100,
+                        yDecimals: 0,
+                        badgeDecimals: 0,
+                        badgeSuffix: '%',
+                        emptyLabel: config.emptyLabel || '',
+                        locale: config.locale,
+                        granularity: config.granularity || 'month',
+                    })
+                    : {
                     chart: {
                         type: 'line',
                         height: 280,

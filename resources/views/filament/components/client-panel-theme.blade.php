@@ -375,13 +375,19 @@
             align-items: center;
             justify-content: center;
             gap: .28rem;
-            margin: .45rem 0 0;
-            color: #16a34a;
-            font-size: .8rem;
+            margin: .7rem 0 0;
+            padding: .38rem .8rem;
+            border-radius: 999px;
+            background: #e6f4ee;
+            color: #0f6b53;
+            font-size: .74rem;
             font-weight: 600;
+            letter-spacing: 0;
+            white-space: nowrap;
         }
 
         html.reputalis-client-panel .reputalis-kpi-delta.is-down {
+            background: #fdecec;
             color: #dc2626;
         }
 
@@ -461,6 +467,356 @@
             color: #8a9ea4;
             font-size: .78rem;
             font-weight: 600;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-stack {
+            flex-direction: column-reverse;
+        }
+
+        /* Crecimiento acumulado de encuestas (card del histórico, rol cliente) */
+        html.reputalis-client-panel .client-dashboard-survey-history-card {
+            border: 0;
+            border-radius: 1.15rem;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05);
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-header {
+            border-bottom: 0;
+            padding: 1.05rem 1.25rem .35rem;
+            gap: .65rem;
+        }
+
+        @media (max-width: 720px) {
+            html.reputalis-client-panel .client-dashboard-survey-history-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: .9rem 1rem .2rem;
+            }
+
+            html.reputalis-client-panel .client-dashboard-survey-history-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-title {
+            color: var(--reputalis-ink);
+            font-size: 1.02rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+            gap: .45rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-icon {
+            width: 1.05rem;
+            height: 1.05rem;
+            background: rgba(138, 158, 164, .16);
+            color: #8a9ea4;
+            cursor: help;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-icon svg {
+            width: .8rem;
+            height: .8rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-actions {
+            gap: .4rem;
+            color: #8a9ea4;
+            font-size: .68rem;
+        }
+
+        html.reputalis-client-panel .reputalis-growth-chip {
+            display: inline-flex;
+            align-items: center;
+            margin-right: .35rem;
+            padding: .38rem .8rem;
+            border-radius: 999px;
+            background: #e6f4ee;
+            color: #0f6b53;
+            font-size: .74rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-pill {
+            border-radius: 999px;
+            border: 1px solid rgba(18, 53, 60, .12);
+            background: #fff;
+            color: #7b9197;
+            font-size: .7rem;
+            font-weight: 600;
+            padding: .3rem .65rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-pill.is-active {
+            border-color: transparent;
+            background: #e6f4ee;
+            color: #0f6b53;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+            padding: .2rem 1rem .7rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-hours-grouping:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+            padding-bottom: 1.35rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-hours-grouping:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-chart {
+            height: 17.75rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-month-axis:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+            padding-bottom: 1.5rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-month-axis:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-chart {
+            height: 18.5rem;
+        }
+
+        @media (max-width: 768px) {
+            html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-day-axis:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+                padding-bottom: 1.35rem;
+            }
+
+            html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-month-axis:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-body {
+                padding-bottom: 1.75rem;
+            }
+
+            html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-survey-history-card.is-month-axis:not(.client-dashboard-score-trend-card) .client-dashboard-survey-history-chart {
+                height: 19.5rem;
+            }
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-card {
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .client-dashboard-survey-history-chart,
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"],
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-canvas,
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-svg,
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-inner {
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-xaxis-label {
+            opacity: 1 !important;
+        }
+
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-area-series .apexcharts-area,
+        html.reputalis-client-panel [data-dashboard-chart="survey-history"] .apexcharts-line,
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-area-series .apexcharts-area,
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-line,
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-series path {
+            filter: none;
+        }
+
+        html.reputalis-client-panel .client-dashboard-score-trend-card {
+            overflow: visible;
+            min-height: 0;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-score-trend-card .client-dashboard-survey-history-body {
+            padding: .2rem 1rem .9rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-score-trend-card .client-dashboard-survey-history-chart {
+            height: 16.5rem;
+        }
+
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"],
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-canvas,
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-svg,
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-inner {
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel [data-dashboard-chart="score-trend"] .apexcharts-xaxis-label,
+        html.reputalis-client-panel [data-dashboard-chart="employee-trend"] .apexcharts-xaxis-label,
+        html.reputalis-client-panel [data-dashboard-chart="improvement-detail"] .apexcharts-xaxis-label {
+            opacity: 1 !important;
+        }
+
+        html.reputalis-client-panel [data-dashboard-chart="employee-trend"] .apexcharts-area-series .apexcharts-area,
+        html.reputalis-client-panel [data-dashboard-chart="employee-trend"] .apexcharts-line,
+        html.reputalis-client-panel [data-dashboard-chart="improvement-detail"] .apexcharts-area-series .apexcharts-area,
+        html.reputalis-client-panel [data-dashboard-chart="improvement-detail"] .apexcharts-line {
+            filter: none;
+        }
+
+        @media (max-width: 768px) {
+            html.reputalis-client-panel .client-dashboard-insights-row > .client-dashboard-score-trend-card .client-dashboard-survey-history-chart {
+                height: 18rem;
+            }
+        }
+
+        html.reputalis-client-panel .client-dashboard-employee-detail-filters,
+        html.reputalis-client-panel .client-dashboard-improvement-detail-filters {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: .12rem;
+            margin: 0 1.25rem .95rem;
+            padding: .28rem;
+            border-radius: 999px;
+            background: #f3f7f6;
+            box-shadow: 0 1px 2px rgba(18, 53, 60, .06);
+        }
+
+        html.reputalis-client-panel .client-dashboard-employee-detail-filter-pill,
+        html.reputalis-client-panel .client-dashboard-improvement-detail-filter-pill {
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: #7b9197;
+            font-size: .8rem;
+            font-weight: 500;
+            padding: .48rem .9rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-employee-detail-filter-pill.is-active,
+        html.reputalis-client-panel .client-dashboard-improvement-detail-filter-pill.is-active {
+            background: #e6f4ee;
+            color: #0f6b53;
+            box-shadow: none;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-ranking-card {
+            border: 0;
+            border-radius: 1.15rem;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05);
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-ranking-header {
+            display: block;
+            border-bottom: 0;
+            padding: 1.15rem 1.25rem .35rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-ranking-header h3 {
+            color: var(--reputalis-ink);
+            font-size: 1.02rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+        }
+
+        html.reputalis-client-panel .reputalis-improve-subtitle {
+            margin: .28rem 0 0;
+            color: #8a9ea4;
+            font-size: .78rem;
+            font-weight: 500;
+            line-height: 1.35;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-ranking-body {
+            background: #fff;
+            padding: .35rem 1.15rem 1.15rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-ranking-scroll {
+            max-height: none;
+            overflow: visible;
+            padding: .15rem 0 .1rem .9rem;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row {
+            display: flex;
+            flex-direction: column;
+            gap: .4rem;
+            width: 100%;
+            margin: 0 0 .35rem;
+            padding: .7rem .8rem .75rem 1rem;
+            overflow: visible;
+            border: 1px solid transparent;
+            border-radius: .85rem;
+            background: transparent;
+            box-shadow: none;
+            transform: none;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row::before {
+            display: none;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row:hover,
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row:focus-visible {
+            border-color: rgba(18, 53, 60, .14);
+            background: #f7fbf9;
+            box-shadow: 0 0 0 1px rgba(18, 53, 60, .04);
+            transform: none;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row .client-dashboard-improvement-info-tab {
+            width: 1.05rem;
+            height: 2.35rem;
+            min-height: 2.35rem;
+            max-height: 2.35rem;
+            border-radius: .35rem 0 0 .35rem;
+            background: #0f6b53;
+            box-shadow: -2px 0 8px rgba(15, 107, 83, .18);
+            transform: translate(calc(-100% - .55rem), -50%);
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row:hover .client-dashboard-improvement-info-tab,
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row:focus-visible .client-dashboard-improvement-info-tab {
+            opacity: 1;
+            transform: translate(calc(-100% - .15rem), -50%);
+        }
+
+        html.reputalis-client-panel .reputalis-improve-copy {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: .75rem;
+        }
+
+        html.reputalis-client-panel .reputalis-improve-label {
+            color: var(--reputalis-ink);
+            font-size: .9rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        html.reputalis-client-panel .reputalis-improve-pct {
+            flex: 0 0 auto;
+            color: #8a9ea4;
+            font-size: .88rem;
+            font-weight: 700;
+        }
+
+        html.reputalis-client-panel .reputalis-improve-track {
+            width: 100%;
+            height: .55rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #eef3f4;
+        }
+
+        html.reputalis-client-panel .reputalis-improve-bar {
+            display: block;
+            height: 100%;
+            min-width: 0;
+            border-radius: inherit;
+        }
+
+        html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row.is-inactive {
+            border-style: solid;
+            background: #f6f8f8;
+            filter: grayscale(.25);
+        }
+
+        @media (max-width: 700px) {
+            html.reputalis-client-panel .client-dashboard-improvement-row.reputalis-improve-row {
+                grid-template-columns: unset;
+            }
+
+            html.reputalis-client-panel .client-dashboard-improvement-ranking-scroll {
+                padding-left: .85rem;
+            }
         }
 
         @media (max-width: 1180px) {

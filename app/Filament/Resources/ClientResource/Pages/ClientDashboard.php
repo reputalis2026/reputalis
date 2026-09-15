@@ -47,6 +47,12 @@ class ClientDashboard extends Page
 
     public bool $showImprovementDetail = false;
 
+    public string $improvement_detail_range_type = InternalReputationDateRange::TYPE_ALL;
+
+    public ?string $improvement_detail_date_from = null;
+
+    public ?string $improvement_detail_date_to = null;
+
     public static function getNavigationLabel(): string
     {
         return __('client.menu.dashboard');
@@ -158,6 +164,10 @@ class ClientDashboard extends Page
 
     public function shouldForceSurveyHistoryHours(): bool
     {
+        if (\App\Support\ClientPanel::isActive()) {
+            return false;
+        }
+
         return $this->range_type === InternalReputationDateRange::TYPE_TODAY;
     }
 
@@ -220,6 +230,16 @@ class ClientDashboard extends Page
      */
     public function getEmployeeDetailRangeTypeOptions(): array
     {
+        if (\App\Support\ClientPanel::isActive()) {
+            return [
+                InternalReputationDateRange::TYPE_TODAY => __('client.dashboard.filters.pills.today'),
+                InternalReputationDateRange::TYPE_LAST_WEEK => __('client.dashboard.filters.pills.last_week'),
+                InternalReputationDateRange::TYPE_LAST_MONTH => __('client.dashboard.filters.pills.last_month'),
+                InternalReputationDateRange::TYPE_LAST_YEAR => __('client.dashboard.filters.pills.last_year'),
+                InternalReputationDateRange::TYPE_ALL => __('client.dashboard.filters.pills.all'),
+            ];
+        }
+
         return [
             InternalReputationDateRange::TYPE_TODAY => __('client.dashboard.employee_ranking.detail_filters.today'),
             InternalReputationDateRange::TYPE_LAST_WEEK => __('client.dashboard.employee_ranking.detail_filters.week'),
@@ -239,12 +259,38 @@ class ClientDashboard extends Page
         }
 
         $this->selectedImprovementOptionId = $optionId;
+        $this->syncImprovementDetailRangeFromDashboard();
         $this->showImprovementDetail = true;
     }
 
     public function closeImprovementDetail(): void
     {
         $this->resetImprovementDetail();
+    }
+
+    public function setImprovementDetailRangeType(string $rangeType): void
+    {
+        if (! $this->showImprovementDetail) {
+            return;
+        }
+
+        $normalized = $this->normalizeEmployeeDetailRangeType($rangeType);
+
+        if ($normalized === InternalReputationDateRange::TYPE_CUSTOM) {
+            return;
+        }
+
+        $this->improvement_detail_range_type = $normalized;
+        $this->improvement_detail_date_from = null;
+        $this->improvement_detail_date_to = null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getImprovementDetailRangeTypeOptions(): array
+    {
+        return $this->getEmployeeDetailRangeTypeOptions();
     }
 
     /**
@@ -296,11 +342,13 @@ class ClientDashboard extends Page
             4 => '#A4D65E',
             5 => '#00B140',
         ];
+        $isClientPanel = \App\Support\ClientPanel::isActive();
         $trend = app(InternalReputationMetrics::class)->getEmployeeScoreTrend(
             $this->getClientRecord()->id,
             $this->selectedEmployeeId,
             $detailRange,
-            $detailRange->isAll() ? 'year' : null,
+            $isClientPanel ? null : ($detailRange->isAll() ? 'year' : null),
+            $isClientPanel,
         );
         $satisfiedMetrics = app(InternalReputationMetrics::class)->getEmployeeSatisfiedMetrics(
             $this->getClientRecord()->id,
@@ -313,6 +361,24 @@ class ClientDashboard extends Page
             $detailRange,
             app()->getLocale(),
         );
+
+        $trendValues = $trend['averages'];
+        $trendOverall = null;
+        if (\App\Support\ClientPanel::isActive()) {
+            $runningSum = 0.0;
+            $runningCount = 0;
+            $cumulative = [];
+            foreach ($trend['averages'] as $index => $average) {
+                $count = (int) ($trend['counts'][$index] ?? 0);
+                if ($count > 0 && $average !== null) {
+                    $runningSum += ((float) $average) * $count;
+                    $runningCount += $count;
+                }
+                $cumulative[] = $runningCount > 0 ? round($runningSum / $runningCount, 2) : null;
+            }
+            $trendValues = $cumulative;
+            $trendOverall = $runningCount > 0 ? round($runningSum / $runningCount, 2) : null;
+        }
         $rangeContext = $this->getEmployeeDetailRangeContextSummary($detailRange);
         $satisfiedPctRaw = $satisfiedMetrics['satisfied_pct'] !== null
             ? (float) $satisfiedMetrics['satisfied_pct']
@@ -358,8 +424,12 @@ class ClientDashboard extends Page
             'improvement_points' => $improvementPoints,
             'trend_chart_config' => [
                 'labels' => $trend['labels'],
-                'values' => $trend['averages'],
+                'values' => $trendValues,
+                'counts' => $trend['counts'] ?? [],
+                'overallAverage' => $trendOverall,
                 'granularity' => $trend['granularity'],
+                'clientStyle' => \App\Support\ClientPanel::isActive(),
+                'locale' => str_replace('_', '-', app()->getLocale()),
                 'seriesLabel' => __('client.dashboard.score_trend.series_label'),
                 'emptyLabel' => __('client.dashboard.score_trend.empty'),
             ],
@@ -390,21 +460,42 @@ class ClientDashboard extends Page
             return null;
         }
 
+        $detailRange = $this->getImprovementDetailDateRange();
         $trend = app(InternalReputationMetrics::class)->getImprovementOptionTrend(
             $this->getClientRecord()->id,
             $this->selectedImprovementOptionId,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
             app()->getLocale(),
+            \App\Support\ClientPanel::isActive(),
         );
 
         if (! $trend) {
             return null;
         }
 
+        $chartValues = $trend['percentages'];
+        $chartOverall = null;
+        if (\App\Support\ClientPanel::isActive()) {
+            $runningCount = 0;
+            $runningTotal = 0;
+            $cumulative = [];
+            foreach ($trend['percentages'] as $index => $percentage) {
+                $runningCount += (int) ($trend['counts'][$index] ?? 0);
+                $runningTotal += (int) ($trend['totals'][$index] ?? 0);
+                $cumulative[] = $runningCount > 0 && $runningTotal > 0
+                    ? round(($runningCount / $runningTotal) * 100, 1)
+                    : null;
+            }
+            $chartValues = $cumulative;
+            $chartOverall = $runningCount > 0 && $runningTotal > 0
+                ? round(($runningCount / $runningTotal) * 100, 1)
+                : null;
+        }
+
         $employeeRanking = collect(app(InternalReputationMetrics::class)->getImprovementOptionEmployeeRanking(
             $this->getClientRecord()->id,
             $this->selectedImprovementOptionId,
-            $this->getInternalReputationDateRange(),
+            $detailRange,
         ))
             ->map(fn (array $employee): array => [
                 'id' => $employee['id'],
@@ -426,9 +517,13 @@ class ClientDashboard extends Page
             ]),
             'chart_config' => [
                 'labels' => $trend['labels'],
-                'values' => $trend['percentages'],
+                'values' => $chartValues,
                 'counts' => $trend['counts'],
                 'totals' => $trend['totals'],
+                'overallAverage' => $chartOverall,
+                'granularity' => $trend['granularity'] ?? 'month',
+                'clientStyle' => \App\Support\ClientPanel::isActive(),
+                'locale' => str_replace('_', '-', app()->getLocale()),
                 'seriesLabel' => __('client.dashboard.improvement_ranking.detail_series_label'),
                 'yAxisLabel' => __('client.dashboard.improvement_ranking.detail_y_axis_label'),
                 'emptyLabel' => __('client.dashboard.improvement_ranking.detail_empty'),
@@ -749,14 +844,46 @@ class ClientDashboard extends Page
     }
 
     /**
-     * @return array{labels: array<int, string>, counts: array<int, int>, granularity: string, grouping: string, total: int}
+     * @return array{labels: array<int, string>, counts: array<int, int>, cumulative?: array<int, int>, baseline?: int, granularity: string, grouping: string, total: int}
      */
     public function getSurveyHistory(): array
     {
+        $grouping = \App\Support\ClientPanel::isActive()
+            ? InternalReputationMetrics::SURVEY_HISTORY_GROUPING_RANGE
+            : $this->survey_history_grouping;
+
         return app(InternalReputationMetrics::class)->getSurveyHistory(
             $this->getClientRecord()->id,
             $this->getInternalReputationDateRange(),
-            $this->survey_history_grouping,
+            $grouping,
+        );
+    }
+
+    public function getSurveyGrowthChip(int $rangeIncrement): string
+    {
+        if ($this->range_type === InternalReputationDateRange::TYPE_ALL) {
+            return __('client.dashboard.survey_growth.total', [
+                'count' => number_format($rangeIncrement, 0, ',', '.'),
+            ]);
+        }
+
+        $formatted = ($rangeIncrement >= 0 ? '+' : '').number_format($rangeIncrement, 0, ',', '.');
+
+        $key = match ($this->range_type) {
+            InternalReputationDateRange::TYPE_TODAY => 'today',
+            InternalReputationDateRange::TYPE_LAST_WEEK => 'last_week',
+            InternalReputationDateRange::TYPE_LAST_MONTH => 'last_month',
+            InternalReputationDateRange::TYPE_LAST_YEAR => 'last_year',
+            default => 'period',
+        };
+
+        return __('client.dashboard.survey_growth.'.$key, ['count' => $formatted]);
+    }
+
+    public function getSurveysThisMonth(): int
+    {
+        return app(InternalReputationMetrics::class)->getSurveysThisMonth(
+            $this->getClientRecord()->id,
         );
     }
 
@@ -774,6 +901,7 @@ class ClientDashboard extends Page
         return app(InternalReputationMetrics::class)->getScoreTrend(
             $this->getClientRecord()->id,
             $this->getInternalReputationDateRange(),
+            \App\Support\ClientPanel::isActive(),
         );
     }
 
@@ -888,6 +1016,9 @@ class ClientDashboard extends Page
     {
         $this->showImprovementDetail = false;
         $this->selectedImprovementOptionId = null;
+        $this->improvement_detail_range_type = InternalReputationDateRange::TYPE_ALL;
+        $this->improvement_detail_date_from = null;
+        $this->improvement_detail_date_to = null;
     }
 
     private function resetDetailModals(): void
@@ -938,6 +1069,14 @@ class ClientDashboard extends Page
         }
 
         if ($this->range_type === InternalReputationDateRange::TYPE_LAST_YEAR) {
+            if (\App\Support\ClientPanel::isActive()) {
+                $this->employee_detail_range_type = InternalReputationDateRange::TYPE_LAST_YEAR;
+                $this->employee_detail_date_from = null;
+                $this->employee_detail_date_to = null;
+
+                return;
+            }
+
             $range = InternalReputationDateRange::fromState(
                 InternalReputationDateRange::TYPE_LAST_YEAR,
                 null,
@@ -954,6 +1093,58 @@ class ClientDashboard extends Page
         $this->employee_detail_range_type = $this->normalizeEmployeeDetailRangeType($this->range_type);
         $this->employee_detail_date_from = null;
         $this->employee_detail_date_to = null;
+    }
+
+    private function getImprovementDetailDateRange(): InternalReputationDateRange
+    {
+        $rangeType = $this->normalizeEmployeeDetailRangeType($this->improvement_detail_range_type);
+
+        if ($rangeType === InternalReputationDateRange::TYPE_CUSTOM) {
+            return InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_CUSTOM,
+                $this->improvement_detail_date_from,
+                $this->improvement_detail_date_to,
+            );
+        }
+
+        return InternalReputationDateRange::fromState($rangeType, null, null);
+    }
+
+    private function syncImprovementDetailRangeFromDashboard(): void
+    {
+        if ($this->range_type === InternalReputationDateRange::TYPE_CUSTOM) {
+            $this->improvement_detail_range_type = InternalReputationDateRange::TYPE_CUSTOM;
+            $this->improvement_detail_date_from = $this->date_from;
+            $this->improvement_detail_date_to = $this->date_to;
+
+            return;
+        }
+
+        if ($this->range_type === InternalReputationDateRange::TYPE_LAST_YEAR) {
+            if (\App\Support\ClientPanel::isActive()) {
+                $this->improvement_detail_range_type = InternalReputationDateRange::TYPE_LAST_YEAR;
+                $this->improvement_detail_date_from = null;
+                $this->improvement_detail_date_to = null;
+
+                return;
+            }
+
+            $range = InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_LAST_YEAR,
+                null,
+                null,
+            );
+            [$from, $to] = $range->bounds();
+            $this->improvement_detail_range_type = InternalReputationDateRange::TYPE_CUSTOM;
+            $this->improvement_detail_date_from = $from?->toDateString();
+            $this->improvement_detail_date_to = $to?->toDateString();
+
+            return;
+        }
+
+        $this->improvement_detail_range_type = $this->normalizeEmployeeDetailRangeType($this->range_type);
+        $this->improvement_detail_date_from = null;
+        $this->improvement_detail_date_to = null;
     }
 
     /**
@@ -1010,26 +1201,45 @@ class ClientDashboard extends Page
     {
         $metrics = app(InternalReputationMetrics::class);
         $clientId = $this->getClientRecord()->id;
+        $monthStart = now()->copy()->startOfMonth();
 
         $thisMonth = InternalReputationDateRange::fromState(
             InternalReputationDateRange::TYPE_CUSTOM,
-            now()->copy()->startOfMonth()->toDateString(),
+            $monthStart->toDateString(),
             now()->toDateString(),
         );
-        $lastMonth = InternalReputationDateRange::fromState(
-            InternalReputationDateRange::TYPE_CUSTOM,
-            now()->copy()->startOfMonth()->subMonth()->toDateString(),
-            now()->copy()->startOfMonth()->subDay()->toDateString(),
-        );
-
-        $current = $metrics->getCsatMetrics($clientId, $thisMonth);
-        $previous = $metrics->getCsatMetrics($clientId, $lastMonth);
-
-        if ($current['avg_score'] === null || $previous['avg_score'] === null) {
+        $currentAvg = $metrics->getCsatMetrics($clientId, $thisMonth)['avg_score'];
+        if ($currentAvg === null) {
             return null;
         }
 
-        return round((float) $current['avg_score'] - (float) $previous['avg_score'], 2);
+        $baseline = $metrics->getCsatMetrics($clientId, InternalReputationDateRange::fromState(
+            InternalReputationDateRange::TYPE_CUSTOM,
+            $monthStart->copy()->subMonth()->toDateString(),
+            $monthStart->copy()->subDay()->toDateString(),
+        ))['avg_score'];
+
+        if ($baseline === null) {
+            $baseline = $metrics->getCsatMetrics($clientId, InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_CUSTOM,
+                null,
+                $monthStart->copy()->subDay()->toDateString(),
+            ))['avg_score'];
+        }
+
+        if ($baseline === null && now()->day > 1) {
+            $baseline = $metrics->getCsatMetrics($clientId, InternalReputationDateRange::fromState(
+                InternalReputationDateRange::TYPE_CUSTOM,
+                $monthStart->toDateString(),
+                now()->copy()->subDay()->toDateString(),
+            ))['avg_score'];
+        }
+
+        if ($baseline === null) {
+            return null;
+        }
+
+        return round((float) $currentAvg - (float) $baseline, 2);
     }
 
     /**

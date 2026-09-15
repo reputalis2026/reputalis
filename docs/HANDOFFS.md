@@ -27,6 +27,27 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-09-15 — Cierre: reputación interna rol cliente (seguir en otro PC)
+
+- **Qué se cambió:** Rediseño de las cards internas del **rol cliente** (superadmin/distribuidor sin tocar). **Evolución de la satisfacción:** media acumulada ponderada; el badge negro es la media del periodo, no el último día. Chip «Satisfacción media» con delta vs mes anterior (si el mes previo no tiene datos, compara con el último mes con encuestas o con este mes sin hoy). **Crecimiento acumulado:** opción B (total histórico + chip del incremento del rango). **Puntos de mejora:** barras tipo mockup; el cuadrado/+info abre el detalle. **Detalle de operario y de punto de mejora:** mismas pastillas que el dashboard (Hoy / 7 días / 30 días / 12 meses / Acumulado); el eje X sigue esa granularidad (hora / día / semana / mes). Si un punto de mejora no se ha marcado en el rango, el gráfico no pinta una línea a 0%. **Orden de cards (solo cliente):** fila 1 Evolución | Puntos de mejora; fila 2 Crecimiento | Operarios (`flex-direction: column-reverse` en `.client-dashboard-insights-stack`). Iconos de info quitados. Modales de detalle con scroll en landscape. Sin migraciones.
+- **Por qué:** Alinear el dashboard interno al mockup y dejar el trabajo pusheado para continuar mañana en otro PC.
+- **Qué falta:** Ranking de **operarios** (lista) aún no tiene un pase de mockup completo. Comparativa de sector sigue siendo placeholder. Superadmin/distribuidor conservan gráficos y filtros antiguos.
+- **Riesgos o pendientes:** PHP-FPM corre como `nobody`; tras Blade: `sudo -u nobody php artisan view:clear`. El eje de Apex usa `overwriteCategories` (el formatter no trae índice). En otro PC: `git pull origin main` (rama `main`), `composer install` si hace falta; **no hay migrate** en este lote. Piezas: `ClientDashboard.php`, `InternalReputationMetrics.php`, `client-dashboard.blade.php`, `client-dashboard-charts-script.blade.php`, `client-panel-theme.blade.php`, `employee-detail-modal.blade.php`, `lang/{es,en,pt}/client.php`.
+
+### 2026-09-15 — Crecimiento acumulado: solo filtro superior (opción B)
+
+- **Qué se cambió:** En el rol cliente se quitan las pastillas internas (Rango/Días/Horas) y el forzado de Horas en «Hoy». El gráfico es siempre el **total histórico** (opción B): el último punto coincide con el acumulado global; el chip muestra el incremento del rango («+N en 30 días») y en **Acumulado** el **total** (`14 total`), no «este mes». 7 días se agrupa por día, 30 días por **semana**, rangos largos por mes. Las fechas del eje X se pintan con `overwriteCategories` (el formatter de Apex no traía índice y dejaba el eje vacío en PC). En móvil, como mucho 6 fechas y marcadores en extremos si hay muchos puntos.
+- **Por qué:** El filtro interno era del gráfico viejo y, en 30 días, ~31 etiquetas diarias hacían ilegible el eje. El chip de Acumulado decía «este mes» aunque coincidiera con el total.
+- **Qué falta:** «Tendencia» → «Evolución de la satisfacción».
+- **Riesgos o pendientes:** Superadmin conserva Rango/Días/Horas. Tras Blade: `sudo -u nobody php artisan view:clear`.
+
+### 2026-09-15 — Reputación interna: crecimiento acumulado de encuestas (rol cliente)
+
+- **Qué se cambió:** La card «Histórico de encuestas» pasa a «Crecimiento acumulado de encuestas» en el **rol cliente**: en modo *Rango de fechas* la serie es el total acumulado (parte del total previo al rango, `baseline`, y termina en el total histórico), con estilo del mockup (verde `#12a37a`, marcadores blancos, etiqueta oscura en el último punto, sin título de eje Y) y chip «+N este mes» (mes calendario). Los modos *Días* y *Horas* siguen siendo distribución (no acumulada) con el nuevo estilo; el turno mañana/noche en móvil se conserva. Superadmin/distribuidor mantienen el gráfico anterior. `InternalReputationMetrics::getSurveyHistoryByRange` devuelve `cumulative` y `baseline`; nuevo `getSurveysThisMonth()`. Etiquetas de mes sin año cuando el rango cae en un solo año.
+- **Por qué:** Segundo gráfico del rediseño al mockup, manteniendo los filtros existentes.
+- **Qué falta:** «Tendencia» → «Evolución de la satisfacción», ranking de empleados, puntos de mejora.
+- **Riesgos o pendientes:** El flag `clientStyle` / `cumulative` viaja en la config JSON del gráfico; el JS (`renderHistoryChart`) elige la variante. Tras editar Blade: `sudo -u nobody php artisan view:clear`.
+
 ### 2026-09-13 — Reputación interna: filtro y primera fila (rol cliente)
 
 - **Qué se cambió:** En el dashboard de reputación interna del **rol cliente**, el `<select>` de rango y la card de agujas Apex se sustituyen por pastillas (Acumulado / Hoy / 7 días / 30 días / 12 meses / Personalizado) y cuatro KPI: satisfacción media (2 decimales + delta vs mes anterior), encuestas (total + respuestas de hoy), % valoraciones positivas y barras 1–5. Nuevo tipo de rango `last_year`. Superadmin/distribuidor conservan el filtro y las agujas.

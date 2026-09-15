@@ -42,23 +42,37 @@
                 ->all(),
             'labelColor' => '#6b7280',
         ];
+        $isClientPanel = \App\Support\ClientPanel::isActive();
+        $surveyHistoryCumulative = $isClientPanel && ($surveyHistory['grouping'] ?? 'range') === 'range';
         $surveyHistoryChartConfig = [
             'labels' => $surveyHistory['labels'],
             'counts' => $surveyHistory['counts'],
+            'cumulative' => $surveyHistoryCumulative ? ($surveyHistory['cumulative'] ?? []) : null,
+            'baseline' => $surveyHistoryCumulative ? (int) ($surveyHistory['baseline'] ?? 0) : null,
+            'clientStyle' => $isClientPanel,
             'total' => $surveyHistory['total'],
             'grouping' => $surveyHistory['grouping'] ?? 'range',
+            'granularity' => $surveyHistory['granularity'] ?? 'month',
             'rangeKey' => $range_type.'|'.($date_from ?? '').'|'.($date_to ?? ''),
-            'seriesLabel' => __('client.dashboard.survey_history.y_axis_label'),
+            'seriesLabel' => $surveyHistoryCumulative
+                ? __('client.dashboard.survey_growth.series_label')
+                : __('client.dashboard.survey_history.y_axis_label'),
             'tooltipLabel' => __('client.dashboard.survey_history.series_label'),
             'emptyLabel' => __('client.dashboard.survey_history.empty'),
         ];
         $scoreTrendChartConfig = [
             'labels' => $scoreTrend['labels'],
-            'values' => $scoreTrend['averages'],
+            'values' => $isClientPanel
+                ? ($scoreTrend['cumulative_averages'] ?? $scoreTrend['averages'])
+                : $scoreTrend['averages'],
+            'counts' => $scoreTrend['counts'] ?? [],
+            'overallAverage' => $isClientPanel ? ($scoreTrend['overall_average'] ?? null) : null,
             'granularity' => $scoreTrend['granularity'],
             'rangeKey' => $range_type.'|'.($date_from ?? '').'|'.($date_to ?? ''),
             'seriesLabel' => __('client.dashboard.score_trend.series_label'),
             'emptyLabel' => __('client.dashboard.score_trend.empty'),
+            'clientStyle' => $isClientPanel,
+            'locale' => str_replace('_', '-', app()->getLocale()),
         ];
     @endphp
 
@@ -143,6 +157,12 @@
 
         .client-dashboard-employee-ranking-scroll::-webkit-scrollbar-track {
             background: transparent;
+        }
+
+        .client-dashboard-insights-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
         .client-dashboard-insights-row {
@@ -843,13 +863,21 @@
         }
 
         .client-dashboard-employee-detail-modal {
-            height: min(94vh, 64rem);
-            max-height: min(94vh, 64rem);
+            height: auto;
+            max-height: min(94dvh, 64rem);
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
 
         .client-dashboard-improvement-detail-modal {
-            height: min(88vh, 54rem);
-            max-height: min(88vh, 54rem);
+            height: auto;
+            max-height: min(94dvh, 54rem);
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
 
         .dark .client-dashboard-improvement-detail-modal,
@@ -858,11 +886,16 @@
         }
 
         .client-dashboard-improvement-detail-header {
+            position: sticky;
+            top: 0;
+            z-index: 4;
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: .85rem;
             padding: 1.25rem 1.35rem 1rem;
+            background: #ffffff;
+            flex-shrink: 0;
         }
 
         .client-dashboard-improvement-detail-title {
@@ -875,6 +908,47 @@
 
         .dark .client-dashboard-improvement-detail-title {
             color: #e5e7eb;
+        }
+
+        .dark .client-dashboard-improvement-detail-header {
+            background: rgb(17 24 39);
+        }
+
+        .client-dashboard-improvement-detail-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .4rem;
+            padding: 0 1.35rem .95rem;
+            flex-shrink: 0;
+        }
+
+        .client-dashboard-improvement-detail-filter-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(15, 23, 42, .12);
+            border-radius: .55rem;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            font-size: .78rem;
+            font-weight: 650;
+            line-height: 1;
+            padding: .45rem .7rem;
+            appearance: none;
+        }
+
+        .client-dashboard-improvement-detail-filter-pill.is-active {
+            border-color: rgba(10, 154, 185, .45);
+            background: rgba(10, 154, 185, .14);
+            color: #0A9AB9;
+        }
+
+        .dark .client-dashboard-improvement-detail-filter-pill {
+            background: rgb(31 41 55);
+            border-color: rgba(255, 255, 255, .1);
+            color: #cbd5e1;
         }
 
         .client-dashboard-improvement-detail-meta {
@@ -916,11 +990,11 @@
             flex-direction: column;
             justify-content: flex-start;
             gap: .45rem;
-            flex: 1;
+            flex: 0 0 auto;
             min-height: 0;
             padding: 0 1.35rem .85rem;
             border-top: 1px solid rgba(148, 163, 184, .18);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .client-dashboard-improvement-detail-chart-panel,
@@ -1717,11 +1791,15 @@
         }
 
         .client-dashboard-employee-detail-header {
+            position: sticky;
+            top: 0;
+            z-index: 4;
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: .85rem;
             padding: 1.25rem 1.35rem 1rem;
+            background: #ffffff;
         }
 
         .client-dashboard-employee-detail-title {
@@ -1734,6 +1812,10 @@
 
         .dark .client-dashboard-employee-detail-title {
             color: #e5e7eb;
+        }
+
+        .dark .client-dashboard-employee-detail-header {
+            background: rgb(17 24 39);
         }
 
         .client-dashboard-employee-detail-subtitle {
@@ -1808,6 +1890,13 @@
             background: #374151;
             color: #ffffff;
             cursor: pointer;
+        }
+
+        .client-dashboard-employee-detail-header,
+        .client-dashboard-employee-detail-filters,
+        .client-dashboard-employee-detail-summary,
+        .client-dashboard-employee-detail-bottom {
+            flex-shrink: 0;
         }
 
         .client-dashboard-employee-detail-summary {
@@ -2144,6 +2233,51 @@
             flex: 1;
         }
 
+        @media (max-height: 560px) {
+            .client-dashboard-employee-detail-backdrop,
+            .client-dashboard-improvement-detail-backdrop {
+                align-items: flex-start;
+                padding: .5rem;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .client-dashboard-employee-detail-modal,
+            .client-dashboard-improvement-detail-modal {
+                max-height: none;
+                overflow: visible;
+            }
+
+            .client-dashboard-employee-detail-header,
+            .client-dashboard-improvement-detail-header {
+                padding: .75rem 1rem .45rem;
+            }
+
+            .client-dashboard-employee-detail-filters,
+            .client-dashboard-improvement-detail-filters {
+                padding: 0 1rem .7rem;
+            }
+
+            .client-dashboard-employee-detail-summary {
+                padding: 0 1rem .85rem;
+                gap: .75rem;
+            }
+
+            .client-dashboard-employee-detail-trend-chart {
+                min-height: 11rem;
+            }
+
+            .client-dashboard-improvement-detail-chart {
+                height: 11rem;
+                min-height: 11rem;
+            }
+
+            .client-dashboard-improvement-detail-employee-list {
+                max-height: none;
+                overflow: visible;
+            }
+        }
+
         @media (max-width: 640px) {
             .client-dashboard-employee-detail-backdrop {
                 align-items: flex-start;
@@ -2164,7 +2298,8 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .client-dashboard-employee-detail-filters {
+            .client-dashboard-employee-detail-filters,
+            .client-dashboard-improvement-detail-filters {
                 padding: 0 1rem .85rem;
             }
 
@@ -2425,15 +2560,19 @@
                 </div>
                 @endif
 
+                <div class="client-dashboard-insights-stack">
                 <div class="client-dashboard-insights-row">
                     <section
                         @class([
                             'client-dashboard-survey-history-card',
-                            'is-hours-grouping' => $survey_history_grouping === 'hours',
+                            'is-hours-grouping' => $survey_history_grouping === 'hours'
+                                || ($isClientPanel && ($surveyHistory['granularity'] ?? '') === 'hour'),
+                            'is-day-axis' => $isClientPanel && ($surveyHistory['granularity'] ?? '') === 'day',
+                            'is-month-axis' => $isClientPanel && ($surveyHistory['granularity'] ?? '') === 'month',
                         ])
                         data-dashboard-section="survey-history"
                         data-dashboard-history-chart
-                        wire:key="survey-history-{{ $range_type }}-{{ $survey_history_grouping }}-{{ $date_from ?? 'empty' }}-{{ $date_to ?? 'empty' }}"
+                        wire:key="survey-history-{{ $range_type }}-{{ $survey_history_grouping }}-{{ $surveyHistory['granularity'] ?? 'range' }}-{{ $date_from ?? 'empty' }}-{{ $date_to ?? 'empty' }}"
                     >
                         <script type="application/json" data-dashboard-history-config>
                             {!! json_encode($surveyHistoryChartConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
@@ -2441,13 +2580,22 @@
 
                         <div class="client-dashboard-survey-history-header">
                             <div class="client-dashboard-survey-history-title">
-                                <span class="client-dashboard-survey-history-icon">
-                                    <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
-                                </span>
-                                <span>{{ __('client.dashboard.survey_history.heading') }}</span>
+                            @if ($isClientPanel)
+                                <span>{{ __('client.dashboard.survey_growth.heading') }}</span>
+                            @else
+                                    <span class="client-dashboard-survey-history-icon">
+                                        <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
+                                    </span>
+                                    <span>{{ __('client.dashboard.survey_history.heading') }}</span>
+                                @endif
                             </div>
 
                             <div class="client-dashboard-survey-history-actions">
+                                @if ($isClientPanel)
+                                    <span class="reputalis-growth-chip">
+                                        {{ $this->getSurveyGrowthChip((int) ($surveyHistory['total'] ?? 0)) }}
+                                    </span>
+                                @else
                                 <span>{{ __('client.dashboard.survey_history.show_by') }}:</span>
                                 @unless ($forceSurveyHistoryHours)
                                     <button
@@ -2472,6 +2620,7 @@
                                 >
                                     {{ __('client.dashboard.survey_history.hours') }}
                                 </button>
+                                @endif
                             </div>
                         </div>
 
@@ -2617,6 +2766,8 @@
                         'client-dashboard-survey-history-card client-dashboard-score-trend-card',
                         'is-detail-open' => $showScoreTrendDetail,
                         'is-hours-grouping' => ($scoreTrend['granularity'] ?? '') === 'hour',
+                        'is-day-axis' => $isClientPanel && ($scoreTrend['granularity'] ?? '') === 'day',
+                        'is-month-axis' => $isClientPanel && ($scoreTrend['granularity'] ?? '') === 'month',
                     ])
                     data-dashboard-section="score-trend"
                     data-dashboard-trend-chart
@@ -2628,24 +2779,30 @@
 
                     <div class="client-dashboard-survey-history-header">
                         <div class="client-dashboard-survey-history-title">
-                            <span class="client-dashboard-survey-history-icon">
-                                <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
-                            </span>
-                            <span>{{ __('client.dashboard.score_trend.heading') }}</span>
+                            @if ($isClientPanel)
+                                <span>{{ __('client.dashboard.score_trend.heading_client') }}</span>
+                            @else
+                                <span class="client-dashboard-survey-history-icon">
+                                    <x-filament::icon icon="heroicon-m-information-circle" class="h-4 w-4" />
+                                </span>
+                                <span>{{ __('client.dashboard.score_trend.heading') }}</span>
+                            @endif
                         </div>
 
-                        <div class="client-dashboard-survey-history-actions">
-                            <button
-                                type="button"
-                                wire:click="openScoreTrendDetail"
-                                @class(['client-dashboard-survey-history-pill', 'is-active' => $showScoreTrendDetail])
-                            >
-                                {{ __('client.dashboard.score_trend.show_detail') }}
-                            </button>
-                        </div>
+                        @unless ($isClientPanel)
+                            <div class="client-dashboard-survey-history-actions">
+                                <button
+                                    type="button"
+                                    wire:click="openScoreTrendDetail"
+                                    @class(['client-dashboard-survey-history-pill', 'is-active' => $showScoreTrendDetail])
+                                >
+                                    {{ __('client.dashboard.score_trend.show_detail') }}
+                                </button>
+                            </div>
+                        @endunless
                     </div>
 
-                    @if (($scoreTrend['granularity'] ?? '') === 'hour')
+                    @if (! $isClientPanel && ($scoreTrend['granularity'] ?? '') === 'hour')
                         <div class="client-dashboard-hour-shift-actions" data-hour-shift-controls>
                             <button
                                 type="button"
@@ -2725,29 +2882,44 @@
 
                 <section class="client-dashboard-improvement-ranking-card" data-dashboard-section="improvement-ranking">
                     <div class="client-dashboard-improvement-ranking-header">
-                        <h3>{{ __('client.dashboard.improvement_ranking.heading') }}</h3>
+                        <div>
+                            <h3>{{ __('client.dashboard.improvement_ranking.heading') }}</h3>
+                            @if ($isClientPanel)
+                                <p class="reputalis-improve-subtitle">{{ __('client.dashboard.improvement_ranking.subtitle') }}</p>
+                            @endif
+                        </div>
 
-                        <span class="client-dashboard-improvement-ranking-order">
-                            <x-filament::icon icon="heroicon-m-funnel" class="h-3.5 w-3.5" />
-                            {{ __('client.dashboard.improvement_ranking.order_label') }}:
-                            {{ __('client.dashboard.improvement_ranking.order_negative') }}
-                        </span>
+                        @unless ($isClientPanel)
+                            <span class="client-dashboard-improvement-ranking-order">
+                                <x-filament::icon icon="heroicon-m-funnel" class="h-3.5 w-3.5" />
+                                {{ __('client.dashboard.improvement_ranking.order_label') }}:
+                                {{ __('client.dashboard.improvement_ranking.order_negative') }}
+                            </span>
+                        @endunless
                     </div>
 
                     <div class="client-dashboard-improvement-ranking-body">
-                        <p class="client-dashboard-improvement-ranking-question">
-                            <strong>{{ __('client.dashboard.employee_ranking.question_label') }}:</strong>
-                            {{ $improvementRanking['question'] }}
-                        </p>
+                        @unless ($isClientPanel)
+                            <p class="client-dashboard-improvement-ranking-question">
+                                <strong>{{ __('client.dashboard.employee_ranking.question_label') }}:</strong>
+                                {{ $improvementRanking['question'] }}
+                            </p>
+                        @endunless
 
                         @if (count($improvementRanking['options']) > 0)
                             <div class="client-dashboard-improvement-ranking-scroll">
-                                @foreach ($improvementRanking['options'] as $option)
+                                @foreach ($improvementRanking['options'] as $optionIndex => $option)
+                                    @php
+                                        $improveBarColors = ['#e8a017', '#2eb5d6', '#7ec9d6', '#a9d7e0', '#cfe6ea'];
+                                        $improveBarColor = $improveBarColors[$optionIndex % count($improveBarColors)];
+                                        $improveBarWidth = min(100, max(0, (float) $option['percentage']));
+                                    @endphp
                                     <button
                                         type="button"
                                         wire:click="openImprovementDetail('{{ $option['id'] }}')"
                                         @class([
                                             'client-dashboard-improvement-row',
+                                            'reputalis-improve-row' => $isClientPanel,
                                             'is-inactive' => ! ($option['is_active'] ?? true),
                                         ])
                                     >
@@ -2757,35 +2929,59 @@
                                             </span>
                                         </span>
 
-                                        <div class="client-dashboard-improvement-label">
-                                            <span>
-                                                {{ $option['label'] }}
-                                                @unless ($option['is_active'] ?? true)
-                                                    <span class="client-dashboard-improvement-inactive-badge">
-                                                        {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
-                                                    </span>
-                                                @endunless
-                                            </span>
-                                        </div>
+                                        @if ($isClientPanel)
+                                            <div class="reputalis-improve-copy">
+                                                <span class="reputalis-improve-label">
+                                                    {{ $option['label'] }}
+                                                    @unless ($option['is_active'] ?? true)
+                                                        <span class="client-dashboard-improvement-inactive-badge">
+                                                            {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
+                                                        </span>
+                                                    @endunless
+                                                </span>
+                                                <span class="reputalis-improve-pct">
+                                                    {{ number_format((float) $option['percentage'], 0, ',', ' ') }}%
+                                                </span>
+                                            </div>
+                                            <div class="reputalis-improve-track" aria-hidden="true">
+                                                <span
+                                                    class="reputalis-improve-bar"
+                                                    style="width: {{ $improveBarWidth }}%; background: {{ $improveBarColor }};"
+                                                ></span>
+                                            </div>
+                                        @else
+                                            <div class="client-dashboard-improvement-label">
+                                                <span>
+                                                    {{ $option['label'] }}
+                                                    @unless ($option['is_active'] ?? true)
+                                                        <span class="client-dashboard-improvement-inactive-badge">
+                                                            {{ __('client.dashboard.improvement_ranking.deleted_option_badge') }}
+                                                        </span>
+                                                    @endunless
+                                                </span>
+                                            </div>
 
-                                        <div class="client-dashboard-improvement-negative">
-                                            <div class="client-dashboard-improvement-negative-title">
-                                                {{ __('client.dashboard.improvement_ranking.negative_ratings') }}
+                                            <div class="client-dashboard-improvement-negative">
+                                                <div class="client-dashboard-improvement-negative-title">
+                                                    {{ __('client.dashboard.improvement_ranking.negative_ratings') }}
+                                                </div>
+                                                <div class="client-dashboard-improvement-negative-value">
+                                                    {{ number_format((float) $option['percentage'], 0, ',', ' ') }}%
+                                                </div>
+                                                <div class="client-dashboard-improvement-negative-count">
+                                                    {{ trans_choice('client.dashboard.improvement_ranking.surveys_count', $option['count'], ['count' => $option['count']]) }}
+                                                </div>
                                             </div>
-                                            <div class="client-dashboard-improvement-negative-value">
-                                                {{ number_format((float) $option['percentage'], 0, ',', ' ') }}%
-                                            </div>
-                                            <div class="client-dashboard-improvement-negative-count">
-                                                {{ trans_choice('client.dashboard.improvement_ranking.surveys_count', $option['count'], ['count' => $option['count']]) }}
-                                            </div>
-                                        </div>
+                                        @endif
                                     </button>
                                 @endforeach
                             </div>
 
-                            <p class="client-dashboard-improvement-footnote">
-                                {{ __('client.dashboard.improvement_ranking.percentage_note') }}
-                            </p>
+                            @unless ($isClientPanel)
+                                <p class="client-dashboard-improvement-footnote">
+                                    {{ __('client.dashboard.improvement_ranking.percentage_note') }}
+                                </p>
+                            @endunless
                         @else
                             <div class="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-8 text-center dark:border-gray-700 dark:bg-gray-900">
                                 <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-gray-400 ring-1 ring-gray-950/5 dark:bg-gray-800 dark:ring-white/10">
@@ -2801,10 +2997,13 @@
                 </section>
 
                 @if ($showImprovementDetail && $improvementDetail)
+                    @php
+                        $improvementDetailRangeOptions = $this->getImprovementDetailRangeTypeOptions();
+                    @endphp
                     <div
                         class="client-dashboard-improvement-detail-backdrop"
                         wire:click.self="closeImprovementDetail"
-                        wire:key="improvement-detail-{{ $improvementDetail['id'] }}-{{ $range_type }}-{{ $date_from ?? 'empty' }}-{{ $date_to ?? 'empty' }}"
+                        wire:key="improvement-detail-{{ $improvementDetail['id'] }}-{{ $improvement_detail_range_type }}-{{ $improvement_detail_date_from ?? 'empty' }}-{{ $improvement_detail_date_to ?? 'empty' }}"
                     >
                         <div
                             class="client-dashboard-improvement-detail-modal"
@@ -2843,15 +3042,38 @@
                                 </button>
                             </div>
 
+                            <div
+                                class="client-dashboard-improvement-detail-filters"
+                                role="group"
+                                aria-label="{{ __('client.dashboard.improvement_ranking.detail_title', ['name' => $improvementDetail['label']]) }}"
+                            >
+                                @foreach ($improvementDetailRangeOptions as $rangeType => $rangeLabel)
+                                    <button
+                                        type="button"
+                                        wire:click="setImprovementDetailRangeType('{{ $rangeType }}')"
+                                        @class([
+                                            'client-dashboard-improvement-detail-filter-pill',
+                                            'is-active' => $improvement_detail_range_type === $rangeType,
+                                        ])
+                                    >
+                                        {{ $rangeLabel }}
+                                    </button>
+                                @endforeach
+                            </div>
+
                             <div class="client-dashboard-improvement-detail-body">
                                 <div class="client-dashboard-improvement-detail-chart-panel">
                                     <h5 class="client-dashboard-improvement-detail-chart-title">
-                                        {{ __('client.dashboard.improvement_ranking.detail_chart_title') }}
+                                        {{ $isClientPanel
+                                            ? __('client.dashboard.improvement_ranking.detail_chart_title_client')
+                                            : __('client.dashboard.improvement_ranking.detail_chart_title') }}
                                     </h5>
 
-                                    <p class="client-dashboard-improvement-detail-note">
-                                        {{ __('client.dashboard.improvement_ranking.detail_note') }}
-                                    </p>
+                                    @unless ($isClientPanel)
+                                        <p class="client-dashboard-improvement-detail-note">
+                                            {{ __('client.dashboard.improvement_ranking.detail_note') }}
+                                        </p>
+                                    @endunless
 
                                     <div wire:ignore data-dashboard-chart="improvement-detail" class="client-dashboard-improvement-detail-chart"></div>
                                 </div>
@@ -2907,6 +3129,7 @@
                         </div>
                     </div>
                 @endif
+                </div>
                 </div>
 
                 {{-- V2: charts, time series, recent activity, employee history and improvement-point detail. --}}
