@@ -61,10 +61,10 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 ### Panel Filament
 
-- **ClientResource** con subpáginas Dashboard, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. Listado de clientes muestra logo pequeño junto al nombre comercial.
+- **ClientResource** con hub staff `/{record}/inicio` (5 cards: Dashboard, Ficha, Encuesta, Empleados, Llamadas; colores planos), subpáginas Dashboard, Ficha, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. El listado de clientes (staff) abre el hub, no el dashboard. Logo pequeño junto al nombre comercial.
 - **Reputación externa (Google / Outscraper):** página `ReputacionExterna` accesible desde Dashboard → pestaña externa (métricas, gráficos, histórico, alertas 1★/2★, sync manual + simulación fake). Cron 3×/día. Plan: `docs/PLAN_REPUTACION_OUTSCRAPER.md`.
-- **Cliente (rol):** menú **Panel principal** (reputación interna/externa/sector), **Gestión** (Empleados) y **Documentos** (Certificados e Informes, placeholders); encuesta CSAT oculta en navegación; cromo propio (sidebar oscuro, marca Reputalis, pie con el negocio). En reputación interna: pastillas de rango, 4 KPI, Evolución de la satisfacción, Puntos de mejora, Crecimiento acumulado y Operarios (detalle con los mismos filtros). Superadmin/distribuidor conservan agujas y `<select>`.
-- **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial).
+- **Cliente (rol):** menú **Panel principal** (reputación interna/externa/sector), **Gestión** (Empleados) y **Documentos** (Certificados e Informes, placeholders); encuesta CSAT oculta en navegación; cromo propio (sidebar oscuro, marca Reputalis, pie con el negocio). En reputación interna: pastillas de rango, 4 KPI, Evolución de la satisfacción, Puntos de mejora, Crecimiento acumulado y Operarios (detalle con los mismos filtros). En reputación externa: 8 KPI cards al mockup (el resto de la página aún al estilo anterior). Superadmin/distribuidor conservan agujas y `<select>`.
+- **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial); cards con color plano (sin degradado).
 - **Imágenes:** logos/fotos bajo `storage/app/public/img/{code}/…` (comando de migración `clients:migrate-images`).
 - **Notificaciones:** `PanelMessage` / `PanelMessageService` en alta y activación de cliente.
 - **Idioma panel:** sesión + archivos `lang/`; independiente de la encuesta pública.
@@ -112,4 +112,4 @@ Detalle por clase: `DESCRIPCION_CLASES.md`.
 - `CONTEXTO_PARA_IA.md` suele estar más al día en detalles técnicos puntuales; este resumen prioriza **qué existe** a nivel funcional.
 - Operación del servidor (comandos): [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
-**Última revisión documental:** agosto 2026 (reputación externa Outscraper fases 1–7 + handoff).
+**Última revisión documental:** 16 septiembre 2026 (hub staff, tema global, cards sin degradado).

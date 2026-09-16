@@ -67,7 +67,7 @@
         }
 
         .additional-tools-card--sectors {
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%);
+            background: #d1fae5;
             border-color: #6ee7b7;
             color: #065f46;
         }
@@ -83,7 +83,7 @@
         }
 
         .additional-tools-card--images {
-            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%);
+            background: #ffedd5;
             border-color: #fdba74;
             color: #9a3412;
         }
@@ -99,7 +99,7 @@
         }
 
         .dark .additional-tools-card--sectors {
-            background: linear-gradient(135deg, rgba(6, 78, 59, .55) 0%, rgba(4, 120, 87, .35) 100%);
+            background: rgba(4, 120, 87, .42);
             border-color: rgba(52, 211, 153, .35);
             color: #a7f3d0;
         }
@@ -111,7 +111,7 @@
         }
 
         .dark .additional-tools-card--images {
-            background: linear-gradient(135deg, rgba(124, 45, 18, .55) 0%, rgba(154, 52, 18, .35) 100%);
+            background: rgba(154, 52, 18, .42);
             border-color: rgba(251, 146, 60, .35);
             color: #fdba74;
         }

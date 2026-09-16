@@ -47,26 +47,17 @@ class ClientEmpleados extends Page
 
     protected function resolveClient(): ?Client
     {
-        $user = auth()->user();
-        if (! $user || ! $user->isClientOwner()) {
-            return null;
-        }
-
-        return $user->ownedClient;
+        return \App\Support\ClientPanel::ownedClient();
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isClientOwner() === true && $user->ownedClient !== null;
+        return \App\Support\ClientPanel::isActive();
     }
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isClientOwner() === true && $user->ownedClient !== null;
+        return \App\Support\ClientPanel::isActive();
     }
 
     /**

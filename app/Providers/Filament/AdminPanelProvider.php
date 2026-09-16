@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\EditProfile;
+use App\Http\Middleware\SyncClientPanelPreview;
 use App\Http\SetPanelLocale;
 use App\Support\ClientPanel;
 use App\Support\PanelLocale;
@@ -32,15 +33,16 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->spa()
+            ->spaUrlExceptions([
+                '*/admin/employees',
+                '*/admin/employees/*',
+                '*/admin/clients/*/empleados',
+                '*/admin/clients/*/ficha',
+                '*/admin/clients/*/edit',
+            ])
             ->login(Login::class)
             ->profile(EditProfile::class)
-            ->brandName(function (): string {
-                if (ClientPanel::isActive()) {
-                    return 'Reputalis';
-                }
-
-                return (string) config('app.name');
-            })
+            ->brandName('Reputalis')
             // Evita que el nombre/logo del cliente sea un enlace clicable.
             ->homeUrl(function (): ?string {
                 if (auth()->user()?->isClientOwner()) {
@@ -50,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
                 return url('/admin');
             })
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#2ad4dc'),
             ])
             ->sidebarWidth('18rem')
             ->navigationGroups(ClientPanel::navigationGroups())
@@ -89,6 +91,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::SCRIPTS_BEFORE,
                 fn (): string => view('filament.components.client-dashboard-charts-script')->render(),
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => view('filament.components.client-panel-preview-bar')->render(),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
@@ -106,6 +112,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                SyncClientPanelPreview::class,
             ]);
     }
 

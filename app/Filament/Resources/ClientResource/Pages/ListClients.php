@@ -100,6 +100,7 @@ class ListClients extends ListRecords
         return $table
             ->query(fn (): Builder => $this->getTableQuery())
             ->defaultSort('namecommercial')
+            ->recordUrl(fn (Client $record): string => ClientResource::getUrl('hub', ['record' => $record]))
             ->columns([
                 Tables\Columns\TextColumn::make('namecommercial')
                     ->label(__('client.form.commercial_name'))
@@ -117,7 +118,7 @@ class ListClients extends ListRecords
 
                         return '<div style="display:flex;align-items:center;gap:.65rem;min-width:0;"><span style="display:contents;">'.$avatar.'</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;">'.$name.'</span></div>';
                     })
-                    ->url(fn (Client $record): string => ClientResource::getUrl('dashboard', ['record' => $record]))
+                    ->url(fn (Client $record): string => ClientResource::getUrl('hub', ['record' => $record]))
                     ->wrap()
                     ->searchable()
                     ->sortable(),

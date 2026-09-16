@@ -453,7 +453,7 @@ class ClientResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label(__('common.actions.view'))
-                    ->url(fn (Client $record): string => static::getUrl('dashboard', ['record' => $record])),
+                    ->url(fn (Client $record): string => static::getUrl('hub', ['record' => $record])),
                 Tables\Actions\EditAction::make()
                     ->label(__('common.actions.edit')),
                 Tables\Actions\Action::make('llamadas')
@@ -522,6 +522,7 @@ class ClientResource extends Resource
         return [
             'index' => Pages\ListClients::route('/'),
             'create' => Pages\CreateClient::route('/create'),
+            'hub' => Pages\ClientHub::route('/{record}/inicio'),
             'dashboard' => Pages\ClientDashboard::route('/{record}'),
             'view' => Pages\ViewClient::route('/{record}/ficha'),
             'edit' => Pages\EditClient::route('/{record}/edit'),
@@ -539,23 +540,7 @@ class ClientResource extends Resource
      */
     public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
     {
-        if (auth()->user()?->isClientOwner()) {
-            return [];
-        }
-
-        // ReputacionExterna no va en el subnav: se abre desde Dashboard
-        // (pestaña «Reputación externa», junto a interna / sector).
-        $items = [
-            Pages\ClientDashboard::class,
-            Pages\ViewClient::class,
-            Pages\PuntosDeMejora::class,
-            Pages\Empleados::class,
-            Pages\Llamadas::class,
-        ];
-
-        // UX: el submenú lateral no incluye "Edit client" porque el flujo de edición
-        // se realiza desde el botón superior.
-        return $page->generateNavigationItems($items);
+        return [];
     }
 
     public static function canViewAny(): bool
@@ -571,6 +556,10 @@ class ClientResource extends Resource
      */
     public static function shouldRegisterNavigation(): bool
     {
+        if (! \App\Support\ClientPanel::allowsAdminNavigation()) {
+            return false;
+        }
+
         $user = auth()->user();
 
         return $user?->isSuperAdmin() || $user?->isDistributor() || false;

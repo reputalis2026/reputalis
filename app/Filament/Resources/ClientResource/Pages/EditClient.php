@@ -219,7 +219,21 @@ class EditClient extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return ClientResource::getUrl('dashboard', ['record' => $this->record]);
+        return ClientResource::getUrl(
+            auth()->user()?->isClientOwner() ? 'dashboard' : 'hub',
+            ['record' => $this->record]
+        );
+    }
+
+    protected function getCancelFormAction(): Action
+    {
+        return Action::make('cancel')
+            ->label(__('common.actions.cancel'))
+            ->url(ClientResource::getUrl(
+                auth()->user()?->isClientOwner() ? 'dashboard' : 'view',
+                ['record' => $this->record]
+            ))
+            ->color('gray');
     }
 
     protected function getSaveFormAction(): Action

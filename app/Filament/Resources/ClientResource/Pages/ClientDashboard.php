@@ -69,10 +69,20 @@ class ClientDashboard extends Page
         return (string) ($this->getRecord()?->namecommercial ?? __('client.resource.model_label'));
     }
 
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        if (\App\Support\ClientPanel::isActive()) {
+            return '';
+        }
+
+        return parent::getHeading();
+    }
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+        \App\Support\ClientPanel::enterPreview($this->getClientRecord());
 
         $tab = request()->query('reputationTab');
         if (is_string($tab) && in_array($tab, ['internal', 'sector'], true)) {

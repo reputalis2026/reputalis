@@ -43,7 +43,8 @@ class DistributorMessages extends Page implements HasTable
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->isDistributor() ?? false;
+        return \App\Support\ClientPanel::allowsAdminNavigation()
+            && (auth()->user()?->isDistributor() ?? false);
     }
 
     public static function canAccess(): bool

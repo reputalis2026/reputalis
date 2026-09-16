@@ -18,6 +18,11 @@ return [
     'profile' => [
         'section' => 'Profile information',
     ],
+    'roles' => [
+        'superadmin' => 'SuperAdmin',
+        'distributor' => 'Distributor',
+        'client' => 'Client',
+    ],
     'navigation_groups' => [
         'communication' => 'Communication',
         'configuration' => 'Configuration',

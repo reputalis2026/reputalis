@@ -37,6 +37,35 @@ return [
         'edit_title' => 'Editar cliente',
         'list_title' => 'Clientes',
         'list_heading' => 'Lista de clientes',
+        'hub_title' => 'Áreas do cliente',
+    ],
+    'preview' => [
+        'viewing' => 'A ver o painel de :client',
+        'back' => 'Voltar aos clientes',
+    ],
+    'hub' => [
+        'cards' => [
+            'dashboard' => [
+                'title' => 'Dashboard',
+                'description' => 'Reputação interna, externa e comparativo de setor.',
+            ],
+            'profile' => [
+                'title' => 'Ficha',
+                'description' => 'Consulta os dados do cliente, acesso e configuração.',
+            ],
+            'survey' => [
+                'title' => 'Inquérito',
+                'description' => 'Configura os pontos de melhoria do inquérito CSAT.',
+            ],
+            'employees' => [
+                'title' => 'Funcionários',
+                'description' => 'Gere a equipa do cliente e os seus inquéritos.',
+            ],
+            'calls' => [
+                'title' => 'Chamadas',
+                'description' => 'Registo de chamadas com o cliente.',
+            ],
+        ],
     ],
     'sections' => [
         'logo' => 'Logótipo',
@@ -157,6 +186,7 @@ return [
         ],
         'external' => [
             'heading' => 'Reputação externa',
+            'subheading' => 'Google Maps',
             'description' => 'Abra a página de reputação externa (Google) com nota, desdobramento e histórico.',
         ],
         'sector' => [
@@ -442,6 +472,22 @@ return [
         'last_sync_label' => 'Última sincronização',
         'never_synced' => 'Nunca',
         'no_snapshot' => 'Ainda não há dados. Clique em «Sincronizar agora» ou aguarde o cron (10:00 / 17:00 / 23:55).',
+        'hero' => [
+            'google_rating' => 'Nota Google',
+            'google_source' => 'Google Maps',
+            'reviews_total' => 'N.º de avaliações',
+            'reviews_total_hint' => 'total acumulado',
+            'positive_ratings' => 'Avaliações positivas',
+            'positive_hint' => 'avaliações de 4★ e 5★',
+            'score_distribution' => 'Distribuição das avaliações',
+            'real_rating' => 'Nota real',
+            'real_hint' => 'calculada com as :count avaliações',
+            'target_rating' => 'Objetivo nota Google',
+            'target_hint' => 'Próximo salto da nota',
+            'stars_needed' => 'Avaliações de 5★ necessárias',
+            'stars_needed_hint' => 'Para atingir o objetivo',
+            'progress' => 'Progresso rumo ao objetivo',
+        ],
         'google_rating' => 'Nota',
         'reviews_total' => 'N.º de avaliações',
         'calculated_rating' => 'Nota real',
@@ -476,6 +522,15 @@ return [
         'col_total' => 'Total',
         'history_empty' => 'Não há snapshots neste período.',
         'charts_empty' => 'Não há dados suficientes para graficar este período.',
+        'chart_pills' => [
+            'week' => 'Semana',
+            'month' => 'Mês',
+            'six_months' => '6 meses',
+            'year' => 'Ano',
+        ],
+        'chart_google_title' => 'Evolução da nota do Google Maps',
+        'chart_real_title' => 'Evolução da nota real',
+        'chart_reviews_title' => 'Crescimento acumulado de avaliações',
         'chart_rating_title' => 'Evolução da nota',
         'chart_rating_google' => 'Nota Google',
         'chart_rating_calculated' => 'Calculada',

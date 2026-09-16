@@ -206,6 +206,10 @@ class CsatSurveyResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (! \App\Support\ClientPanel::allowsAdminNavigation()) {
+            return false;
+        }
+
         $user = auth()->user();
 
         if ($user?->isClientOwner()) {

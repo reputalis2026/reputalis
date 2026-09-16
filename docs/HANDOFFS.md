@@ -27,6 +27,27 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ## Entradas
 
+### 2026-09-16 — Hub staff, tema global y cards sin degradado (seguir en otro PC)
+
+- **Qué se cambió:** Superadmin/distribuidor al abrir un cliente van a **`/{record}/inicio` (`ClientHub`)**: 5 cards (Dashboard, Ficha, Encuesta, Empleados, Llamadas) con **colores planos** (sin degradado). El propietario del cliente sigue yendo al dashboard. Cada card de staff lleva barra flotante para volver al hub; el menú lateral del cliente se mantiene en Dashboard / Certificados / Informes. En Ficha, Empleados y sus pantallas de **editar/crear**, el sidebar **no** se muestra (ni al volver atrás). El tema Reputalis (sidebar `#06232b`, acento `#2ad4dc`, canvas `#e7f3ef`) se aplica a todo el panel. Herramientas adicionales también con colores planos. Cancelar en editar empleado/ficha vuelve a la lista/ficha con URL explícita (no `history.back()`). SPA de Filament excluye esas URLs para no reutilizar el snapshot con el menú.
+- **Por qué:** El staff no debe aterrizar en el dashboard del cliente; las cards deben ser a pantalla completa salvo la experiencia de dashboard del cliente; el cliente no quería degradados.
+- **Qué falta:** Ranking de operarios (lista) al mockup. Alertas y tabla de histórico de reputación externa al mockup. Comparativa de sector placeholder.
+- **Riesgos o pendientes:** PHP-FPM es **`www-data`** (no `nobody`). **Nunca** `php artisan view:clear` como root: deja `storage/framework/views` y sesiones con dueño root y el panel da 500. Usar `sudo -u www-data php artisan view:clear` y, si hace falta, `sudo chown -R www-data:www-data storage bootstrap/cache`. **Sin migraciones** en este lote. En otro PC: `git pull origin main`, `composer install` si hace falta. Piezas: `ClientHub`, `ClientPanel`, `SyncClientPanelPreview`, `client-panel-preview-bar`, `client-panel-theme`, `AdminPanelProvider` (`spaUrlExceptions`), `EditEmployee` / `CreateEmployee` / `EditClient` cancel URLs, `client-hub.blade.php`, `additional-tools.blade.php`.
+
+### 2026-09-16 — Reputación externa: gráficos de evolución (rol cliente)
+
+- **Qué se cambió:** Tres cards apiladas al mockup: Evolución nota Google Maps, Evolución nota real y Crecimiento acumulado de reseñas. Pastillas **Semana / Mes / 6 meses / Año** (por defecto 6 meses) activas y compartidas. Estilo área + badge del último punto (negro en notas, verde en reseñas). El eje de reseñas usa `Mar · 167`. Superadmin/distribuidor conservan los 3 gráficos antiguos. El desglose 1–5★ temporal ya no se muestra en el cliente (está en las KPI).
+- **Por qué:** Segunda pieza del rediseño de reputación externa.
+- **Qué falta:** Alertas y tabla de histórico al mockup. Ranking de operarios en interna.
+- **Riesgos o pendientes:** Los puntos salen del último snapshot de cada día/mes. Tras Blade: `sudo -u www-data php artisan view:clear`.
+
+### 2026-09-16 — Reputación externa: 8 KPI cards (rol cliente)
+
+- **Qué se cambió:** En el **rol cliente**, la card de agujas de reputación externa se sustituye por el bloque del mockup: título «Reputación externa / Google Maps» y **8 cards** (nota Google, nº de reseñas, % positivas 4★+5★, distribución, nota real, objetivo/siguiente décima, 5★ necesarias, progreso al objetivo). Superadmin/distribuidor conservan agujas. Sin migraciones. Gráficos de histórico **aún no** se han rediseñado.
+- **Por qué:** Primera pieza del rediseño de reputación externa al mockup.
+- **Qué falta:** Alertas y tabla de histórico al estilo mockup. Ranking de operarios en interna.
+- **Riesgos o pendientes:** El objetivo es el siguiente salto de 0,1 de la nota real (misma lógica que había). Tras Blade: `sudo -u www-data php artisan view:clear`. Piezas: `ReputacionExterna.php`, `external-hero-kpis.blade.php`, `reputacion-externa.blade.php`, `client-panel-theme.blade.php`, `lang/{es,en,pt}/client.php`.
+
 ### 2026-09-15 — Cierre: reputación interna rol cliente (seguir en otro PC)
 
 - **Qué se cambió:** Rediseño de las cards internas del **rol cliente** (superadmin/distribuidor sin tocar). **Evolución de la satisfacción:** media acumulada ponderada; el badge negro es la media del periodo, no el último día. Chip «Satisfacción media» con delta vs mes anterior (si el mes previo no tiene datos, compara con el último mes con encuestas o con este mes sin hoy). **Crecimiento acumulado:** opción B (total histórico + chip del incremento del rango). **Puntos de mejora:** barras tipo mockup; el cuadrado/+info abre el detalle. **Detalle de operario y de punto de mejora:** mismas pastillas que el dashboard (Hoy / 7 días / 30 días / 12 meses / Acumulado); el eje X sigue esa granularidad (hora / día / semana / mes). Si un punto de mejora no se ha marcado en el rango, el gráfico no pinta una línea a 0%. **Orden de cards (solo cliente):** fila 1 Evolución | Puntos de mejora; fila 2 Crecimiento | Operarios (`flex-direction: column-reverse` en `.client-dashboard-insights-stack`). Iconos de info quitados. Modales de detalle con scroll en landscape. Sin migraciones.

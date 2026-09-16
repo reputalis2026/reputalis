@@ -3,9 +3,10 @@
         $client = $this->getClientRecord();
         $snapshot = $this->getLatestSnapshot();
         $starsNeeded = $this->getFiveStarsNeeded();
-        $alerts = $this->getRecentAlerts();
-        $unreadAlerts = $this->getUnreadAlertsCount();
-        $history = $this->getHistoryRows();
+        $isClientPanel = \App\Support\ClientPanel::isActive();
+        $alerts = $isClientPanel ? collect() : $this->getRecentAlerts();
+        $unreadAlerts = $isClientPanel ? 0 : $this->getUnreadAlertsCount();
+        $history = $isClientPanel ? collect() : $this->getHistoryRows();
         $chartConfig = $this->getHistoryChartConfig();
         $maxStars = $snapshot ? max(1, max($snapshot->starsBreakdown())) : 1;
         $scoreColors = [
@@ -48,7 +49,7 @@
         $gaugeRealConfig['gaugeColor'] = '#3b82f6';
     @endphp
 
-    <div class="external-reputation-page space-y-6">
+    <div class="external-reputation-page" @if (\App\Support\ClientPanel::isActive()) data-dashboard-section="external-reputation" @endif>
         <style>
             .external-reputation-page {
                 font-size: .875rem;
@@ -417,6 +418,7 @@
 
         </style>
 
+        <div class="space-y-6">
         @include('filament.components.client-dashboard.reputation-tabs', [
             'tabs' => $this->getReputationTabs(),
             'activeTab' => 'external',
@@ -442,6 +444,11 @@
         @endif
 
         {{-- Estado actual --}}
+        @if (\App\Support\ClientPanel::isActive())
+            @include('filament.components.client-dashboard.external-hero-kpis', [
+                'hero' => $this->getClientHeroSummary(),
+            ])
+        @else
         <section class="external-reputation-card" data-external-reputation-gauge-card>
             <script type="application/json" data-external-reputation-gauge-config="google">
                 {!! json_encode($gaugeGoogleConfig, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
@@ -547,9 +554,61 @@
                 @endif
             </div>
         </section>
+        @endif
         {{-- /Estado actual --}}
 
         {{-- Gráficos en cards independientes --}}
+        @if (\App\Support\ClientPanel::isActive())
+            @php
+                $clientCharts = $this->getClientEvolutionCharts();
+                $clientChartRangeOptions = $this->getClientChartRangeOptions();
+            @endphp
+            <div class="reputalis-external-evolution">
+                @foreach ([
+                    'google' => ['title' => __('client.external_reputation.chart_google_title'), 'config' => $clientCharts['google']],
+                    'real' => ['title' => __('client.external_reputation.chart_real_title'), 'config' => $clientCharts['real']],
+                    'reviews' => ['title' => __('client.external_reputation.chart_reviews_title'), 'config' => $clientCharts['reviews']],
+                ] as $chartKey => $chart)
+                    @php
+                        $chartRange = $this->clientChartRangeFor($chartKey);
+                    @endphp
+                    <section class="reputalis-external-evolution-card" wire:key="client-{{ $chartKey }}-card">
+                        <div class="reputalis-external-evolution-header">
+                            <h3>{{ $chart['title'] }}</h3>
+                            <div class="reputalis-range-pills" role="tablist">
+                                @foreach ($clientChartRangeOptions as $rangeKey => $rangeLabel)
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        wire:click="setClientChartRange('{{ $chartKey }}', '{{ $rangeKey }}')"
+                                        @class([
+                                            'reputalis-range-pill',
+                                            'is-active' => $chartRange === $rangeKey,
+                                        ])
+                                    >
+                                        {{ $rangeLabel }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div
+                            wire:ignore
+                            wire:key="client-{{ $chartKey }}-plot-{{ $chartRange }}"
+                            data-external-reputation-chart-card="client-{{ $chartKey }}"
+                        >
+                            <script type="application/json" data-external-reputation-chart-config>
+                                {!! json_encode($chart['config'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
+                            </script>
+                            <div
+                                data-external-reputation-chart="client-{{ $chartKey }}"
+                                class="reputalis-external-evolution-chart"
+                                style="min-height:15.5rem;height:15.5rem;"
+                            ></div>
+                        </div>
+                    </section>
+                @endforeach
+            </div>
+        @else
         <div class="external-reputation-charts-grid space-y-4 lg:space-y-0">
             <section
                 class="external-reputation-card external-reputation-chart-card"
@@ -624,7 +683,10 @@
                 </div>
             </section>
         </div>
+        @endif
 
+        {{-- Alertas e histórico: ocultos en el panel cliente por ahora --}}
+        @if (! $isClientPanel)
         {{-- Alertas --}}
         <section class="external-reputation-card">
             <div class="external-reputation-card-header">
@@ -769,6 +831,8 @@
                 </div>
             </div>
         </section>
+        @endif
+        </div>
     </div>
 
     @push('scripts')

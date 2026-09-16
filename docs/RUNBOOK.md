@@ -174,7 +174,7 @@ sudo -u www-data php artisan clients:migrate-images
 sudo chown -R www-data:www-data storage/app/public/img
 ```
 
-Tras cambiar vistas Filament:
+Tras cambiar vistas Filament. PHP-FPM corre como **`www-data`**. No ejecutar `view:clear` como root: las vistas compiladas y las sesiones quedan con dueño root y el panel responde 500. Si eso ocurre: `sudo chown -R www-data:www-data storage bootstrap/cache`.
 
 ```bash
 cd /var/www/reputalis

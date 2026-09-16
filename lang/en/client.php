@@ -37,6 +37,35 @@ return [
         'edit_title' => 'Edit client',
         'list_title' => 'Clients',
         'list_heading' => 'Client list',
+        'hub_title' => 'Client areas',
+    ],
+    'preview' => [
+        'viewing' => 'Viewing the panel of :client',
+        'back' => 'Back to clients',
+    ],
+    'hub' => [
+        'cards' => [
+            'dashboard' => [
+                'title' => 'Dashboard',
+                'description' => 'Internal reputation, external reputation and sector comparison.',
+            ],
+            'profile' => [
+                'title' => 'Profile',
+                'description' => 'View the client details, access and settings.',
+            ],
+            'survey' => [
+                'title' => 'Survey',
+                'description' => 'Configure the CSAT survey improvement points.',
+            ],
+            'employees' => [
+                'title' => 'Employees',
+                'description' => 'Manage the client team and their surveys.',
+            ],
+            'calls' => [
+                'title' => 'Calls',
+                'description' => 'Call log with the client.',
+            ],
+        ],
     ],
     'sections' => [
         'logo' => 'Logo',
@@ -157,6 +186,7 @@ return [
         ],
         'external' => [
             'heading' => 'External reputation',
+            'subheading' => 'Google Maps',
             'description' => 'Open the external reputation page (Google) with rating, breakdown and history.',
         ],
         'sector' => [
@@ -442,6 +472,22 @@ return [
         'last_sync_label' => 'Last sync',
         'never_synced' => 'Never',
         'no_snapshot' => 'No data yet. Click “Sync now” or wait for the cron (10:00 / 17:00 / 23:55).',
+        'hero' => [
+            'google_rating' => 'Google rating',
+            'google_source' => 'Google Maps',
+            'reviews_total' => 'Number of reviews',
+            'reviews_total_hint' => 'running total',
+            'positive_ratings' => 'Positive ratings',
+            'positive_hint' => '4★ and 5★ ratings',
+            'score_distribution' => 'Rating distribution',
+            'real_rating' => 'Real score',
+            'real_hint' => 'calculated from :count reviews',
+            'target_rating' => 'Google rating target',
+            'target_hint' => 'Next rating step',
+            'stars_needed' => '5★ reviews needed',
+            'stars_needed_hint' => 'To reach the target',
+            'progress' => 'Progress toward target',
+        ],
         'google_rating' => 'Rating',
         'reviews_total' => 'Number of reviews',
         'calculated_rating' => 'Real score',
@@ -476,6 +522,15 @@ return [
         'col_total' => 'Total',
         'history_empty' => 'No snapshots in this period.',
         'charts_empty' => 'Not enough data to chart this period.',
+        'chart_pills' => [
+            'week' => 'Week',
+            'month' => 'Month',
+            'six_months' => '6 months',
+            'year' => 'Year',
+        ],
+        'chart_google_title' => 'Google Maps rating trend',
+        'chart_real_title' => 'Real rating trend',
+        'chart_reviews_title' => 'Cumulative review growth',
         'chart_rating_title' => 'Rating trend',
         'chart_rating_google' => 'Google rating',
         'chart_rating_calculated' => 'Calculated',

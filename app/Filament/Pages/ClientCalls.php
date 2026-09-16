@@ -43,6 +43,10 @@ class ClientCalls extends Page implements HasTable
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (! \App\Support\ClientPanel::allowsAdminNavigation()) {
+            return false;
+        }
+
         $user = auth()->user();
 
         return $user?->isSuperAdmin() === true || $user?->isDistributor() === true;

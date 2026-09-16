@@ -7,6 +7,7 @@ use App\Filament\Resources\EmployeeResource;
 use App\Models\Client;
 use App\Models\NfcToken;
 use App\Support\ClientImagePaths;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 
@@ -86,9 +87,24 @@ class CreateEmployee extends CreateRecord
 
     protected function getFormActions(): array
     {
+        $cancelUrl = function (): string {
+            $clientId = request()->query('client_id') ?: ($this->data['client_id'] ?? null);
+            if (filled($clientId)) {
+                $client = Client::query()->find($clientId);
+                if ($client && ClientResource::canView($client)) {
+                    return ClientResource::getUrl('empleados', ['record' => $client]);
+                }
+            }
+
+            return ClientResource::getUrl('index');
+        };
+
         return [
             $this->getCreateFormAction()->label(__('common.actions.create')),
-            $this->getCancelFormAction()->label(__('common.actions.cancel')),
+            Action::make('cancel')
+                ->label(__('common.actions.cancel'))
+                ->url($cancelUrl)
+                ->color('gray'),
         ];
     }
 

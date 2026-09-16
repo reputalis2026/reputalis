@@ -6,6 +6,7 @@ use App\Filament\Resources\EmployeeResource;
 use App\Filament\Resources\ClientResource;
 use App\Models\NfcToken;
 use App\Support\ClientImagePaths;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Str;
 
@@ -40,6 +41,14 @@ class EditEmployee extends EditRecord
         }
 
         return ClientResource::getUrl('index');
+    }
+
+    protected function getCancelFormAction(): Action
+    {
+        return Action::make('cancel')
+            ->label(__('common.actions.cancel'))
+            ->url($this->getRedirectUrl())
+            ->color('gray');
     }
 
     /**

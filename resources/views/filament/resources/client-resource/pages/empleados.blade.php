@@ -208,7 +208,7 @@
                                     @if ($canEdit)
                                         <x-filament::button
                                             tag="a"
-                                            :href="\App\Filament\Resources\EmployeeResource::getUrl('edit', ['record' => $employee])"
+                                            :href="\App\Filament\Resources\EmployeeResource::getUrl('edit', ['record' => $employee]).'?client_id='.$record->id"
                                             size="sm"
                                             color="gray"
                                             icon="heroicon-o-pencil-square"

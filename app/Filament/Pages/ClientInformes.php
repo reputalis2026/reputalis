@@ -34,15 +34,11 @@ class ClientInformes extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isClientOwner() === true && $user->ownedClient !== null;
+        return \App\Support\ClientPanel::isActive();
     }
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return $user?->isClientOwner() === true && $user->ownedClient !== null;
+        return \App\Support\ClientPanel::isActive();
     }
 }

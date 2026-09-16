@@ -84,6 +84,386 @@
             }
         };
 
+        const fillSeriesForward = (values) => {
+            const filled = values.slice();
+            let lastKnown = null;
+            for (let i = 0; i < filled.length; i++) {
+                if (filled[i] !== null && Number.isFinite(filled[i])) {
+                    lastKnown = filled[i];
+                } else if (lastKnown !== null) {
+                    filled[i] = lastKnown;
+                }
+            }
+
+            return filled;
+        };
+
+        const formatChartNumber = (value, digits, locale) => {
+            if (value === null || value === undefined || ! Number.isFinite(Number(value))) {
+                return '';
+            }
+
+            const numeric = digits === 0 ? Math.round(Number(value)) : Number(value);
+
+            return numeric.toLocaleString(locale || document.documentElement.lang || 'es', {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits,
+            });
+        };
+
+        const niceAxisStep = (raw) => {
+            if (! Number.isFinite(raw) || raw <= 0) {
+                return 1;
+            }
+
+            const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+            const residual = raw / magnitude;
+            if (residual <= 1) {
+                return magnitude;
+            }
+            if (residual <= 2) {
+                return 2 * magnitude;
+            }
+            if (residual <= 5) {
+                return 5 * magnitude;
+            }
+
+            return 10 * magnitude;
+        };
+
+        const buildClientEvolutionOptions = ({
+            labels,
+            values,
+            counts = [],
+            badgeValue = null,
+            height = 240,
+            accent = '#2eb5d6',
+            yCeiling = 5,
+            yDecimals = 1,
+            badgeDecimals = 2,
+            badgeSuffix = '',
+            badgeBackground = '#1e293b',
+            emptyLabel = '',
+            locale,
+            granularity = 'month',
+            tightScale = false,
+        }) => {
+            const isMobileChart = window.innerWidth < 768;
+            const axisColor = '#8a9ea4';
+            const hasEvents = counts.length === 0 || counts.some((count) => Number(count) > 0);
+            const seriesValues = hasEvents ? values : values.map(() => null);
+            const plotValues = fillSeriesForward(seriesValues);
+            const numericPlotValues = plotValues.filter((value) => value !== null && Number.isFinite(value));
+            const realCount = values.filter((value) => value !== null && Number.isFinite(value)).length;
+            const showPointMarkers = realCount > 0 && realCount <= 16;
+            let yMin = 0;
+            let yMax = yCeiling;
+            let yTickAmount = 5;
+
+            if (numericPlotValues.length) {
+                const dataMin = Math.min(...numericPlotValues);
+                const dataMax = Math.max(...numericPlotValues);
+                if (tightScale && yCeiling <= 5) {
+                    const step = yDecimals >= 2 ? 0.05 : 0.1;
+                    const pad = yDecimals >= 2 ? 0.02 : 0.05;
+                    yMin = Math.max(0, Math.floor((dataMin - pad) / step) * step);
+                    yMax = Math.min(yCeiling, Math.ceil((dataMax + pad) / step) * step);
+                    if (yMax - yMin < step * 3) {
+                        yMin = Math.max(0, +(yMax - step * 3).toFixed(2));
+                    }
+                    if (yMax <= yMin) {
+                        yMax = Math.min(yCeiling, +(yMin + step * 3).toFixed(2));
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / step));
+                } else if (yCeiling <= 5) {
+                    yMin = Math.max(0, Math.floor((dataMin - 0.05) * 2) / 2);
+                    yMax = Math.min(yCeiling, Math.ceil((dataMax + 0.1) * 2) / 2);
+                    if (yMax - yMin < 1.5) {
+                        yMin = Math.max(0, Math.round((yMax - 1.5) * 2) / 2);
+                    }
+                    if (yMax <= yMin) {
+                        yMax = Math.min(yCeiling, yMin + 1.5);
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / 0.5));
+                } else {
+                    const maxTicks = isMobileChart ? 3 : 4;
+                    const spread = Math.max(dataMax - dataMin, 1);
+                    let step = niceAxisStep((spread * 1.5) / maxTicks);
+                    yMin = Math.max(0, Math.floor((dataMin - step * 0.3) / step) * step);
+                    yMax = Math.ceil((dataMax + step * 0.3) / step) * step;
+                    if (yMax <= yMin) {
+                        yMax = yMin + step * maxTicks;
+                    }
+                    yTickAmount = Math.max(2, Math.round((yMax - yMin) / step));
+                    if (yTickAmount > maxTicks) {
+                        step = niceAxisStep((yMax - yMin) / maxTicks);
+                        yMin = Math.max(0, Math.floor((dataMin - step * 0.2) / step) * step);
+                        yTickAmount = maxTicks;
+                        yMax = yMin + step * yTickAmount;
+                        if (yMax < dataMax) {
+                            yMax = Math.ceil((dataMax + step * 0.2) / step) * step;
+                            yMin = Math.max(0, yMax - step * maxTicks);
+                        }
+                    }
+                }
+
+                if (isMobileChart) {
+                    yTickAmount = Math.min(yTickAmount, 4);
+                }
+            }
+
+            let lastIndex = -1;
+            for (let i = plotValues.length - 1; i >= 0; i--) {
+                if (plotValues[i] !== null && Number.isFinite(plotValues[i])) {
+                    lastIndex = i;
+                    break;
+                }
+            }
+
+            const resolvedBadge = badgeValue !== null && badgeValue !== undefined && Number.isFinite(Number(badgeValue))
+                ? Number(badgeValue)
+                : (lastIndex >= 0 ? plotValues[lastIndex] : null);
+            const axisSourceLabels = labels.map((label) => String(label).split(' · ')[0]);
+            const categoryKeys = axisSourceLabels.map((label, index) => `${index}:${label}`);
+            const staggerMonthLabels = granularity === 'month' && axisSourceLabels.length >= 10;
+            const maxTicks = (() => {
+                const count = axisSourceLabels.length;
+                if (granularity === 'month') {
+                    return null;
+                }
+                if (isMobileChart && granularity === 'day' && count >= 7) {
+                    return 4;
+                }
+                if (granularity === 'day' && count > 8) {
+                    return 8;
+                }
+
+                return null;
+            })();
+            const visibleTickIndexes = (() => {
+                if (! maxTicks || axisSourceLabels.length <= maxTicks) {
+                    return null;
+                }
+
+                const indexes = new Set([0, axisSourceLabels.length - 1]);
+                const inner = maxTicks - 2;
+                for (let i = 1; i <= inner; i++) {
+                    indexes.add(Math.round((i * (axisSourceLabels.length - 1)) / (inner + 1)));
+                }
+
+                return indexes;
+            })();
+            const axisLabels = axisSourceLabels.map((label, index) => {
+                if (visibleTickIndexes && ! visibleTickIndexes.has(index)) {
+                    return '';
+                }
+
+                if (staggerMonthLabels) {
+                    return index % 2 === 1 ? `\n${label}` : `${label}\n`;
+                }
+
+                return label;
+            });
+            const markerSize = isMobileChart ? 5 : 6;
+            const yLabelSample = formatChartNumber(yMax, yDecimals, locale);
+            const yLabelWidth = Math.min(76, Math.max(
+                yDecimals === 0 ? 52 : 36,
+                String(yLabelSample).length * (isMobileChart ? 6.4 : 7) + 14
+            ));
+
+            return {
+                chart: {
+                    type: 'area',
+                    height,
+                    parentHeightOffset: 8,
+                    toolbar: { show: false },
+                    zoom: { enabled: false },
+                    animations: { enabled: false },
+                    dropShadow: { enabled: false },
+                },
+                series: [{
+                    name: '',
+                    data: plotValues.map((value, index) => ({ x: categoryKeys[index], y: value })),
+                }],
+                colors: [accent],
+                stroke: { curve: 'straight', width: 2.75, connectNulls: true },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 0.2,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.06,
+                        stops: [0, 80, 100],
+                    },
+                },
+                markers: {
+                    size: 0,
+                    strokeWidth: 3,
+                    strokeColors: accent,
+                    colors: ['#ffffff'],
+                    hover: { sizeOffset: 1 },
+                    discrete: plotValues.map((value, index) => ({
+                        seriesIndex: 0,
+                        dataPointIndex: index,
+                        size: (
+                            showPointMarkers
+                            && value !== null
+                            && Number.isFinite(value)
+                            && (index === lastIndex || (counts[index] || 0) > 0)
+                        ) ? markerSize : 0,
+                        fillColor: '#ffffff',
+                        strokeColor: accent,
+                        strokeWidth: 3,
+                    })),
+                },
+                annotations: lastIndex >= 0 && resolvedBadge !== null ? {
+                    points: [{
+                        x: categoryKeys[lastIndex],
+                        y: plotValues[lastIndex],
+                        marker: { size: 0 },
+                        label: {
+                            text: `${formatChartNumber(resolvedBadge, badgeDecimals, locale)}${badgeSuffix}`,
+                            offsetY: isMobileChart ? -14 : -12,
+                            offsetX: isMobileChart ? -8 : 6,
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            style: {
+                                background: badgeBackground,
+                                color: '#ffffff',
+                                fontSize: isMobileChart ? '10px' : '11px',
+                                fontWeight: 700,
+                                padding: { left: 8, right: 8, top: 3, bottom: 3 },
+                            },
+                        },
+                    }],
+                } : {},
+                dataLabels: { enabled: false },
+                xaxis: {
+                    type: 'category',
+                    categories: categoryKeys,
+                    overwriteCategories: axisLabels,
+                    tickPlacement: 'on',
+                    labels: {
+                        show: true,
+                        rotate: 0,
+                        rotateAlways: false,
+                        hideOverlappingLabels: false,
+                        trim: false,
+                        minHeight: 32,
+                        offsetY: staggerMonthLabels ? 2 : 6,
+                        style: {
+                            colors: axisColor,
+                            fontSize: staggerMonthLabels ? '9px' : (isMobileChart ? '10px' : '11px'),
+                            fontWeight: 500,
+                        },
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    tooltip: { enabled: false },
+                },
+                yaxis: {
+                    min: yMin,
+                    max: yMax,
+                    tickAmount: yTickAmount,
+                    forceNiceScale: false,
+                    decimalsInFloat: yDecimals,
+                    floating: false,
+                    title: { text: undefined },
+                    labels: {
+                        show: true,
+                        minWidth: yLabelWidth,
+                        maxWidth: yLabelWidth + 8,
+                        offsetX: 0,
+                        padding: 4,
+                        style: { colors: axisColor, fontSize: isMobileChart ? '10px' : '11px' },
+                        formatter: (value) => {
+                            if (! Number.isFinite(Number(value))) {
+                                return '';
+                            }
+
+                            const numeric = Number(value);
+                            const threshold = yDecimals === 0 ? 0.51 : (yDecimals >= 2 ? 0.006 : 0.021);
+                            if (numeric <= yMin + threshold) {
+                                return '';
+                            }
+
+                            return formatChartNumber(numeric, yDecimals, locale);
+                        },
+                    },
+                },
+                grid: {
+                    borderColor: 'rgba(18, 53, 60, 0.08)',
+                    strokeDashArray: 0,
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                    padding: {
+                        top: 22,
+                        right: isMobileChart ? 18 : 26,
+                        bottom: 22,
+                        left: 2,
+                    },
+                },
+                tooltip: { enabled: false },
+                noData: {
+                    text: emptyLabel,
+                    align: 'center',
+                    verticalAlign: 'middle',
+                    style: { color: '#334155', fontSize: '13px' },
+                },
+            };
+        };
+
+        const renderClientEvolutionChart = async (card) => {
+            const config = parseConfig(card);
+            if (!config) {
+                return;
+            }
+
+            const chartElement = card.querySelector('[data-external-reputation-chart]');
+            if (!chartElement) {
+                return;
+            }
+
+            const signature = JSON.stringify(config);
+            if (card._renderingSignature === signature) {
+                return;
+            }
+            if (card._chartSignature === signature && hasRenderedChart(chartElement)) {
+                return;
+            }
+
+            card._renderingSignature = signature;
+
+            try {
+                const ApexCharts = await loadApexCharts();
+                await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+                destroyChart(chartElement);
+
+                chartElement._reputalisChart = new ApexCharts(chartElement, buildClientEvolutionOptions({
+                    labels: config.labels || [],
+                    values: (config.values || []).map((value) => value === null ? null : Number(value)),
+                    counts: config.counts || [],
+                    badgeValue: config.overallAverage,
+                    height: Math.min(260, Math.max(200, chartElement.clientHeight || 240)),
+                    accent: config.accent || '#2eb5d6',
+                    yCeiling: config.yCeiling || 5,
+                    yDecimals: config.yDecimals ?? 1,
+                    badgeDecimals: config.badgeDecimals ?? 1,
+                    badgeBackground: config.badgeBackground || '#1e293b',
+                    emptyLabel: config.emptyLabel || '',
+                    locale: config.locale,
+                    granularity: config.granularity || 'month',
+                    tightScale: Boolean(config.tightScale),
+                }));
+
+                await chartElement._reputalisChart.render();
+                card._chartSignature = signature;
+            } finally {
+                card._renderingSignature = null;
+            }
+        };
+
         let retryTimer = null;
         const queueRetry = (delay = 120) => {
             window.clearTimeout(retryTimer);
@@ -724,6 +1104,11 @@
         const renderCard = async (card) => {
             const type = card.getAttribute('data-external-reputation-chart-card');
 
+            if (type && type.startsWith('client-')) {
+                await renderClientEvolutionChart(card);
+                return;
+            }
+
             if (type === 'breakdown') {
                 await renderBreakdownChart(card);
                 return;
@@ -744,6 +1129,14 @@
         };
 
         window.reputalisInitExternalReputationCharts = () => {
+            document.querySelectorAll('[data-external-reputation-chart-card]').forEach((card) => {
+                const chartElement = card.querySelector('[data-external-reputation-chart]');
+                if (chartElement && ! hasRenderedChart(chartElement)) {
+                    card._chartSignature = null;
+                    card._renderingSignature = null;
+                }
+            });
+
             renderGaugeChart().catch(() => queueRetry(200));
 
             document.querySelectorAll('[data-external-reputation-chart-card]').forEach((card) => {
@@ -753,17 +1146,30 @@
             });
         };
 
+        const bindLivewireChartRefresh = () => {
+            if (! window.Livewire || window.reputalisExternalChartsLivewireBound) {
+                return;
+            }
+
+            window.reputalisExternalChartsLivewireBound = true;
+
+            window.Livewire.hook?.('morphed', () => queueRetry(80));
+            window.Livewire.hook?.('commit', ({ succeed }) => {
+                succeed?.(() => queueRetry(80));
+            });
+            window.Livewire.on?.('reputalis-external-charts-refresh', () => {
+                queueRetry(30);
+                queueRetry(160);
+                queueRetry(400);
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', window.reputalisInitExternalReputationCharts);
         document.addEventListener('livewire:navigated', window.reputalisInitExternalReputationCharts);
+        document.addEventListener('livewire:init', bindLivewireChartRefresh);
         window.addEventListener('load', () => queueRetry(60));
         window.addEventListener('resize', () => queueRetry(120));
-
-        if (window.Livewire?.hook) {
-            window.Livewire.hook('morphed', () => queueRetry(80));
-            window.Livewire.hook('morph.updated', () => queueRetry(80));
-        }
-
-        document.addEventListener('livewire:update', () => queueRetry(150));
+        bindLivewireChartRefresh();
 
         window.reputalisInitExternalReputationCharts();
         [80, 200, 500].forEach((delay) => {

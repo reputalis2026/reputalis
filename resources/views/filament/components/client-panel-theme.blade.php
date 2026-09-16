@@ -1,4 +1,3 @@
-@if (\App\Support\ClientPanel::isActive())
     <style id="reputalis-client-panel-theme">
         html.reputalis-client-panel {
             --reputalis-sidebar: #06232b;
@@ -115,7 +114,7 @@
         }
 
         @media (min-width: 1024px) {
-            html.reputalis-client-panel .fi-topbar {
+            html.reputalis-client-panel:not(.reputalis-staff-fullscreen) .fi-topbar {
                 display: none !important;
             }
 
@@ -123,11 +122,9 @@
                 padding-top: .75rem !important;
             }
 
-            html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) {
+            html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) > section,
+            html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) > section {
                 gap: 0 !important;
-            }
-
-            html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) .fi-page-content {
                 padding-top: 0 !important;
             }
         }
@@ -137,9 +134,9 @@
             box-shadow: none !important;
         }
 
-        html.reputalis-client-panel .fi-topbar .fi-logo,
-        html.reputalis-client-panel .fi-topbar .fi-user-menu,
-        html.reputalis-client-panel .fi-topbar nav > .ms-auto {
+        html.reputalis-client-panel:not(.reputalis-staff-fullscreen) .fi-topbar .fi-logo,
+        html.reputalis-client-panel:not(.reputalis-staff-fullscreen) .fi-topbar .fi-user-menu,
+        html.reputalis-client-panel:not(.reputalis-staff-fullscreen) .fi-topbar nav > .ms-auto {
             display: none;
         }
 
@@ -211,8 +208,15 @@
             color: var(--reputalis-sidebar-muted);
         }
 
-        html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) .fi-header {
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) .fi-header,
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) .fi-header {
             display: none !important;
+        }
+
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) > section,
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) > section {
+            gap: 0 !important;
+            padding-top: 0 !important;
         }
 
         html.reputalis-client-panel .reputalis-internal-hero-wrap {
@@ -419,6 +423,104 @@
             color: #8a9ea4;
             font-size: .8rem;
             font-weight: 500;
+        }
+
+        html.reputalis-client-panel .reputalis-external-kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-card {
+            background: #fff;
+            border-radius: 1.15rem;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05);
+            padding: 1.05rem 1.15rem 1rem;
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: .65rem 1rem;
+            margin-bottom: .35rem;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-header h3 {
+            margin: 0;
+            color: var(--reputalis-ink);
+            font-size: 1.02rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-chart {
+            height: 15.5rem;
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-chart .apexcharts-xaxis-label {
+            opacity: 1 !important;
+            white-space: pre;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-chart .apexcharts-yaxis-label {
+            opacity: 1 !important;
+        }
+
+        html.reputalis-client-panel .reputalis-external-evolution-chart .apexcharts-area-series .apexcharts-area,
+        html.reputalis-client-panel .reputalis-external-evolution-chart .apexcharts-line {
+            filter: none;
+        }
+
+        html.reputalis-client-panel .reputalis-kpi-card--target {
+            border: 1.5px solid #b7e4ee;
+            box-shadow: 0 10px 28px rgba(46, 181, 214, .12);
+        }
+
+        html.reputalis-client-panel .reputalis-kpi-value--accent {
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .reputalis-kpi-hint--accent {
+            color: #2eb5d6;
+            font-weight: 600;
+        }
+
+        html.reputalis-client-panel .reputalis-kpi-card--progress {
+            padding: .75rem .7rem .55rem;
+        }
+
+        html.reputalis-client-panel .reputalis-progress-gauge {
+            width: min(11.5rem, 100%);
+            margin: .1rem auto 0;
+        }
+
+        html.reputalis-client-panel .reputalis-progress-gauge-svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+
+        html.reputalis-client-panel .reputalis-progress-gauge-value {
+            fill: var(--reputalis-ink);
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        html.reputalis-client-panel .reputalis-progress-gauge-end {
+            fill: #8a9ea4;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         html.reputalis-client-panel .reputalis-score-dist {
@@ -820,7 +922,8 @@
         }
 
         @media (max-width: 1180px) {
-            html.reputalis-client-panel .reputalis-internal-kpis {
+            html.reputalis-client-panel .reputalis-internal-kpis,
+            html.reputalis-client-panel .reputalis-external-kpis {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
@@ -835,28 +938,172 @@
                 border-radius: 1.15rem;
             }
 
-            html.reputalis-client-panel .reputalis-internal-kpis {
+            html.reputalis-client-panel .reputalis-internal-kpis,
+            html.reputalis-client-panel .reputalis-external-kpis {
                 grid-template-columns: minmax(0, 1fr);
+            }
+
+            html.reputalis-client-panel .reputalis-external-evolution-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            html.reputalis-client-panel .reputalis-external-evolution-header .reputalis-range-pills {
+                width: 100%;
             }
 
             html.reputalis-client-panel .reputalis-kpi-value {
                 font-size: 2.35rem;
             }
         }
-    </style>
-    <script>
-        window.applyReputalisClientPanel = function () {
-            document.documentElement.classList.add('reputalis-client-panel');
-            if (document.body) {
-                document.body.classList.add('reputalis-client-panel');
-            }
-        };
 
-        window.applyReputalisClientPanel();
-
-        if (! window.reputalisClientPanelBound) {
-            window.reputalisClientPanelBound = true;
-            document.addEventListener('livewire:navigated', window.applyReputalisClientPanel);
+        html.reputalis-client-panel .fi-section,
+        html.reputalis-client-panel .fi-ta-ctn,
+        html.reputalis-client-panel .fi-wi-widget,
+        html.reputalis-client-panel .fi-simple-card {
+            background: #fff !important;
+            border-radius: 1.15rem !important;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05) !important;
+            ring-width: 0 !important;
+            border-color: transparent !important;
         }
-    </script>
-@endif
+
+        html.reputalis-client-panel .fi-section-header-heading,
+        html.reputalis-client-panel .fi-header-heading,
+        html.reputalis-client-panel .fi-wi-stats-overview-stat-label,
+        html.reputalis-client-panel .fi-ta-header-cell {
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .fi-ta-header-cell {
+            font-size: .66rem !important;
+            font-weight: 700 !important;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #8a9ea4 !important;
+        }
+
+        html.reputalis-client-panel .fi-ta-row {
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .fi-wi-stats-overview-stat {
+            background: #fff !important;
+            border-radius: 1.15rem !important;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05) !important;
+        }
+
+        html.reputalis-client-panel .fi-wi-stats-overview-stat-value {
+            color: var(--reputalis-ink) !important;
+            font-weight: 700;
+        }
+
+        html.reputalis-client-panel .fi-tabs,
+        html.reputalis-client-panel .fi-tabs-item {
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .fi-fo-field-wrp-label span {
+            color: var(--reputalis-ink);
+            font-weight: 600;
+        }
+
+        html.reputalis-client-panel .fi-input,
+        html.reputalis-client-panel .fi-select-input,
+        html.reputalis-client-panel input.fi-input,
+        html.reputalis-client-panel textarea.fi-input {
+            border-radius: .75rem !important;
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .fi-simple-layout,
+        html.reputalis-client-panel .fi-simple-main {
+            background-color: var(--reputalis-canvas) !important;
+        }
+
+        html.reputalis-client-panel .fi-simple-card {
+            padding: 1.5rem;
+        }
+
+        html.reputalis-client-panel .fi-modal-window {
+            border-radius: 1.15rem !important;
+        }
+
+        html.reputalis-client-panel .fi-dropdown-panel {
+            border-radius: .9rem !important;
+            box-shadow: 0 12px 32px rgba(18, 53, 60, .12) !important;
+        }
+
+        html.reputalis-client-panel .fi-badge {
+            border-radius: 999px !important;
+        }
+
+        html.reputalis-client-panel .fi-pagination {
+            color: var(--reputalis-ink);
+        }
+
+        html.reputalis-client-panel .fi-btn-primary {
+            font-weight: 700;
+        }
+
+        html.reputalis-staff-fullscreen .fi-sidebar,
+        html.reputalis-staff-fullscreen .fi-main-sidebar,
+        html.reputalis-staff-fullscreen .fi-sidebar-close-overlay,
+        body.reputalis-staff-fullscreen .fi-sidebar,
+        body.reputalis-staff-fullscreen .fi-main-sidebar,
+        body.reputalis-staff-fullscreen .fi-sidebar-close-overlay {
+            display: none !important;
+            width: 0 !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+        }
+
+        html.reputalis-staff-fullscreen .fi-main-ctn,
+        html.reputalis-staff-fullscreen .fi-layout,
+        body.reputalis-staff-fullscreen .fi-main-ctn,
+        body.reputalis-staff-fullscreen .fi-layout {
+            margin-inline-start: 0 !important;
+            padding-inline-start: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        html.reputalis-staff-fullscreen .fi-topbar-open-sidebar-btn,
+        html.reputalis-staff-fullscreen .fi-topbar-close-sidebar-btn,
+        body.reputalis-staff-fullscreen .fi-topbar-open-sidebar-btn,
+        body.reputalis-staff-fullscreen .fi-topbar-close-sidebar-btn {
+            display: none !important;
+        }
+    </style>
+<div class="reputalis-theme-flags" hidden data-staff="{{ (auth()->user()?->isSuperAdmin() || auth()->user()?->isDistributor()) ? '1' : '0' }}" data-preview="{{ \App\Support\ClientPanel::showsStaffReturnBar() ? '1' : '0' }}" data-fullscreen="{{ \App\Support\ClientPanel::hidesStaffSidebar() ? '1' : '0' }}"></div>
+<script>
+    window.syncReputalisClientPanel = function () {
+        const flags = [...document.querySelectorAll('.reputalis-theme-flags')].at(-1);
+        const path = window.location.pathname;
+        const staff = flags?.dataset.staff === '1';
+        const cardScreen = staff && (
+            /\/employees(\/|$)/.test(path)
+            || /\/clients\/[^/]+\/(empleados|ficha|edit)\/?$/.test(path)
+        );
+        const on = true;
+        const preview = flags?.dataset.preview === '1' || cardScreen;
+        const fullscreen = flags?.dataset.fullscreen === '1' || cardScreen;
+        document.documentElement.classList.toggle('reputalis-client-panel', on);
+        document.documentElement.classList.toggle('reputalis-admin-preview', preview);
+        document.documentElement.classList.toggle('reputalis-staff-fullscreen', fullscreen);
+        if (document.body) {
+            document.body.classList.toggle('reputalis-client-panel', on);
+            document.body.classList.toggle('reputalis-admin-preview', preview);
+            document.body.classList.toggle('reputalis-staff-fullscreen', fullscreen);
+        }
+    };
+
+    window.syncReputalisClientPanel();
+
+    if (! window.reputalisClientPanelBound) {
+        window.reputalisClientPanelBound = true;
+        document.addEventListener('livewire:navigated', window.syncReputalisClientPanel);
+        window.addEventListener('pageshow', window.syncReputalisClientPanel);
+        document.addEventListener('DOMContentLoaded', window.syncReputalisClientPanel);
+    }
+</script>

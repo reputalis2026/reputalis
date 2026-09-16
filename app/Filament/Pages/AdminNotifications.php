@@ -43,7 +43,8 @@ class AdminNotifications extends Page implements HasTable
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->isSuperAdmin() ?? false;
+        return \App\Support\ClientPanel::allowsAdminNavigation()
+            && (auth()->user()?->isSuperAdmin() ?? false);
     }
 
     public static function canAccess(): bool

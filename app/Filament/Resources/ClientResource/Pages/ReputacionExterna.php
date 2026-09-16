@@ -9,6 +9,7 @@ use App\Models\ClientExternalReputationSnapshot;
 use App\Support\ExternalReputation\ExternalReputationSyncService;
 use App\Support\ExternalReputation\RatingProjection;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Filament\Actions\Action as HeaderAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -26,6 +27,13 @@ class ReputacionExterna extends Page
 
     /** @var 'days'|'month'|'year' */
     public string $historyMode = 'days';
+
+    /** @var array<string, 'week'|'month'|'six_months'|'year'> */
+    public array $client_chart_ranges = [
+        'google' => 'six_months',
+        'real' => 'six_months',
+        'reviews' => 'six_months',
+    ];
 
     public ?int $filterYear = null;
 
@@ -45,6 +53,15 @@ class ReputacionExterna extends Page
         }
 
         return (string) ($this->getRecord()?->namecommercial ?? __('client.resource.model_label'));
+    }
+
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        if (\App\Support\ClientPanel::isActive()) {
+            return '';
+        }
+
+        return parent::getHeading();
     }
 
     /**
@@ -85,6 +102,7 @@ class ReputacionExterna extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->authorizeAccess();
+        \App\Support\ClientPanel::enterPreview($this->getClientRecord());
 
         $now = Carbon::now('Europe/Madrid');
         $this->filterYear = (int) $now->year;
@@ -127,6 +145,10 @@ class ReputacionExterna extends Page
      */
     protected function getHeaderActions(): array
     {
+        if (\App\Support\ClientPanel::isActive()) {
+            return [];
+        }
+
         return [
             HeaderAction::make('syncNow')
                 ->label(__('client.external_reputation.sync_now'))
@@ -265,6 +287,42 @@ class ReputacionExterna extends Page
         $this->historyMode = $mode;
     }
 
+    public function setClientChartRange(string $chart, string $range): void
+    {
+        if (! in_array($chart, ['google', 'real', 'reviews'], true)) {
+            return;
+        }
+
+        if (! in_array($range, ['week', 'month', 'six_months', 'year'], true)) {
+            return;
+        }
+
+        $this->client_chart_ranges[$chart] = $range;
+        $this->dispatch('reputalis-external-charts-refresh');
+    }
+
+    public function clientChartRangeFor(string $chart): string
+    {
+        $range = $this->client_chart_ranges[$chart] ?? 'six_months';
+
+        return in_array($range, ['week', 'month', 'six_months', 'year'], true)
+            ? $range
+            : 'six_months';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getClientChartRangeOptions(): array
+    {
+        return [
+            'week' => __('client.external_reputation.chart_pills.week'),
+            'month' => __('client.external_reputation.chart_pills.month'),
+            'six_months' => __('client.external_reputation.chart_pills.six_months'),
+            'year' => __('client.external_reputation.chart_pills.year'),
+        ];
+    }
+
     public function getLatestSnapshot(): ?ClientExternalReputationSnapshot
     {
         return $this->getClientRecord()->latestExternalReputationSnapshot();
@@ -328,6 +386,146 @@ class ReputacionExterna extends Page
             $snapshot->starsBreakdown(),
             $this->targetRating
         );
+    }
+
+    /**
+     * @return array{
+     *     has_snapshot: bool,
+     *     google_rating_formatted: string,
+     *     total_reviews: int,
+     *     positive_pct_formatted: string,
+     *     distribution: array<int, array{score: int, count: int, height: float, color: string}>,
+     *     real_rating_formatted: string,
+     *     target_formatted: string,
+     *     stars_needed_formatted: string,
+     *     progress_pct: int,
+     *     progress_from: string,
+     *     progress_to: string,
+     *     arc_total: int,
+     *     arc_progress: int,
+     *     star_x: float,
+     *     star_y: float
+     * }
+     */
+    public function getClientHeroSummary(): array
+    {
+        $scoreColors = [
+            1 => '#EE2737',
+            2 => '#FF6A13',
+            3 => '#FFB81C',
+            4 => '#A4D65E',
+            5 => '#00B140',
+        ];
+        $emptyBars = collect([1, 2, 3, 4, 5])->map(fn (int $score): array => [
+            'score' => $score,
+            'count' => 0,
+            'height' => 10.0,
+            'color' => $scoreColors[$score],
+        ])->all();
+        $arcTotal = 173;
+        $cx = 70.0;
+        $cy = 75.0;
+        $r = 55.0;
+
+        $empty = [
+            'has_snapshot' => false,
+            'google_rating_formatted' => __('common.placeholders.empty'),
+            'total_reviews' => 0,
+            'positive_pct_formatted' => __('common.placeholders.empty'),
+            'distribution' => $emptyBars,
+            'real_rating_formatted' => __('common.placeholders.empty'),
+            'target_formatted' => __('common.placeholders.empty'),
+            'stars_needed_formatted' => __('common.placeholders.empty'),
+            'progress_pct' => 0,
+            'progress_from' => __('common.placeholders.empty'),
+            'progress_to' => __('common.placeholders.empty'),
+            'arc_total' => $arcTotal,
+            'arc_progress' => 0,
+            'star_x' => round($cx + $r * cos(deg2rad(-180)), 1),
+            'star_y' => round($cy + $r * sin(deg2rad(-180)), 1),
+        ];
+
+        $snapshot = $this->getLatestSnapshot();
+        if (! $snapshot) {
+            return $empty;
+        }
+
+        $stars = $snapshot->starsBreakdown();
+        $totalReviews = (int) $snapshot->reviews_total;
+        $maxCount = max(1, max($stars));
+        $distribution = collect([1, 2, 3, 4, 5])->map(function (int $score) use ($stars, $maxCount, $scoreColors): array {
+            $count = (int) ($stars[$score] ?? 0);
+
+            return [
+                'score' => $score,
+                'count' => $count,
+                'height' => $count > 0 ? max(18, ($count / $maxCount) * 100) : 10,
+                'color' => $scoreColors[$score],
+            ];
+        })->all();
+
+        $positiveCount = (int) ($stars[4] ?? 0) + (int) ($stars[5] ?? 0);
+        $positivePct = $totalReviews > 0 ? (int) round(($positiveCount / $totalReviews) * 100) : null;
+        $rawReal = RatingProjection::calculatedRating($stars);
+        $googleRating = $snapshot->rating !== null ? (float) $snapshot->rating : null;
+        $currentDisplayed = $googleRating !== null
+            ? round($googleRating, 1)
+            : ($rawReal !== null ? round(floor(round($rawReal, 4) * 10) / 10, 1) : null);
+        $nextLevel = $currentDisplayed !== null ? round(min(5.0, $currentDisplayed + 0.1), 1) : null;
+
+        if ($currentDisplayed !== null && $currentDisplayed >= 5) {
+            $nextLevel = 5.0;
+        }
+
+        $starsNeeded = $nextLevel !== null
+            ? RatingProjection::fiveStarsNeededForTarget($stars, $nextLevel)
+            : null;
+        if ($starsNeeded !== null && $starsNeeded < 0) {
+            $starsNeeded = 0;
+        }
+
+        $progressPct = 0;
+        if ($rawReal !== null && $currentDisplayed !== null && $nextLevel !== null && $nextLevel > $currentDisplayed) {
+            $diff = $rawReal - $currentDisplayed;
+            $progressPct = min(100, max(0, (int) (floor($diff / 0.1 * 100 / 5) * 5)));
+        } elseif ($currentDisplayed !== null && $currentDisplayed >= 5) {
+            $progressPct = 100;
+        }
+
+        $angle = -180 + ($progressPct / 100) * 180;
+        $rad = deg2rad($angle);
+
+        return [
+            'has_snapshot' => true,
+            'google_rating_formatted' => $googleRating !== null
+                ? number_format($googleRating, 1, ',', '')
+                : __('common.placeholders.empty'),
+            'total_reviews' => $totalReviews,
+            'positive_pct_formatted' => $positivePct !== null
+                ? number_format($positivePct, 0, ',', '.').'%'
+                : __('common.placeholders.empty'),
+            'distribution' => $distribution,
+            'real_rating_formatted' => $rawReal !== null
+                ? number_format($rawReal, 2, ',', '')
+                : __('common.placeholders.empty'),
+            'target_formatted' => $nextLevel !== null
+                ? number_format($nextLevel, 1, ',', '')
+                : __('common.placeholders.empty'),
+            'stars_needed_formatted' => $starsNeeded !== null
+                ? (string) $starsNeeded
+                : __('common.placeholders.empty'),
+            'progress_pct' => $progressPct,
+            'progress_from' => $currentDisplayed !== null
+                ? number_format($currentDisplayed, 1, ',', '')
+                : __('common.placeholders.empty'),
+            'progress_to' => $nextLevel !== null
+                ? number_format($nextLevel, 1, ',', '')
+                : __('common.placeholders.empty'),
+            'arc_total' => $arcTotal,
+            'arc_progress' => (int) round($progressPct * $arcTotal / 100),
+            'star_x' => round($cx + $r * cos($rad), 1),
+            'star_y' => round($cy + $r * sin($rad), 1),
+        ];
     }
 
     public function getEditClientUrl(): string
@@ -488,6 +686,226 @@ class ReputacionExterna extends Page
             ],
             'empty_label' => __('client.external_reputation.charts_empty'),
         ];
+    }
+
+    /**
+     * @return array{
+     *     google: array<string, mixed>,
+     *     real: array<string, mixed>,
+     *     reviews: array<string, mixed>
+     * }
+     */
+    public function getClientEvolutionCharts(): array
+    {
+        $locale = str_replace('_', '-', app()->getLocale());
+        $emptyLabel = __('client.external_reputation.charts_empty');
+        $preparedByRange = [];
+
+        $prepared = function (string $chart) use (&$preparedByRange): array {
+            $range = $this->clientChartRangeFor($chart);
+            if (! isset($preparedByRange[$range])) {
+                $rows = $this->getClientEvolutionRows($range);
+                $totals = array_column($rows, 'total');
+                $maxTotal = 0;
+                foreach ($totals as $total) {
+                    if ($total !== null && $total > $maxTotal) {
+                        $maxTotal = (int) $total;
+                    }
+                }
+
+                $preparedByRange[$range] = [
+                    'granularity' => $this->clientChartGranularity($range),
+                    'labels' => array_column($rows, 'label'),
+                    'google' => array_column($rows, 'rating'),
+                    'real' => array_column($rows, 'calculated'),
+                    'totals' => $totals,
+                    'counts' => array_column($rows, 'count'),
+                    'maxTotal' => $maxTotal,
+                ];
+            }
+
+            return $preparedByRange[$range];
+        };
+
+        $google = $prepared('google');
+        $real = $prepared('real');
+        $reviews = $prepared('reviews');
+
+        $base = static fn (array $data): array => [
+            'granularity' => $data['granularity'],
+            'clientStyle' => true,
+            'locale' => $locale,
+            'counts' => $data['counts'],
+            'emptyLabel' => $emptyLabel,
+        ];
+
+        return [
+            'google' => array_merge($base($google), [
+                'labels' => $google['labels'],
+                'values' => $google['google'],
+                'overallAverage' => $this->lastNumeric($google['google']),
+                'accent' => '#2eb5d6',
+                'yCeiling' => 5,
+                'yDecimals' => 1,
+                'badgeDecimals' => 1,
+                'tightScale' => true,
+                'badgeBackground' => '#1e293b',
+            ]),
+            'real' => array_merge($base($real), [
+                'labels' => $real['labels'],
+                'values' => $real['real'],
+                'overallAverage' => $this->lastNumeric($real['real']),
+                'accent' => '#2eb5d6',
+                'yCeiling' => 5,
+                'yDecimals' => 2,
+                'badgeDecimals' => 2,
+                'tightScale' => true,
+                'badgeBackground' => '#1e293b',
+            ]),
+            'reviews' => array_merge($base($reviews), [
+                'labels' => $reviews['labels'],
+                'values' => $reviews['totals'],
+                'overallAverage' => $this->lastNumeric($reviews['totals']),
+                'accent' => '#12a37a',
+                'yCeiling' => max(50, (int) (ceil(($reviews['maxTotal'] + 10) / 30) * 30)),
+                'yDecimals' => 0,
+                'badgeDecimals' => 0,
+                'tightScale' => false,
+                'badgeBackground' => '#0f6b53',
+            ]),
+        ];
+    }
+
+    /**
+     * @param  list<float|int|null>  $values
+     */
+    private function lastNumeric(array $values): float|int|null
+    {
+        for ($i = count($values) - 1; $i >= 0; $i--) {
+            if ($values[$i] !== null && is_numeric($values[$i])) {
+                return $values[$i];
+            }
+        }
+
+        return null;
+    }
+
+    private function clientChartGranularity(string $range): string
+    {
+        return match ($range) {
+            'week' => 'day',
+            'month' => 'week',
+            default => 'month',
+        };
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function clientChartBounds(string $range): array
+    {
+        $until = Carbon::now('Europe/Madrid')->endOfDay();
+
+        $from = match ($range) {
+            'week' => $until->copy()->subDays(6)->startOfDay(),
+            'month' => $until->copy()->subDays(29)->startOfDay(),
+            'year' => $until->copy()->startOfMonth()->subMonths(11),
+            default => $until->copy()->startOfMonth()->subMonths(5),
+        };
+
+        return [$from, $until];
+    }
+
+    /**
+     * @return list<array{label: string, rating: float|null, calculated: float|null, total: int|null, count: int}>
+     */
+    private function getClientEvolutionRows(string $range): array
+    {
+        [$from, $until] = $this->clientChartBounds($range);
+        $granularity = $this->clientChartGranularity($range);
+        $snapshots = ClientExternalReputationSnapshot::query()
+            ->where('client_id', $this->getClientRecord()->id)
+            ->whereDate('snapshot_date', '>=', $from->toDateString())
+            ->whereDate('snapshot_date', '<=', $until->toDateString())
+            ->orderByDesc('captured_at')
+            ->get();
+
+        $latestByKey = [];
+        foreach ($snapshots as $snapshot) {
+            $date = $snapshot->snapshot_date;
+            if (! $date) {
+                continue;
+            }
+            $key = $this->clientChartBucketKey($date, $granularity);
+            if (! isset($latestByKey[$key])) {
+                $latestByKey[$key] = $snapshot;
+            }
+        }
+
+        $carry = ClientExternalReputationSnapshot::query()
+            ->where('client_id', $this->getClientRecord()->id)
+            ->whereDate('snapshot_date', '<', $from->toDateString())
+            ->orderByDesc('snapshot_date')
+            ->orderByDesc('captured_at')
+            ->first();
+
+        $start = $this->clientChartBucketStart($from, $granularity);
+        $end = $this->clientChartBucketStart($until, $granularity);
+        $step = match ($granularity) {
+            'day' => '1 day',
+            'week' => '1 week',
+            default => '1 month',
+        };
+        $rows = [];
+
+        foreach (CarbonPeriod::create($start, $step, $end) as $bucket) {
+            $key = $this->clientChartBucketKey($bucket, $granularity);
+            $snapshot = $latestByKey[$key] ?? null;
+            if ($snapshot) {
+                $carry = $snapshot;
+            }
+            $source = $snapshot ?? $carry;
+            $label = in_array($granularity, ['day', 'week'], true)
+                ? $bucket->format('j/n')
+                : $this->formatClientMonthLabel($bucket);
+
+            $rows[] = [
+                'label' => $label,
+                'rating' => $source && $source->rating !== null ? round((float) $source->rating, 2) : null,
+                'calculated' => $source
+                    ? ($source->calculated_rating !== null
+                        ? round((float) $source->calculated_rating, 4)
+                        : RatingProjection::calculatedRating($source->starsBreakdown()))
+                    : null,
+                'total' => $source ? (int) $source->reviews_total : null,
+                'count' => $snapshot ? 1 : 0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function clientChartBucketKey(Carbon $date, string $granularity): string
+    {
+        return match ($granularity) {
+            'day' => $date->format('Y-m-d'),
+            'week' => $date->copy()->startOfWeek(Carbon::MONDAY)->format('Y-m-d'),
+            default => $date->format('Y-m'),
+        };
+    }
+
+    private function clientChartBucketStart(Carbon $date, string $granularity): Carbon
+    {
+        return match ($granularity) {
+            'day' => $date->copy()->startOfDay(),
+            'week' => $date->copy()->startOfWeek(Carbon::MONDAY),
+            default => $date->copy()->startOfMonth(),
+        };
+    }
+
+    private function formatClientMonthLabel(Carbon $bucket): string
+    {
+        return ucfirst(str_replace('.', '', $bucket->copy()->locale(app()->getLocale())->isoFormat('MMM')));
     }
 
     /**

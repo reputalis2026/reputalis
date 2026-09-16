@@ -34,7 +34,7 @@ class AdditionalTools extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
-        return self::canAccess();
+        return \App\Support\ClientPanel::allowsAdminNavigation() && self::canAccess();
     }
 
     public static function canAccess(): bool

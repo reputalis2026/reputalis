@@ -3,9 +3,20 @@
     $user = filament()->auth()->user();
     $items = filament()->getUserMenuItems();
     $logoutItem = $items['logout'] ?? null;
+    $profileItem = $items['profile'] ?? null;
     $items = \Illuminate\Support\Arr::except($items, ['account', 'logout', 'profile']);
+    $footerName = $client?->namecommercial
+        ?: ($user?->getFilamentName() ?: ($user?->fullname ?: $user?->name));
+    $footerSub = ($client && filled($client->ciudad))
+        ? $client->ciudad
+        : match ($user?->role) {
+            \App\Models\User::ROLE_SUPERADMIN => __('panel.roles.superadmin'),
+            \App\Models\User::ROLE_DISTRIBUIDOR => __('panel.roles.distributor'),
+            \App\Models\User::ROLE_CLIENTE => __('panel.roles.client'),
+            default => $user?->email,
+        };
 @endphp
-@if ($client && $user)
+@if ($user)
     <div class="reputalis-client-sidebar-footer">
         <x-filament::dropdown
             placement="top-start"
@@ -21,15 +32,25 @@
                 >
                     <x-filament-panels::avatar.user :user="$user" class="reputalis-client-sidebar-avatar" />
                     <span class="reputalis-client-sidebar-account-text">
-                        <span class="reputalis-client-sidebar-footer-name">{{ $client->namecommercial }}</span>
-                        @if (filled($client->ciudad))
-                            <span class="reputalis-client-sidebar-footer-city">{{ $client->ciudad }}</span>
+                        <span class="reputalis-client-sidebar-footer-name">{{ $footerName }}</span>
+                        @if (filled($footerSub))
+                            <span class="reputalis-client-sidebar-footer-city">{{ $footerSub }}</span>
                         @endif
                     </span>
                 </button>
             </x-slot>
 
             <x-filament::dropdown.list>
+                @if ($profileItem)
+                    <x-filament::dropdown.list.item
+                        :href="$profileItem->getUrl()"
+                        :icon="$profileItem->getIcon() ?? 'heroicon-m-user-circle'"
+                        tag="a"
+                    >
+                        {{ $profileItem->getLabel() ?? __('filament-panels::layout.actions.profile.label') }}
+                    </x-filament::dropdown.list.item>
+                @endif
+
                 @foreach ($items as $item)
                     @php
                         $itemPostAction = $item->getPostAction();
