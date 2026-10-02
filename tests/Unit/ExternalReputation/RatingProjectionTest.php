@@ -26,6 +26,38 @@ class RatingProjectionTest extends TestCase
         $this->assertSame(0, RatingProjection::fiveStarsNeededForTarget($stars, 4.5));
     }
 
+    public function test_objective_progress_rounds_up_across_two_tenths(): void
+    {
+        $window = RatingProjection::objectiveProgress(4.46);
+
+        $this->assertSame(4.4, $window['from']);
+        $this->assertSame(4.6, $window['to']);
+        $this->assertSame(30, $window['percent']);
+    }
+
+    public function test_objective_progress_stays_inside_current_tenth(): void
+    {
+        $window = RatingProjection::objectiveProgress(4.43);
+
+        $this->assertSame(4.4, $window['from']);
+        $this->assertSame(4.5, $window['to']);
+        $this->assertSame(30, $window['percent']);
+    }
+
+    public function test_objective_progress_caps_at_five(): void
+    {
+        $window = RatingProjection::objectiveProgress(4.96);
+
+        $this->assertSame(4.9, $window['from']);
+        $this->assertSame(5.0, $window['to']);
+        $this->assertSame(60, $window['percent']);
+
+        $full = RatingProjection::objectiveProgress(5.0);
+        $this->assertSame(5.0, $full['from']);
+        $this->assertSame(5.0, $full['to']);
+        $this->assertSame(100, $full['percent']);
+    }
+
     public function test_five_stars_needed_for_target(): void
     {
         $stars = [1 => 10, 2 => 10, 3 => 10, 4 => 10, 5 => 10];

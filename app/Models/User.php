@@ -83,7 +83,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
     }
 
     /**
-     * Permite el acceso al panel de administracion a usuarios con rol valido.
+     * Permite el acceso al panel web solo a superadmin y distribuidor activo.
+     * El rol cliente entra por la PWA, no por /admin.
      */
     public function canAccessPanel(Panel $panel): bool
     {
@@ -91,12 +92,12 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
             return false;
         }
 
-        if (! in_array($this->role, [self::ROLE_SUPERADMIN, self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true)) {
+        if (! in_array($this->role, [self::ROLE_SUPERADMIN, self::ROLE_DISTRIBUIDOR], true)) {
             return false;
         }
 
-        // Para cliente y distribuidor, solo permitir acceso si su cliente/distribuidor asociado esta activo.
-        if (in_array($this->role, [self::ROLE_CLIENTE, self::ROLE_DISTRIBUIDOR], true)) {
+        // Distribuidor: solo si su ficha asociada está activa.
+        if ($this->role === self::ROLE_DISTRIBUIDOR) {
             $client = $this->ownedClient;
 
             if (! $client || ! $client->is_active) {

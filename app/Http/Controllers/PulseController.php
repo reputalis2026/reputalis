@@ -112,6 +112,73 @@ class PulseController extends Controller
     }
 
     /**
+     * Manifest público: una sola app, el icono abre el login.
+     */
+    public function appManifest(): JsonResponse
+    {
+        $manifest = [
+            'id' => '/pulse',
+            'name' => 'El Pulso del Día',
+            'short_name' => 'Pulso',
+            'description' => 'Dashboard diario de tu farmacia',
+            'start_url' => '/pulse',
+            'scope' => '/',
+            'display' => 'standalone',
+            'orientation' => 'portrait',
+            'background_color' => '#f1f5f9',
+            'theme_color' => '#0f766e',
+            'icons' => [
+                [
+                    'src' => url('/img/pulse-icon-192.png'),
+                    'sizes' => '192x192',
+                    'type' => 'image/png',
+                    'purpose' => 'any',
+                ],
+                [
+                    'src' => url('/img/pulse-icon-512.png'),
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'any',
+                ],
+                [
+                    'src' => url('/img/pulse-icon-512.png'),
+                    'sizes' => '512x512',
+                    'type' => 'image/png',
+                    'purpose' => 'maskable',
+                ],
+            ],
+        ];
+
+        return response()->json($manifest)
+            ->header('Content-Type', 'application/manifest+json')
+            ->header('Cache-Control', 'no-cache');
+    }
+
+    /**
+     * Service worker de la app pública. No cachea el login: el formulario lleva CSRF.
+     */
+    public function appServiceWorker(): Response
+    {
+        $js = <<<'SW'
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', () => {});
+SW;
+
+        return response($js, 200, [
+            'Content-Type' => 'application/javascript; charset=UTF-8',
+            'Cache-Control' => 'no-cache',
+            'Service-Worker-Allowed' => '/',
+        ]);
+    }
+
+    /**
      * Manifest PWA "El Pulso del Día" por cliente.
      */
     public function manifest(string $clientCode): Response

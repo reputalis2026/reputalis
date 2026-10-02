@@ -8,6 +8,7 @@ return [
             'password_required' => 'La contraseña es obligatoria.',
         ],
         'inactive_user' => 'Tu usuario está inactivo.',
+        'web_client_use_app' => 'Los clientes entran desde la aplicación, no desde esta web.',
     ],
     'language' => [
         'es' => 'Español',

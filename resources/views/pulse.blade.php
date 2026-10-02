@@ -12,7 +12,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0f766e">
     <title>El Pulso del Día — {{ $clientName }}</title>
-    <link rel="manifest" href="{{ url("/pulse/{$clientCode}/manifest.json") }}">
+    @include('pulse-pwa-head')
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .metric-card:active { opacity: 0.9; }
@@ -116,9 +116,6 @@
         });
     });
 
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(@json(url("/pulse/{$clientCode}/sw.js")), { scope: '/pulse/' + encodeURIComponent(clientCode) + '/' }).catch(function() {});
-    }
 })();
     </script>
 </body>

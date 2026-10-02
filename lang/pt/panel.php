@@ -8,6 +8,7 @@ return [
             'password_required' => 'A palavra-passe é obrigatória.',
         ],
         'inactive_user' => 'O seu utilizador está inativo.',
+        'web_client_use_app' => 'Os clientes entram pela aplicação, não por este site.',
     ],
     'language' => [
         'es' => 'Español',

@@ -5,16 +5,30 @@ use App\Http\Controllers\SurveyController;
 use App\Models\User;
 use App\Support\PanelLocale;
 use Filament\Facades\Filament;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('landing');
 });
 
+$pulseInstallAssets = [
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+    StartSession::class,
+    ShareErrorsFromSession::class,
+    ValidateCsrfToken::class,
+];
+Route::get('/pulse/manifest.webmanifest', [PulseController::class, 'appManifest'])->name('pulse.app.manifest')->withoutMiddleware($pulseInstallAssets);
+Route::get('/pulse/sw', [PulseController::class, 'appServiceWorker'])->name('pulse.app.sw')->withoutMiddleware($pulseInstallAssets);
 Route::get('/pulse', [PulseController::class, 'login'])->name('pulse.login');
 Route::post('/pulse/login', [PulseController::class, 'authenticate'])->name('pulse.authenticate')->middleware('web');
 Route::post('/logout', function (Request $request) {
@@ -93,12 +107,14 @@ Route::post('/admin/login', function (Request $request) {
         RateLimiter::hit($rateKey, $decaySeconds);
 
         $ownedClient = $user->ownedClient;
-        $isInactiveClientUser = in_array($user->role, [User::ROLE_CLIENTE, User::ROLE_DISTRIBUIDOR], true)
+        $isInactiveDistributor = $user->role === User::ROLE_DISTRIBUIDOR
             && (! $ownedClient || ! $ownedClient->is_active);
 
-        $errorMessage = $isInactiveClientUser
-            ? __('panel.auth.inactive_user')
-            : __('filament-panels::pages/auth/login.messages.failed');
+        $errorMessage = $user->isClientOwner()
+            ? __('panel.auth.web_client_use_app')
+            : ($isInactiveDistributor
+                ? __('panel.auth.inactive_user')
+                : __('filament-panels::pages/auth/login.messages.failed'));
 
         return redirect()->route('filament.admin.auth.login')
             ->withInput($request->only('email', 'data'))

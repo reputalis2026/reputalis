@@ -40,6 +40,12 @@ class Login extends BaseLogin
             $this->throwFailureValidationException();
         }
 
+        if ($user->isClientOwner()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'data.email' => __('panel.auth.web_client_use_app'),
+            ]);
+        }
+
         Filament::auth()->login($user, (bool) ($data['remember'] ?? false));
 
         if (
@@ -49,7 +55,7 @@ class Login extends BaseLogin
             Filament::auth()->logout();
 
             $ownedClient = $user->ownedClient;
-            $isInactiveClientUser = in_array($user->role, [User::ROLE_CLIENTE, User::ROLE_DISTRIBUIDOR], true)
+            $isInactiveClientUser = in_array($user->role, [User::ROLE_DISTRIBUIDOR], true)
                 && (! $ownedClient || ! $ownedClient->is_active);
 
             if ($isInactiveClientUser) {

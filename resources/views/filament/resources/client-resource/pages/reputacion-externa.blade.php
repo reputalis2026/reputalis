@@ -491,15 +491,11 @@
                             </div>
                         </div>
                         @php
-                            $currentTruncated = round(floor(round($realRating, 4) * 10) / 10, 1);
-                            $nextLevel = round($currentTruncated + 0.1, 1);
+                            $progressWindow = \App\Support\ExternalReputation\RatingProjection::objectiveProgress((float) $realRating);
+                            $nextLevel = $progressWindow['to'];
                             $nextLevelFmt = number_format($nextLevel, 1, ',', '');
-                            $currentTruncatedFmt = number_format($currentTruncated, 1, ',', '');
-                            $rawReal = ($totalReviews > 0)
-                                ? collect([1,2,3,4,5])->sum(fn ($s) => $s * (int) $snapshot->{"stars_{$s}"}) / $totalReviews
-                                : 0.0;
-                            $diff = $rawReal - $currentTruncated;
-                            $progressInRange = min(100, max(0, (int) (floor($diff / 0.1 * 100 / 5) * 5)));
+                            $currentTruncatedFmt = number_format($progressWindow['from'], 1, ',', '');
+                            $progressInRange = $progressWindow['percent'];
                             $starsNeededNextLevel = $snapshot
                                 ? \App\Support\ExternalReputation\RatingProjection::fiveStarsNeededForTarget($snapshot->starsBreakdown(), $nextLevel)
                                 : null;

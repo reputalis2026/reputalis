@@ -6,10 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0f766e">
     <title>El Pulso del Día — Iniciar sesión</title>
+    @include('pulse-pwa-head')
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800 antialiased flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-sm">
+        <div id="pulse-install-help" class="hidden mb-4 rounded-xl bg-teal-50 text-teal-900 text-sm px-4 py-3 ring-1 ring-teal-100"></div>
         <div class="text-center mb-8">
             <h1 class="text-2xl font-semibold text-slate-800">El Pulso del Día</h1>
             <p class="text-slate-500 text-sm mt-1">Dashboard diario de tu cliente</p>
@@ -43,5 +45,15 @@
         </form>
         <p class="text-center text-slate-400 text-xs mt-4">Solo propietarios de cliente</p>
     </div>
+    <script>
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('instalar') !== '1') return;
+        var help = document.getElementById('pulse-install-help');
+        if (!help) return;
+        help.textContent = 'Para poner el icono en el iPhone: pulsa Compartir y luego «Añadir a pantalla de inicio». Al abrirlo, inicia sesión en esta pantalla.';
+        help.classList.remove('hidden');
+    })();
+    </script>
 </body>
 </html>

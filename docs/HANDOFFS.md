@@ -25,6 +25,27 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ---
 
+### 2026-10-02 — Landing pública mínima
+
+- **Qué se cambió:** `reputalis.org` (`/`) deja la welcome de Laravel y muestra el logo Reputalis y un botón «Descargar El Pulso del Día» hacia `/pulse`.
+- **Por qué:** La raíz no tenía contenido útil. El Pulso es PWA, no tienda de apps.
+- **Qué falta:** Diseño de la landing.
+- **Riesgos o pendientes:** Instalar la app sigue requiriendo login y «Añadir a pantalla de inicio».
+
+### 2026-10-02 — Login web solo superadmin y distribuidor
+
+- **Qué se cambió:** El rol cliente ya no puede entrar en `/admin`. El login web (Livewire y POST sin JS) muestra que debe usar la aplicación. `canAccessPanel` solo deja superadmin y distribuidor activo, así que una sesión de cliente que abra el panel recibe 403 y no se cierra la PWA. `/pulse` sigue siendo solo para clientes.
+- **Por qué:** Los clientes usarán la PWA; la web queda para staff.
+- **Qué falta:** La PWA de reputación aún no sustituye el dashboard web del cliente.
+- **Riesgos o pendientes:** Quien tuviera sesión de cliente en `/admin` deja de ver ese panel.
+
+### 2026-10-02 — Progreso de reputación externa según nota real
+
+- **Qué se cambió:** El arco «Progreso hacia el objetivo» y las 5★ necesarias usan la nota real, no la de Google. Si 4,46 se ve como 4,5, el tramo es 4,4–4,6. Si 4,43 se ve como 4,4, el tramo es 4,4–4,5. El techo es 5,0. Misma lógica en el panel cliente y en la vista de staff.
+- **Por qué:** El objetivo debe seguir la décima de la nota real, no un salto fijo de 0,1 sobre Google.
+- **Qué falta:** Nada de este cálculo.
+- **Riesgos o pendientes:** El porcentaje sigue redondeando a saltos de 5.
+
 ### 2026-10-02 — Encuesta, login y valoraciones de operario
 
 - **Qué se cambió:** En la encuesta pública, al pulsar una nota se pasa ya a la siguiente pantalla (sin spinner de «Enviando…») y se hace preconnect/prefetch de la URL de reseña Google antes del countdown. El login del panel muestra `logoReputalis.png` en lugar del texto. En el detalle de operario, Valoraciones usa el mismo formato que la distribución de puntuaciones del dashboard (recuento, barra, 1–5).

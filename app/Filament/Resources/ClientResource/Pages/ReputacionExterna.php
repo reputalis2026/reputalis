@@ -468,28 +468,18 @@ class ReputacionExterna extends Page
         $positivePct = $totalReviews > 0 ? (int) round(($positiveCount / $totalReviews) * 100) : null;
         $rawReal = RatingProjection::calculatedRating($stars);
         $googleRating = $snapshot->rating !== null ? (float) $snapshot->rating : null;
-        $currentDisplayed = $googleRating !== null
-            ? round($googleRating, 1)
-            : ($rawReal !== null ? round(floor(round($rawReal, 4) * 10) / 10, 1) : null);
-        $nextLevel = $currentDisplayed !== null ? round(min(5.0, $currentDisplayed + 0.1), 1) : null;
-
-        if ($currentDisplayed !== null && $currentDisplayed >= 5) {
-            $nextLevel = 5.0;
-        }
+        $progress = $rawReal !== null
+            ? RatingProjection::objectiveProgress($rawReal)
+            : null;
+        $progressFrom = $progress['from'] ?? null;
+        $nextLevel = $progress['to'] ?? null;
+        $progressPct = (int) ($progress['percent'] ?? 0);
 
         $starsNeeded = $nextLevel !== null
             ? RatingProjection::fiveStarsNeededForTarget($stars, $nextLevel)
             : null;
         if ($starsNeeded !== null && $starsNeeded < 0) {
             $starsNeeded = 0;
-        }
-
-        $progressPct = 0;
-        if ($rawReal !== null && $currentDisplayed !== null && $nextLevel !== null && $nextLevel > $currentDisplayed) {
-            $diff = $rawReal - $currentDisplayed;
-            $progressPct = min(100, max(0, (int) (floor($diff / 0.1 * 100 / 5) * 5)));
-        } elseif ($currentDisplayed !== null && $currentDisplayed >= 5) {
-            $progressPct = 100;
         }
 
         $angle = -180 + ($progressPct / 100) * 180;
@@ -515,8 +505,8 @@ class ReputacionExterna extends Page
                 ? (string) $starsNeeded
                 : __('common.placeholders.empty'),
             'progress_pct' => $progressPct,
-            'progress_from' => $currentDisplayed !== null
-                ? number_format($currentDisplayed, 1, ',', '')
+            'progress_from' => $progressFrom !== null
+                ? number_format($progressFrom, 1, ',', '')
                 : __('common.placeholders.empty'),
             'progress_to' => $nextLevel !== null
                 ? number_format($nextLevel, 1, ',', '')
