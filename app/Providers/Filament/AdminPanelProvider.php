@@ -43,6 +43,8 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->profile(EditProfile::class)
             ->brandName('Reputalis')
+            ->brandLogo(asset('img/logoReputalis.png'))
+            ->brandLogoHeight('2.75rem')
             // Evita que el nombre/logo del cliente sea un enlace clicable.
             ->homeUrl(function (): ?string {
                 if (auth()->user()?->isClientOwner()) {

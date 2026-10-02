@@ -25,6 +25,13 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ---
 
+### 2026-10-02 — Encuesta, login y valoraciones de operario
+
+- **Qué se cambió:** En la encuesta pública, al pulsar una nota se pasa ya a la siguiente pantalla (sin spinner de «Enviando…») y se hace preconnect/prefetch de la URL de reseña Google antes del countdown. El login del panel muestra `logoReputalis.png` en lugar del texto. En el detalle de operario, Valoraciones usa el mismo formato que la distribución de puntuaciones del dashboard (recuento, barra, 1–5).
+- **Por qué:** Pedidos de producto: transición más limpia, probar si Google abre antes en iPhone, logo en login y alinear el gráfico del operario.
+- **Qué falta:** Confirmar en iPhone si el prefetch reduce la espera tras el 0. Comparativa sector sigue en datos fake.
+- **Riesgos o pendientes:** Si el POST de la encuesta falla, la nota positiva no muestra alerta (se guarda en cola local). Las encuestas ya en caritas no se fuerzan a números.
+
 ### 2026-10-02 — Commit UI Comparativa sector + plan Outscraper futuro
 
 - **Qué se cambió:** Se versiona la UI fake de Comparativa sector (rol cliente) y se añade [`docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`](PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md): arquitectura provincial mensual en BD compartida, filtros CP/ciudad, costes y checklist de lo pendiente. PDF de mockup **no** se sube (sigue fuera de git / no en `faces/`).

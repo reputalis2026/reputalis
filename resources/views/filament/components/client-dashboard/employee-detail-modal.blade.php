@@ -95,27 +95,34 @@
                     </div>
                 </div>
 
+                @php
+                    $ratingGroups = collect($employeeDetail['rating_groups'] ?? []);
+                    $ratingMaxCount = max(1, (int) $ratingGroups->max('count'));
+                @endphp
                 <div class="client-dashboard-employee-detail-metric">
                     <p class="client-dashboard-employee-detail-metric-label">
                         {{ __('client.dashboard.employee_ranking.detail_ratings') }}
                     </p>
                     <div class="client-dashboard-employee-detail-metric-value">
-                        <div class="client-dashboard-employee-detail-mini-chart">
-                            <div class="client-dashboard-employee-bars" aria-hidden="true">
-                                @foreach ($employeeDetail['rating_groups'] as $group)
-                                    <span
-                                        class="client-dashboard-employee-bar client-dashboard-employee-bar--tooltip"
-                                        data-rating-tooltip="{{ __('client.dashboard.main_summary.breakdown_surveys_tooltip') }} {{ $group['count'] }}"
-                                        style="height: max(2px, {{ $group['percentage'] }}%); background-color: {{ $group['color'] }}; --rating-tooltip-bg: {{ $group['tooltip_bg'] }};"
-                                    ></span>
-                                @endforeach
-                            </div>
-
-                            <div class="client-dashboard-employee-bar-labels" aria-hidden="true">
-                                @foreach ($employeeDetail['rating_groups'] as $group)
-                                    <span>{{ (int) round($group['percentage']) }}%</span>
-                                @endforeach
-                            </div>
+                        <div class="client-dashboard-employee-score-dist" aria-label="{{ __('client.dashboard.hero.score_distribution') }}">
+                            @foreach ($ratingGroups as $group)
+                                @php
+                                    $ratingCount = (int) ($group['count'] ?? 0);
+                                    $ratingHeight = $ratingCount > 0
+                                        ? max(18, ($ratingCount / $ratingMaxCount) * 100)
+                                        : 10;
+                                @endphp
+                                <div class="client-dashboard-employee-score-dist-col">
+                                    <span class="client-dashboard-employee-score-dist-count">{{ $ratingCount }}</span>
+                                    <span class="client-dashboard-employee-score-dist-track">
+                                        <span
+                                            class="client-dashboard-employee-score-dist-bar"
+                                            style="height: {{ $ratingHeight }}%; background: {{ $group['color'] }};"
+                                        ></span>
+                                    </span>
+                                    <span class="client-dashboard-employee-score-dist-label">{{ $group['label'] }}</span>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>

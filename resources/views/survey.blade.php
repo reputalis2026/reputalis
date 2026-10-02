@@ -57,28 +57,26 @@
         ],
     ][$surveyLocale];
 
-    $ratingNumbersWithImagesReveal = false;
+    $ratingNumbersWithImages = false;
     if ($surveyDisplayMode === 'numbers') {
         foreach ([1, 2, 3, 4, 5] as $i) {
             if (is_file(public_path('survey-rating/numbers/'.$i.'.png'))) {
-                $ratingNumbersWithImagesReveal = true;
+                $ratingNumbersWithImages = true;
                 break;
             }
         }
     }
-    $ratingSpinnerReveal = $surveyDisplayMode === 'faces' || $ratingNumbersWithImagesReveal;
 
     $surveyRatingPreloadUrls = [];
     if ($isPwa) {
-        $ratingPreloadFacesMode = file_exists(public_path('survey-rating/faces/cara1.png'));
-        if ($ratingPreloadFacesMode) {
+        if ($surveyDisplayMode === 'faces') {
             foreach ([1, 2, 3, 4, 5] as $i) {
                 $facePath = public_path('survey-rating/faces/cara'.$i.'.png');
                 if (file_exists($facePath)) {
                     $surveyRatingPreloadUrls[] = asset('survey-rating/faces/cara'.$i.'.png');
                 }
             }
-        } else {
+        } elseif ($ratingNumbersWithImages) {
             foreach ([1, 2, 3, 4, 5] as $i) {
                 $numPath = public_path('survey-rating/numbers/'.$i.'.png');
                 if (file_exists($numPath)) {
@@ -87,6 +85,8 @@
             }
         }
     }
+
+    $googleReviewUrlResolved = $googleReviewUrl ?? null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $surveyLocale }}">
@@ -101,6 +101,12 @@
     @foreach($surveyRatingPreloadUrls as $preloadHref)
     <link rel="preload" href="{{ $preloadHref }}" as="image" fetchpriority="high">
     @endforeach
+    @endif
+    @if(! empty($googleReviewUrlResolved))
+    <link rel="dns-prefetch" href="//search.google.com">
+    <link rel="preconnect" href="https://search.google.com" crossorigin>
+    <link rel="dns-prefetch" href="//www.google.com">
+    <link rel="preconnect" href="https://www.google.com" crossorigin>
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -481,67 +487,41 @@
 
                     <div class="survey-rating-scale">
                         @if($surveyDisplayMode === 'faces')
-                            <div>
-                                <div id="rating-spinner" class="grid grid-cols-5 gap-2">
-                                    @for($i = 1; $i <= 5; $i++)
-                                        <button type="button" disabled class="btn-score btn-score--faces rounded-xl bg-transparent pointer-events-none flex items-center justify-center text-slate-400" aria-hidden="true" tabindex="-1">
-                                            <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                            </svg>
-                                        </button>
-                                    @endfor
-                                </div>
-                                <div id="rating-buttons" class="grid grid-cols-5 gap-2 hidden opacity-0 transition-opacity duration-300 ease-out">
-                                    @foreach([1,2,3,4,5] as $n)
-                                        <button type="button" class="btn-score rounded-xl transition focus:outline-none btn-score--faces" data-score="{{ $n }}">
+                            <div class="grid grid-cols-5 gap-2" id="rating-buttons">
+                                @foreach([1,2,3,4,5] as $n)
+                                    <button type="button" class="btn-score rounded-xl transition focus:outline-none btn-score--faces" data-score="{{ $n }}">
+                                        <picture class="contents">
+                                            <source srcset="{{ asset('survey-rating/faces/cara'.$n.'.webp') }}" type="image/webp">
+                                            <img src="{{ asset('survey-rating/faces/cara'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                        </picture>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @elseif($ratingNumbersWithImages)
+                            <div class="grid grid-cols-5 gap-2" id="rating-buttons">
+                                @foreach([1,2,3,4,5] as $n)
+                                    @php
+                                        $numbersImgPath = public_path('survey-rating/numbers/'.$n.'.png');
+                                        $useNumbersImg = is_file($numbersImgPath);
+                                    @endphp
+                                    <button type="button" class="btn-score rounded-xl transition focus:outline-none {{ $useNumbersImg ? 'btn-score--numbers' : 'border-2 border-slate-200 bg-white font-semibold text-slate-600 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:ring-2 focus:ring-sky-500' }}" data-score="{{ $n }}">
+                                        @if($useNumbersImg)
                                             <picture class="contents">
-                                                <source srcset="{{ asset('survey-rating/faces/cara'.$n.'.webp') }}" type="image/webp">
-                                                <img src="{{ asset('survey-rating/faces/cara'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
+                                                <source srcset="{{ asset('survey-rating/numbers/'.$n.'.webp') }}" type="image/webp">
+                                                <img src="{{ asset('survey-rating/numbers/'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
                                             </picture>
-                                        </button>
-                                    @endforeach
-                                </div>
+                                        @else
+                                            {{ $n }}
+                                        @endif
+                                    </button>
+                                @endforeach
                             </div>
                         @else
-                            @if($ratingNumbersWithImagesReveal)
-                                <div>
-                                    <div id="rating-spinner" class="grid grid-cols-5 gap-2">
-                                        @for($i = 1; $i <= 5; $i++)
-                                            <button type="button" disabled class="btn-score btn-score--numbers rounded-xl bg-transparent pointer-events-none flex items-center justify-center text-slate-400" aria-hidden="true" tabindex="-1">
-                                                <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
-                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                                </svg>
-                                            </button>
-                                        @endfor
-                                    </div>
-                                    <div id="rating-buttons" class="grid grid-cols-5 gap-2 hidden opacity-0 transition-opacity duration-300 ease-out">
-                                        @foreach([1,2,3,4,5] as $n)
-                                            @php
-                                                $numbersImgPath = public_path('survey-rating/numbers/'.$n.'.png');
-                                                $useNumbersImg = is_file($numbersImgPath);
-                                            @endphp
-                                            <button type="button" class="btn-score rounded-xl transition focus:outline-none {{ $useNumbersImg ? 'btn-score--numbers' : 'border-2 border-slate-200 bg-white font-semibold text-slate-600 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:ring-2 focus:ring-sky-500' }}" data-score="{{ $n }}">
-                                                @if($useNumbersImg)
-                                                    <picture class="contents">
-                                                        <source srcset="{{ asset('survey-rating/numbers/'.$n.'.webp') }}" type="image/webp">
-                                                        <img src="{{ asset('survey-rating/numbers/'.$n.'.png') }}" alt="" role="presentation" class="h-full w-full object-contain" loading="eager" fetchpriority="high" decoding="async">
-                                                    </picture>
-                                                @else
-                                                    {{ $n }}
-                                                @endif
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @else
-                                <div class="grid grid-cols-5 gap-2">
-                                    @foreach([1,2,3,4,5] as $n)
-                                        <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500" data-score="{{ $n }}">{{ $n }}</button>
-                                    @endforeach
-                                </div>
-                            @endif
+                            <div class="grid grid-cols-5 gap-2" id="rating-buttons">
+                                @foreach([1,2,3,4,5] as $n)
+                                    <button type="button" class="btn-score rounded-xl border-2 border-slate-200 bg-white font-semibold text-slate-600 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500" data-score="{{ $n }}">{{ $n }}</button>
+                                @endforeach
+                            </div>
                         @endif
 
                         <div class="survey-rating-labels" aria-hidden="true">
@@ -660,10 +640,10 @@
             </div>
         </section>
 
-        <div id="overlay" class="fixed inset-0 z-10 hidden items-center justify-center bg-slate-900/40">
-            <div class="rounded-2xl bg-white px-8 py-6 shadow-xl flex flex-col items-center gap-3">
-                <svg class="h-10 w-10 animate-spin text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-slate-600" id="overlay-text">{{ $surveyUiTexts['sending'] }}</span>
+        <div id="overlay" class="fixed inset-0 z-10 hidden items-center justify-center bg-transparent pointer-events-none" aria-hidden="true">
+            <div class="rounded-2xl bg-white/90 px-5 py-3 shadow-sm flex items-center gap-2 opacity-90">
+                <svg class="h-5 w-5 animate-spin text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span class="text-sm text-slate-500" id="overlay-text">{{ $surveyUiTexts['sending'] }}</span>
             </div>
         </div>
         @endif
@@ -677,7 +657,7 @@
     const EMPLOYEE_ID = @json($employeeIdResolved);
     const SURVEY_LOCALE = @json($surveyLocale);
     const POSITIVE_SCORES = @json(array_values($surveyPositiveScores ?? [4, 5]));
-    const GOOGLE_REVIEW_URL = @json($googleReviewUrl ?? null);
+    const GOOGLE_REVIEW_URL = @json($googleReviewUrlResolved ?? null);
     const COUNTDOWN_SECONDS = 5;
     const STORAGE_KEY_DEVICE = 'reputalis_' + CLIENT_CODE + '_devicehash';
     const STORAGE_KEY_PENDING = 'reputalis_' + CLIENT_CODE + '_pending_surveys';
@@ -726,9 +706,43 @@
         }
     }
 
+    function ensureGoogleWarmupLinks() {
+        if (!GOOGLE_REVIEW_URL) return;
+
+        const hosts = ['https://search.google.com', 'https://www.google.com'];
+        hosts.forEach(function(origin) {
+            if (!document.head.querySelector('link[rel="preconnect"][href="' + origin + '"]')) {
+                const link = document.createElement('link');
+                link.rel = 'preconnect';
+                link.href = origin;
+                link.crossOrigin = 'anonymous';
+                document.head.appendChild(link);
+            }
+        });
+
+        if (!document.head.querySelector('link[data-reputalis-google-prefetch]')) {
+            const prefetch = document.createElement('link');
+            prefetch.rel = 'prefetch';
+            prefetch.href = GOOGLE_REVIEW_URL;
+            prefetch.as = 'document';
+            prefetch.dataset.reputalisGooglePrefetch = '1';
+            document.head.appendChild(prefetch);
+        }
+    }
+
+    function openGoogleReviewUrl() {
+        if (!GOOGLE_REVIEW_URL) return;
+        try {
+            window.location.replace(GOOGLE_REVIEW_URL);
+        } catch (_error) {
+            window.location.href = GOOGLE_REVIEW_URL;
+        }
+    }
+
     function startGoogleReviewCountdown() {
         if (!GOOGLE_REVIEW_URL) return;
 
+        ensureGoogleWarmupLinks();
         clearGoogleReviewCountdown();
 
         const countdownEl = document.getElementById('countdown-number');
@@ -740,12 +754,13 @@
             if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
             if (remaining <= 0) {
                 clearGoogleReviewCountdown();
-                window.location.href = GOOGLE_REVIEW_URL;
+                openGoogleReviewUrl();
             }
         }, 1000);
     }
 
     function showPositiveThanksStep() {
+        ensureGoogleWarmupLinks();
         showStep('step-thanks-high');
         startGoogleReviewCountdown();
     }
@@ -758,6 +773,7 @@
     const apiUrl = @json(url('/api/surveys/create'));
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const hasImprovementBlock = @json(!empty($improvementBlock) && !empty($improvementBlock['options']));
+    let surveySubmitLocked = false;
 
     function savePending(payload) {
         try {
@@ -812,8 +828,15 @@
         }).catch(() => {});
     }
 
+    function goToResultStep(payload) {
+        if (isPositiveScore(payload.score)) {
+            showPositiveThanksStep();
+        } else {
+            showStep('step-thanks-low');
+        }
+    }
+
     function submitSurvey(payload, fromQueue) {
-        if (!fromQueue) setOverlay(true, t('sending'));
         const effectiveEmployeeCode = payload.employee_code || EMPLOYEE_CODE || null;
         const effectiveEmployeeId = payload.employee_id || EMPLOYEE_ID || null;
         const body = { 
@@ -825,47 +848,63 @@
             locale_used: getLocale(), 
             device_hash: getDeviceHash()
         };
+
+        // UI inmediata: sin spinner de "Enviando..."; el guardado va en segundo plano.
+        if (!fromQueue) {
+            goToResultStep(payload);
+        }
+
         fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
             body: JSON.stringify(body),
         })
-        .then(res => res.json().then(data => ({ status: res.status, data })))
+        .then(res => res.json().then(data => ({ status: res.status, data })).catch(() => ({ status: res.status, data: {} })))
         .then(({ status, data }) => {
-            if (!fromQueue) setOverlay(false);
             if (status >= 200 && status < 300) {
-                if (!fromQueue) {
-                    if (isPositiveScore(payload.score)) {
-                        showPositiveThanksStep();
-                    } else showStep('step-thanks-low');
-                }
-            } else {
-                if (!fromQueue) { savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode }); alert(data.message || t('error')); }
+                return;
+            }
+            savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode });
+            if (!fromQueue && !isPositiveScore(payload.score)) {
+                // Solo avisar si no estamos ya en redirección a Google.
+                alert(data.message || t('error'));
             }
         })
         .catch(() => {
-            if (!fromQueue) { setOverlay(false); savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode }); alert(t('errorNetwork')); }
+            savePending({ ...payload, employee_id: effectiveEmployeeId, employee_code: effectiveEmployeeCode });
+            if (!fromQueue && !isPositiveScore(payload.score)) {
+                alert(t('errorNetwork'));
+            }
         });
     }
 
     document.querySelectorAll('[data-score]').forEach(btn => {
         btn.addEventListener('click', function() {
+            if (surveySubmitLocked) return;
             const score = parseInt(this.dataset.score, 10);
-            if (isPositiveScore(score)) submitSurvey({ score });
-            else if (hasImprovementBlock) { window._pendingSurvey = { score }; showStep('step-reason'); }
-            else submitSurvey({ score });
+            if (isPositiveScore(score)) {
+                surveySubmitLocked = true;
+                submitSurvey({ score });
+            } else if (hasImprovementBlock) {
+                window._pendingSurvey = { score };
+                showStep('step-reason');
+            } else {
+                surveySubmitLocked = true;
+                submitSurvey({ score });
+            }
         });
     });
 
     document.getElementById('reasons-list')?.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-option-id]');
-        if (!btn || !window._pendingSurvey) return;
+        if (!btn || !window._pendingSurvey || surveySubmitLocked) return;
         this.querySelectorAll('[data-option-id]').forEach(function(optionBtn) {
             optionBtn.classList.remove('is-selected');
         });
         btn.classList.add('is-selected');
         const payload = { ...window._pendingSurvey, improvement_option_id: btn.dataset.optionId };
         window._pendingSurvey = null;
+        surveySubmitLocked = true;
         submitSurvey(payload);
     });
 
@@ -876,65 +915,6 @@
 
     if (navigator.onLine) flushPending();
     window.addEventListener('online', () => flushPending());
-
-@if($ratingSpinnerReveal)
-    (function() {
-        function revealRatingButtons() {
-            const spin = document.getElementById('rating-spinner');
-            const btns = document.getElementById('rating-buttons');
-            if (spin) spin.classList.add('hidden');
-            if (btns) {
-                btns.classList.remove('hidden');
-                requestAnimationFrame(function() {
-                    btns.classList.remove('opacity-0');
-                    btns.classList.add('opacity-100');
-                });
-            }
-        }
-        function waitForRatingImages() {
-            const imgs = document.querySelectorAll('#rating-buttons picture img, #rating-buttons img');
-            const seen = new Set();
-            const images = [];
-            imgs.forEach(function(img) {
-                if (!seen.has(img)) { seen.add(img); images.push(img); }
-            });
-            const total = images.length;
-            if (total === 0) {
-                revealRatingButtons();
-                return;
-            }
-            let loaded = 0;
-            let finished = false;
-            function checkAllLoaded() {
-                if (finished) return;
-                if (loaded >= total) {
-                    finished = true;
-                    clearTimeout(fallbackTimer);
-                    revealRatingButtons();
-                }
-            }
-            const fallbackTimer = setTimeout(function() {
-                if (finished) return;
-                finished = true;
-                revealRatingButtons();
-            }, 3000);
-            images.forEach(function(img) {
-                if (img.complete && img.naturalWidth > 0) {
-                    loaded++;
-                } else {
-                    img.addEventListener('load', function() { loaded++; checkAllLoaded(); }, { once: true });
-                    img.addEventListener('error', function() { loaded++; checkAllLoaded(); }, { once: true });
-                }
-            });
-            checkAllLoaded();
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', waitForRatingImages);
-        } else {
-            waitForRatingImages();
-        }
-    })();
-@endif
 })();
     </script>
     @if($clientCode)

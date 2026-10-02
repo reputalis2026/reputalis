@@ -2007,6 +2007,54 @@
             color: #cbd5e1;
         }
 
+        .client-dashboard-employee-score-dist {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: .35rem;
+            width: 100%;
+            min-height: 6.2rem;
+        }
+
+        .client-dashboard-employee-score-dist-col {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .client-dashboard-employee-score-dist-count {
+            color: #8a9ea4;
+            font-size: .72rem;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: .35rem;
+        }
+
+        .client-dashboard-employee-score-dist-track {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            width: 100%;
+            height: 4.6rem;
+        }
+
+        .client-dashboard-employee-score-dist-bar {
+            display: block;
+            width: 1.55rem;
+            max-width: 70%;
+            border-radius: .45rem;
+            min-height: .35rem;
+        }
+
+        .client-dashboard-employee-score-dist-label {
+            margin-top: .4rem;
+            color: #8a9ea4;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+
         .client-dashboard-employee-detail-mini-chart {
             display: flex;
             width: 100%;
