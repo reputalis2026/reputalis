@@ -25,9 +25,21 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ---
 
-## Entradas
+### 2026-10-02 — Commit UI Comparativa sector + plan Outscraper futuro
 
-### 2026-09-16 — Hub staff, tema global y cards sin degradado (seguir en otro PC)
+- **Qué se cambió:** Se versiona la UI fake de Comparativa sector (rol cliente) y se añade [`docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`](PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md): arquitectura provincial mensual en BD compartida, filtros CP/ciudad, costes y checklist de lo pendiente. PDF de mockup **no** se sube (sigue fuera de git / no en `faces/`).
+- **Por qué:** No perder el trabajo de maqueta y dejar escrito el enfoque de datos reales para más adelante.
+- **Qué falta:** Spike Outscraper, tablas/job, campo provincia, sustituir fake — ver el plan.
+- **Riesgos o pendientes:** Sin push implícito; hacer `git push` si se necesita en otro PC.
+
+### 2026-09-17 — Comparativa sector UI fake (rol cliente)
+
+- **Qué se cambió:** En el panel del rol cliente, la pestaña Comparativa sector deja el placeholder y muestra el mockup (CP / ciudad / provincia) con KPIs, banner de proyección, scatter, histograma y evolución. Datos de `FakeSectorComparisonBuilder` (sin Outscraper). Badge «datos de demostración». Staff sin preview de panel cliente sigue viendo el placeholder.
+- **Por qué:** Validar el diseño visual mientras se investiga cómo sacar sets de zona con Outscraper.
+- **Qué falta:** Spike Outscraper real; sustituir fake por BD/snapshots; fórmula real del banner 5★. Plan detallado: [`PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`](PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md).
+- **Riesgos o pendientes:** Los números son inventados y estables por cliente. Ver `?reputationTab=sector` o menú Comparativa sector.
+
+### 2026-09-17 — Hub staff, tema global y cards sin degradado (seguir en otro PC)
 
 - **Qué se cambió:** Superadmin/distribuidor al abrir un cliente van a **`/{record}/inicio` (`ClientHub`)**: 5 cards (Dashboard, Ficha, Encuesta, Empleados, Llamadas) con **colores planos** (sin degradado). El propietario del cliente sigue yendo al dashboard. Cada card de staff lleva barra flotante para volver al hub; el menú lateral del cliente se mantiene en Dashboard / Certificados / Informes. En Ficha, Empleados y sus pantallas de **editar/crear**, el sidebar **no** se muestra (ni al volver atrás). El tema Reputalis (sidebar `#06232b`, acento `#2ad4dc`, canvas `#e7f3ef`) se aplica a todo el panel. Herramientas adicionales también con colores planos. Cancelar en editar empleado/ficha vuelve a la lista/ficha con URL explícita (no `history.back()`). SPA de Filament excluye esas URLs para no reutilizar el snapshot con el menú.
 - **Por qué:** El staff no debe aterrizar en el dashboard del cliente; las cards deben ser a pantalla completa salvo la experiencia de dashboard del cliente; el cliente no quería degradados.

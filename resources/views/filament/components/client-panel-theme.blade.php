@@ -209,14 +209,214 @@
         }
 
         html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) .fi-header,
-        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) .fi-header {
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) .fi-header,
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="sector-comparison"]) .fi-header {
             display: none !important;
         }
 
         html.reputalis-client-panel .fi-page:has([data-dashboard-section="internal-reputation"]) > section,
-        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) > section {
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="external-reputation"]) > section,
+        html.reputalis-client-panel .fi-page:has([data-dashboard-section="sector-comparison"]) > section {
             gap: 0 !important;
             padding-top: 0 !important;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-page {
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+            padding-bottom: 1.5rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-hero {
+            position: relative;
+            padding: .15rem .15rem .35rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-hero h1 {
+            margin: 0;
+            color: var(--reputalis-ink, #12353c);
+            font-size: 1.55rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-hero p {
+            margin: .35rem 0 0;
+            color: #7b9197;
+            font-size: .95rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-fake-badge {
+            display: inline-flex;
+            margin-top: .65rem;
+            padding: .28rem .65rem;
+            border-radius: 999px;
+            background: #fff4d6;
+            color: #9a6b00;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-scopes {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-card {
+            background: #fff;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 28px rgba(18, 53, 60, .05);
+            padding: 1.15rem 1.2rem 1.25rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-card-title {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            margin: 0 0 .95rem;
+            color: var(--reputalis-ink, #12353c);
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-card-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.55rem;
+            height: 1.55rem;
+            flex: 0 0 1.55rem;
+            border-radius: 999px;
+            background: #e8fbfd;
+            color: #0b7f88;
+            font-size: .78rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpis {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .55rem;
+        }
+
+        @media (min-width: 768px) {
+            html.reputalis-client-panel .reputalis-sector-kpis {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1100px) {
+            html.reputalis-client-panel .reputalis-sector-kpis {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: .28rem;
+            min-height: 4.55rem;
+            padding: .72rem .8rem;
+            border-radius: .85rem;
+            background: #f3f7f6;
+            border: 1px solid transparent;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi-label {
+            color: #8a9ea4;
+            font-size: .66rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi-value {
+            color: var(--reputalis-ink, #12353c);
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--position {
+            background: #f4fcfd;
+            border-color: #2ad4dc;
+            box-shadow: inset 0 0 0 1px rgba(42, 212, 220, .25);
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--position .reputalis-sector-kpi-value {
+            color: #0b7f88;
+            font-size: 1.35rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--ahead {
+            background: linear-gradient(90deg, #fdebec 0%, #fdebec 100%);
+            border-color: #f5c4c8;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--ahead .reputalis-sector-kpi-value {
+            color: #c0392b;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--behind {
+            background: linear-gradient(90deg, #eaf8f0 0%, #eaf8f0 100%);
+            border-color: #b9e4cc;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-kpi--behind .reputalis-sector-kpi-value {
+            color: #12805a;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-banner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: .2rem .35rem;
+            margin-top: .95rem;
+            padding: .9rem 1.1rem;
+            border-radius: .9rem;
+            background: #e8fbfd;
+            color: #12353c;
+            font-size: .95rem;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-banner strong {
+            color: #0b7f88;
+            font-weight: 800;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-charts {
+            display: flex;
+            flex-direction: column;
+            gap: .95rem;
+            margin-top: 1rem;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-chart-panel {
+            min-width: 0;
+            width: 100%;
+            padding: 1rem 1.05rem 1.1rem;
+            border-radius: 1rem;
+            background: #fff;
+            border: 1px solid rgba(18, 53, 60, .06);
+            box-shadow: 0 4px 14px rgba(18, 53, 60, .03);
+        }
+
+        html.reputalis-client-panel .reputalis-sector-chart-panel h3 {
+            margin: 0 0 .55rem;
+            color: var(--reputalis-ink, #12353c);
+            font-size: .95rem;
+            font-weight: 700;
+        }
+
+        html.reputalis-client-panel .reputalis-sector-chart {
+            min-height: 18.5rem;
         }
 
         html.reputalis-client-panel .reputalis-internal-hero-wrap {

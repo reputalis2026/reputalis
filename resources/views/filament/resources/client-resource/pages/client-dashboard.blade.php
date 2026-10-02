@@ -2469,10 +2469,12 @@
     </style>
 
     <div class="space-y-6">
+        @unless (\App\Support\ClientPanel::isActive())
         @include('filament.components.client-dashboard.reputation-tabs', [
             'tabs' => $this->getReputationTabs(),
             'activeTab' => $activeReputationTab,
         ])
+        @endunless
 
         @if ($activeReputationTab === 'internal')
             <section class="space-y-6" data-dashboard-section="internal-reputation">
@@ -3147,19 +3149,23 @@
                 </p>
             </section>
         @else
+            @if (\App\Support\ClientPanel::isActive())
+                @include('filament.components.client-dashboard.sector-comparison', [
+                    'comparison' => $this->getSectorComparison(),
+                ])
+            @else
             <section class="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10" data-dashboard-section="sector-comparison">
                 <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300">
                     <x-filament::icon icon="heroicon-o-chart-bar" class="h-6 w-6" />
                 </div>
-                @unless (\App\Support\ClientPanel::isActive())
                 <h2 class="mt-4 text-base font-semibold text-gray-950 dark:text-white">
                     {{ __('client.dashboard.sector.heading') }}
                 </h2>
-                @endunless
                 <p class="mx-auto mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
                     {{ __('client.dashboard.sector.description') }}
                 </p>
             </section>
+            @endif
         @endif
     </div>
 
@@ -3167,6 +3173,9 @@
 
     @once
         @include('filament.components.client-dashboard-charts-script')
+        @if (\App\Support\ClientPanel::isActive() && ($activeReputationTab ?? null) === 'sector')
+            @include('filament.components.sector-comparison-charts-script')
+        @endif
     @endonce
     </div>
 </x-filament-panels::page>

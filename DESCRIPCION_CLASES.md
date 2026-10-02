@@ -19,6 +19,8 @@ Los documentos `CONTEXTO_PARA_IA.md`, `DESCRIPCION_CLASES.md` y `RESUMEN_PROYECT
 
 - **App\Support\ExternalReputation\***: integración Outscraper Places — `PlaceMetrics`, `PlacesReputationGateway`, `OutscraperPlacesClient` (HTTP), `FakeOutscraperPlacesClient` (`OUTSCRAPER_DRIVER=fake`), `RatingProjection`, `ExternalReputationSyncService` (snapshot + alerta 1★/2★). Config en `config/services.php` → `outscraper.*`.
 
+- **App\Support\SectorComparison\FakeSectorComparisonBuilder**: Datos fake deterministas para la UI de Comparativa sector (CP / ciudad / provincia) en el rol cliente, sin Outscraper. Sustitución futura por catálogo zonal en BD — ver `docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`.
+
 - **App\Models\Employee**: Empleado de un cliente, con nombre, alias histórico, foto, puesto y estado activo; se relaciona con el cliente y su token NFC (`hasOne` `nfcTokens()`). En `booted()` asigna **UUID en `creating`** si no hay clave, para que tras guardar exista `id` en PHP (Eloquent no rellena el default de PostgreSQL en modelos no autoincrementales); además sincroniza `employees.is_active` hacia `nfctokens.is_active` cuando cambia el estado del empleado.
 
 - **App\Models\NfcToken**: Token NFC asignado a un empleado y un cliente; almacena el identificador (`token`) y si está activo. El valor `token` es estable y no se regenera al editar, activar o desactivar empleados; solo se crea si faltaba realmente. La FK **`employee_id` → `employees.id`** está en **ON DELETE CASCADE** (migración `2026_04_08_161000_...`); antes era SET NULL e incompatible con `employee_id` NOT NULL.

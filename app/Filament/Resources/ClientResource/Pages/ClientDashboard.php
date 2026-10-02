@@ -118,9 +118,13 @@ class ClientDashboard extends Page
             return;
         }
 
-        $this->activeReputationTab = in_array($tab, ['internal', 'sector'], true)
-            ? $tab
-            : 'internal';
+        if ($tab === 'sector') {
+            $this->redirect(static::getUrl(['record' => $this->getRecord()]).'?reputationTab=sector');
+
+            return;
+        }
+
+        $this->activeReputationTab = $tab === 'internal' ? 'internal' : 'internal';
     }
 
     public function setRangeType(string $rangeType): void
@@ -540,6 +544,12 @@ class ClientDashboard extends Page
             ],
             'employee_ranking' => $employeeRanking,
         ];
+    }
+
+    public function getSectorComparison(): array
+    {
+        return app(\App\Support\SectorComparison\FakeSectorComparisonBuilder::class)
+            ->build($this->getClientRecord());
     }
 
     /**

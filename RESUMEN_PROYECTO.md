@@ -63,7 +63,7 @@ La entidad central de negocio es **Client** (`clients`). Los distribuidores son 
 
 - **ClientResource** con hub staff `/{record}/inicio` (5 cards: Dashboard, Ficha, Encuesta, Empleados, Llamadas; colores planos), subpáginas Dashboard, Ficha, Encuesta (`PuntosDeMejora`), Empleados, Llamadas; permisos por rol. El listado de clientes (staff) abre el hub, no el dashboard. Logo pequeño junto al nombre comercial.
 - **Reputación externa (Google / Outscraper):** página `ReputacionExterna` accesible desde Dashboard → pestaña externa (métricas, gráficos, histórico, alertas 1★/2★, sync manual + simulación fake). Cron 3×/día. Plan: `docs/PLAN_REPUTACION_OUTSCRAPER.md`.
-- **Cliente (rol):** menú **Panel principal** (reputación interna/externa/sector), **Gestión** (Empleados) y **Documentos** (Certificados e Informes, placeholders); encuesta CSAT oculta en navegación; cromo propio (sidebar oscuro, marca Reputalis, pie con el negocio). En reputación interna: pastillas de rango, 4 KPI, Evolución de la satisfacción, Puntos de mejora, Crecimiento acumulado y Operarios (detalle con los mismos filtros). En reputación externa: 8 KPI cards al mockup (el resto de la página aún al estilo anterior). Superadmin/distribuidor conservan agujas y `<select>`.
+- **Cliente (rol):** menú **Panel principal** (reputación interna/externa/sector), **Gestión** (Empleados) y **Documentos** (Certificados e Informes, placeholders); encuesta CSAT oculta en navegación; cromo propio (sidebar oscuro, marca Reputalis, pie con el negocio). En reputación interna: pastillas de rango, 4 KPI, Evolución de la satisfacción, Puntos de mejora, Crecimiento acumulado y Operarios (detalle con los mismos filtros). En reputación externa: 8 KPI cards al mockup (el resto de la página aún al estilo anterior). **Comparativa sector:** UI mockup con datos fake (`FakeSectorComparisonBuilder`); datos Outscraper/BD pendiente — [`docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`](docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md). Superadmin/distribuidor conservan agujas y `<select>`.
 - **Herramientas adicionales** (superadmin/distribuidor): hub con Sectores e Imágenes de clientes (galería por cliente: logos + fotos de empleados con historial); cards con color plano (sin degradado).
 - **Imágenes:** logos/fotos bajo `storage/app/public/img/{code}/…` (comando de migración `clients:migrate-images`).
 - **Notificaciones:** `PanelMessage` / `PanelMessageService` en alta y activación de cliente.
@@ -100,6 +100,7 @@ Detalle por clase: `DESCRIPCION_CLASES.md`.
 ## Pendiente / no implementado
 
 - **Reputación Google agregada (Outscraper Places):** código fases 1–7 listo (UI, cron, alertas, gráficos). Falta API key real (`OUTSCRAPER_*`), prueba con clientes reales y cierre operativo — ver [`docs/PLAN_REPUTACION_OUTSCRAPER.md`](docs/PLAN_REPUTACION_OUTSCRAPER.md) y handoff 2026-08-14 en [`docs/HANDOFFS.md`](docs/HANDOFFS.md).
+- **Comparativa sector:** UI fake hecha; falta scrape zonal Outscraper + BD compartida — [`docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md`](docs/PLAN_COMPARATIVA_SECTOR_OUTSCRAPER.md).
 - Tablas previstas en migraciones sin app completa: contratos, documentos, Google **OAuth/GBP** (descartado para el flujo Outscraper), benchmarks, ajustes legacy de settings.
 - Email opcional al detectar alertas 1★/2★.
 - Posible estrategia futura para textos persistidos en BD (traducciones de datos).
