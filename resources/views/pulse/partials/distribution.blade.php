@@ -3,7 +3,7 @@
         <div class="bar-col">
             @if(!empty($plot))
                 <span class="bar-plot" style="--h: {{ $bar['count'] > 0 ? $bar['height'] : 0 }}%">
-                    @if($bar['count'] > 0)
+                    @if($bar['count'] > 0 || !empty($showZero))
                         <b class="bar-count">{{ \App\Support\Pulse\PulseFormat::integer($bar['count']) }}</b>
                     @endif
                     <i class="s{{ $bar['score'] }}"></i>

@@ -82,11 +82,11 @@
         @if(!empty($showChrome))
             <header class="topbar">
                 <a class="icon-btn" href="{{ $backUrl }}" aria-label="Atrás">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
                 </a>
                 <h1>{{ $heading }}</h1>
                 <a class="icon-btn" href="{{ $homeUrl }}" aria-label="Inicio">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
                 </a>
             </header>
         @endif

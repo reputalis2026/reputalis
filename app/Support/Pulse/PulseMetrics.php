@@ -337,6 +337,25 @@ final class PulseMetrics
         }
         usort($rows, fn (array $a, array $b): int => $b['times'] <=> $a['times']);
 
+        $markers = ['triangle', 'diamond', 'square', 'circle'];
+        $markerById = [];
+        foreach ($rows as $index => &$row) {
+            $marker = $markers[$index % count($markers)];
+            $row['marker'] = $marker;
+            $markerById[$row['id']] = $marker;
+        }
+        unset($row);
+
+        $series = $this->improvementSeries($client, $options, $palette);
+        foreach ($series['series'] as &$serie) {
+            $serie['marker'] = $markerById[$serie['id']] ?? 'circle';
+        }
+        unset($serie);
+        $order = array_column($rows, 'id');
+        usort($series['series'], function (array $a, array $b) use ($order): int {
+            return array_search($a['id'], $order, true) <=> array_search($b['id'], $order, true);
+        });
+
         $mentioned = $summary['total'] > 0 ? ($withPoint / $summary['total']) * 100 : null;
 
         return [
@@ -346,7 +365,7 @@ final class PulseMetrics
             'with_point_label' => $summary['total'] > 0 ? PulseFormat::percent($mentioned, 1) : null,
             'rows' => $rows,
             'incidents' => $incidents,
-            'series' => $this->improvementSeries($client, $options, $palette),
+            'series' => $series,
         ];
     }
 
@@ -646,7 +665,7 @@ final class PulseMetrics
     }
 
     /**
-     * @return array<int, array{label: string, times: int, share: float, share_label: string|null}>
+     * @return array<int, array{label: string, times: int, share: float, share_label: string|null, color: string}>
      */
     private function employeePoints(Client $client, string $employeeId): array
     {
@@ -674,10 +693,15 @@ final class PulseMetrics
                 'label' => $option->labelForLocale('es'),
                 'times' => (int) $times,
                 'share' => $share,
-                'share_label' => PulseFormat::percent($share, 1),
+                'share_label' => PulseFormat::percent($share, 0),
             ];
         }
         usort($points, fn (array $a, array $b): int => $b['times'] <=> $a['times']);
+        $palette = ['#1aa3b0', '#7b6bb8', '#c4a24a', '#c45b8a', '#d17a45', '#4c7fd1'];
+        foreach ($points as $index => &$point) {
+            $point['color'] = $palette[$index % count($palette)];
+        }
+        unset($point);
 
         return $points;
     }
@@ -764,6 +788,7 @@ final class PulseMetrics
                 $values[] = $surveys > 0 ? round(($times / $surveys) * 100, 1) : null;
             }
             $series[] = [
+                'id' => (string) $option->id,
                 'name' => $option->labelForLocale('es'),
                 'color' => $palette[$index % count($palette)],
                 'values' => $values,
@@ -834,22 +859,41 @@ final class PulseMetrics
             }
         }
 
-        $grand = array_sum(array_map('array_sum', $grid));
+        $surveyCounts = CsatSurvey::query()
+            ->where('client_id', $client->id)
+            ->whereBetween('created_at', $window)
+            ->whereNotNull('employee_id')
+            ->selectRaw('employee_id, COUNT(*) as aggregate')
+            ->groupBy('employee_id')
+            ->pluck('aggregate', 'employee_id');
+        $windowSurveys = (int) CsatSurvey::query()
+            ->where('client_id', $client->id)
+            ->whereBetween('created_at', $window)
+            ->count();
+        $monthTotals = array_fill(0, count($months), 0);
         $table = [];
         foreach ($grid as $id => $cells) {
             $total = array_sum($cells);
+            foreach ($cells as $index => $cell) {
+                $monthTotals[$index] += $cell;
+            }
+            $surveys = (int) ($surveyCounts[$id] ?? 0);
             $table[] = [
                 'name' => (string) ($employees[$id] ?? ''),
                 'cells' => $cells,
                 'total' => $total,
-                'share_label' => PulseFormat::percent($grand > 0 ? ($total / $grand) * 100 : 0, 1),
+                'share_label' => PulseFormat::percent($surveys > 0 ? ($total / $surveys) * 100 : null, 1),
             ];
         }
         usort($table, fn (array $a, array $b): int => $b['total'] <=> $a['total']);
+        $grand = array_sum($monthTotals);
 
         return [
             'labels' => array_column($months, 'label'),
             'rows' => $table,
+            'totals' => $monthTotals,
+            'total' => $grand,
+            'share_label' => PulseFormat::percent($windowSurveys > 0 ? ($grand / $windowSurveys) * 100 : null, 1),
         ];
     }
 

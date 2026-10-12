@@ -1,13 +1,13 @@
 @extends('pulse.layout')
 
 @section('content')
-    <main class="screen stack">
-        <p class="sub">Detalle del punto de mejora</p>
+    <main class="screen stack mejora">
+        <p class="lead">Detalle del punto de mejora</p>
         @if($detail['empty'])
             <section class="card">@include('pulse.partials.empty', ['message' => 'Sin encuestas en este periodo'])</section>
         @else
-            <section class="kpis" style="grid-template-columns: repeat(3, 1fr)">
-                <div class="kpi" style="background:#f8f1df">
+            <section class="kpis">
+                <div class="kpi is-sand">
                     <span>Incidencias</span>
                     <strong>{{ \App\Support\Pulse\PulseFormat::integer($detail['times']) }}</strong>
                 </div>
@@ -17,20 +17,22 @@
                 </div>
                 <div class="kpi">
                     <span>Lo señalan</span>
-                    <strong style="font-size:22px">{{ $detail['share_label'] ?? '—' }}</strong>
+                    <strong>{{ $detail['share_label'] ?? '—' }}</strong>
                 </div>
             </section>
             @if($detail['trend'])
-                <div class="banner">
-                    @if($detail['trend'] === 'favorable')
-                        Evolución favorable
-                    @elseif($detail['trend'] === 'desfavorable')
-                        Evolución desfavorable
-                    @else
-                        Sin cambio
-                    @endif
+                <div class="trend {{ $detail['trend'] === 'desfavorable' ? 'is-down' : ($detail['trend'] === 'estable' ? 'is-flat' : '') }}">
+                    <strong>
+                        @if($detail['trend'] === 'favorable')
+                            Evolución favorable
+                        @elseif($detail['trend'] === 'desfavorable')
+                            Evolución desfavorable
+                        @else
+                            Sin cambio
+                        @endif
+                    </strong>
                     @if($detail['from_label'] && $detail['to_label'])
-                        <span style="font-weight:500"> {{ $detail['from_label'] }} → {{ $detail['to_label'] }}</span>
+                        <span>{{ $detail['from_label'] }} → {{ $detail['to_label'] }}</span>
                     @endif
                 </div>
             @endif
@@ -53,14 +55,21 @@
                 @endphp
                 @include('pulse.partials.vbars', ['points' => $points, 'max' => $max, 'tone' => 'is-sand', 'lastTone' => 'is-sand-last'])
             </section>
-            <section class="card">
+            <section class="card staff">
                 <h3>Incidencias por empleado</h3>
                 <p class="sub">Número de veces · últimos 6 meses</p>
                 @if($detail['by_employee']['rows'] === [])
                     @include('pulse.partials.empty', ['message' => 'Sin incidencias de este punto'])
                 @else
-                    <div style="overflow-x:auto">
+                    <div class="staff-scroll">
                         <table class="table">
+                            <colgroup>
+                                <col class="c-name">
+                                @foreach($detail['by_employee']['labels'] as $label)
+                                    <col>
+                                @endforeach
+                                <col class="c-total">
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>Empleado</th>
@@ -72,20 +81,36 @@
                             </thead>
                             <tbody>
                                 @foreach($detail['by_employee']['rows'] as $row)
+                                    @php
+                                        $name = preg_split('/\s+/u', trim((string) $row['name']), 2) ?: [''];
+                                    @endphp
                                     <tr>
-                                        <td>{{ $row['name'] }}</td>
+                                        <td class="who"><span>{{ $name[0] }}</span>@if(($name[1] ?? '') !== '')<span>{{ $name[1] }}</span>@endif</td>
                                         @foreach($row['cells'] as $cell)
                                             <td class="num">
                                                 @if($cell > 0)
                                                     <span class="heat {{ $cell > 1 ? 'is-hot' : '' }}">{{ $cell }}</span>
                                                 @else
-                                                    —
+                                                    <span class="dash">—</span>
                                                 @endif
                                             </td>
                                         @endforeach
-                                        <td class="num">{{ $row['total'] }}<br><span class="muted">{{ $row['share_label'] }}</span></td>
+                                        <td class="num">{{ \App\Support\Pulse\PulseFormat::integer($row['total']) }}@if($row['share_label'])<span class="share">{{ $row['share_label'] }}</span>@endif</td>
                                     </tr>
                                 @endforeach
+                                <tr class="is-total">
+                                    <td>Total equipo</td>
+                                    @foreach($detail['by_employee']['totals'] as $total)
+                                        <td class="num">
+                                            @if($total > 0)
+                                                {{ \App\Support\Pulse\PulseFormat::integer($total) }}
+                                            @else
+                                                <span class="dash">—</span>
+                                            @endif
+                                        </td>
+                                    @endforeach
+                                    <td class="num">{{ \App\Support\Pulse\PulseFormat::integer($detail['by_employee']['total']) }}@if($detail['by_employee']['share_label'])<span class="share">{{ $detail['by_employee']['share_label'] }}</span>@endif</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

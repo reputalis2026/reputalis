@@ -1,12 +1,12 @@
 @extends('pulse.layout')
 
 @section('content')
-    <main class="screen stack">
-        <p class="sub" style="text-align:center;margin-top:-8px">
+    <main class="screen stack empleado">
+        <p class="place">
             @if($employee['position'])
                 {{ \App\Support\Pulse\PulseFormat::ordinal($employee['position']) }} / {{ $employee['ranked_total'] }} · Clasificación acumulada
             @else
-                Muestra insuficiente · Clasificación acumulada
+                Clasificación acumulada
             @endif
         </p>
         @include('pulse.partials.period', ['period' => $period])
@@ -24,7 +24,7 @@
                 </div>
                 <div class="kpi">
                     <span>Positivas · 4 y 5</span>
-                    <strong style="font-size:22px">{{ $employee['summary']['positive_label'] }}</strong>
+                    <strong>{{ $employee['summary']['positive_label'] }}</strong>
                 </div>
                 <div class="kpi">
                     <span>Incidencias</span>
@@ -33,7 +33,7 @@
             </section>
             <section class="card chart-card">
                 <h3>Distribución de puntuaciones</h3>
-                @include('pulse.partials.distribution', ['bars' => $employee['summary']['distribution'], 'showCounts' => true])
+                @include('pulse.partials.distribution', ['bars' => $employee['summary']['distribution'], 'showCounts' => true, 'plot' => true, 'showZero' => true])
             </section>
         @endif
         <section class="card chart-card">
@@ -49,21 +49,21 @@
                     ];
                 }
             @endphp
-            @include('pulse.partials.vbars', ['points' => $points, 'max' => 5])
+            @include('pulse.partials.vbars', ['points' => $points, 'max' => 5, 'caption' => 'Evolución de la satisfacción', 'plot' => true])
         </section>
         <section class="card chart-card">
             <h3>Crecimiento acumulado de encuestas</h3>
             <p class="sub">Últimos 6 meses</p>
-            @include('pulse.partials.lines', ['chart' => [
+            @include('pulse.partials.lines', ['area' => true, 'chart' => [
                 'labels' => array_column($employee['months'], 'label'),
                 'series' => [[
                     'name' => 'Encuestas',
-                    'color' => '#0e7f88',
+                    'color' => '#1a9aaa',
                     'values' => array_map(fn ($month) => $month['total'], $employee['months']),
                 ]],
             ]])
         </section>
-        <section class="card">
+        <section class="card chart-card points">
             <h3>Incidencias · puntos críticos</h3>
             <p class="sub">Últimos 6 meses</p>
             @if($employee['points'] === [])
@@ -71,16 +71,25 @@
             @else
                 <table class="table">
                     <thead>
-                        <tr><th>Punto de mejora</th><th class="num">Veces</th><th class="num">%</th></tr>
+                        <tr>
+                            <th>Punto de mejora</th>
+                            <th class="num">Veces</th>
+                            <th class="num">%</th>
+                        </tr>
                     </thead>
                     <tbody>
                         @foreach($employee['points'] as $point)
                             <tr>
-                                <td>{{ $point['label'] }}</td>
+                                <td><i class="dot" style="background: {{ $point['color'] }}"></i>{{ $point['label'] }}</td>
                                 <td class="num">{{ \App\Support\Pulse\PulseFormat::integer($point['times']) }}</td>
                                 <td class="num">{{ $point['share_label'] }}</td>
                             </tr>
                         @endforeach
+                        <tr class="is-total">
+                            <td>Total</td>
+                            <td class="num">{{ \App\Support\Pulse\PulseFormat::integer(array_sum(array_column($employee['points'], 'times'))) }}</td>
+                            <td class="num">100 %</td>
+                        </tr>
                     </tbody>
                 </table>
             @endif
