@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Pages\SubNavigationPosition;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -99,6 +100,25 @@ class ClientResource extends Resource
                 Forms\Components\Hidden::make('code')
                     ->default('CLIEN000001')
                     ->dehydrated(true),
+
+                Forms\Components\Section::make(__('client.actions.distributor'))
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->description(__('client.actions.distributor_help'))
+                    ->schema([
+                        Forms\Components\Select::make('distributor_user_id')
+                            ->label(__('client.actions.distributor'))
+                            ->options(fn (): array => static::distributorChoices())
+                            ->searchable()
+                            ->placeholder(__('client.actions.distributor_none'))
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function (Forms\Components\Select $component, ?Client $record): void {
+                                if ($record?->createdBy?->isDistributor()) {
+                                    $component->state((string) $record->created_by);
+                                }
+                            }),
+                    ])
+                    ->visible(fn ($livewire) => $livewire instanceof \App\Filament\Resources\ClientResource\Pages\EditClient
+                        && auth()->user()?->isSuperAdmin()),
 
                 // Bloque 2: Datos de Facturación
                 Forms\Components\Section::make(__('client.sections.billing'))
@@ -343,6 +363,21 @@ class ClientResource extends Resource
     {
         return $infolist
             ->schema([
+                InfolistSection::make(__('client.actions.distributor'))
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->schema([
+                        TextEntry::make('created_by')
+                            ->label(__('client.actions.distributor'))
+                            ->formatStateUsing(function ($state, Client $record): string {
+                                $user = $record->createdBy;
+                                if (! $user || ! $user->isDistributor()) {
+                                    return __('client.actions.distributor_none');
+                                }
+
+                                return $user->ownedClient?->namecommercial ?: ($user->fullname ?: $user->email);
+                            }),
+                    ])
+                    ->visible(fn () => auth()->user()?->isSuperAdmin()),
                 InfolistSection::make(__('client.sections.billing'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
@@ -456,6 +491,17 @@ class ClientResource extends Resource
                     ->url(fn (Client $record): string => static::getUrl('hub', ['record' => $record])),
                 Tables\Actions\EditAction::make()
                     ->label(__('common.actions.edit')),
+                Tables\Actions\Action::make('changeDistributor')
+                    ->label(__('client.actions.change_distributor'))
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->visible(fn () => auth()->user()?->isSuperAdmin() === true)
+                    ->form(fn () => static::changeDistributorFormSchema())
+                    ->fillForm(fn (Client $record): array => [
+                        'distributor_user_id' => $record->createdBy?->isDistributor() ? (string) $record->created_by : null,
+                    ])
+                    ->action(function (Client $record, array $data): void {
+                        static::applyDistributorChange($record, (string) ($data['distributor_user_id'] ?? ''));
+                    }),
                 Tables\Actions\Action::make('llamadas')
                     ->label(__('client.menu.calls'))
                     ->icon('heroicon-o-phone-arrow-up-right')
@@ -541,6 +587,72 @@ class ClientResource extends Resource
     public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
     {
         return [];
+    }
+
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    public static function changeDistributorFormSchema(): array
+    {
+        return [
+            Forms\Components\Select::make('distributor_user_id')
+                ->label(__('client.actions.distributor'))
+                ->options(fn (): array => static::distributorChoices())
+                ->searchable()
+                ->required()
+                ->helperText(__('client.actions.distributor_help')),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function distributorChoices(): array
+    {
+        return User::query()
+            ->where('role', User::ROLE_DISTRIBUIDOR)
+            ->whereHas('ownedClient', fn ($query) => $query->where('is_active', true))
+            ->with('ownedClient')
+            ->orderBy('fullname')
+            ->get()
+            ->mapWithKeys(function (User $user): array {
+                $commercial = trim((string) $user->ownedClient?->namecommercial);
+                $person = trim((string) ($user->fullname ?: $user->email));
+                $label = $commercial !== '' && $person !== '' && $commercial !== $person
+                    ? $commercial.' — '.$person
+                    : ($commercial !== '' ? $commercial : $person);
+
+                return [(string) $user->id => $label];
+            })
+            ->all();
+    }
+
+    public static function applyDistributorChange(Client $client, string $distributorUserId): void
+    {
+        $distributor = User::query()
+            ->whereKey($distributorUserId)
+            ->where('role', User::ROLE_DISTRIBUIDOR)
+            ->whereHas('ownedClient', fn ($query) => $query->where('is_active', true))
+            ->with('ownedClient')
+            ->first();
+
+        if (! $distributor) {
+            Notification::make()
+                ->danger()
+                ->title(__('client.actions.distributor_invalid'))
+                ->send();
+
+            return;
+        }
+
+        $client->created_by = $distributor->id;
+        $client->save();
+
+        Notification::make()
+            ->success()
+            ->title(__('client.actions.distributor_changed'))
+            ->body($distributor->ownedClient?->namecommercial ?: $distributor->fullname)
+            ->send();
     }
 
     public static function canViewAny(): bool

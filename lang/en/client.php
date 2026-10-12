@@ -152,6 +152,12 @@ return [
         'restore_description' => 'Restore this client? It will be fully reactivated.',
         'delete_confirm' => 'Are you sure you want to delete this client? This action cannot be undone.',
         'active_tooltip' => 'Active client. Deactivate it first',
+        'change_distributor' => 'Change distributor',
+        'distributor' => 'Distributor',
+        'distributor_help' => 'This client will be managed by the selected distributor. The app will show that distributor’s support phone and email.',
+        'distributor_changed' => 'Distributor updated',
+        'distributor_invalid' => 'That distributor cannot be assigned',
+        'distributor_none' => 'No distributor',
     ],
     'notifications' => [
         'created_title' => 'Client created',

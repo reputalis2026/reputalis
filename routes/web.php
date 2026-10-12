@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PulseController;
+use App\Http\Controllers\PulseScreenController;
 use App\Http\Controllers\SurveyController;
 use App\Models\User;
 use App\Support\PanelLocale;
@@ -29,8 +30,15 @@ $pulseInstallAssets = [
 ];
 Route::get('/pulse/manifest.webmanifest', [PulseController::class, 'appManifest'])->name('pulse.app.manifest')->withoutMiddleware($pulseInstallAssets);
 Route::get('/pulse/sw', [PulseController::class, 'appServiceWorker'])->name('pulse.app.sw')->withoutMiddleware($pulseInstallAssets);
-Route::get('/pulse', [PulseController::class, 'login'])->name('pulse.login');
+Route::get('/pulse', [PulseController::class, 'login'])->name('pulse.login')->middleware('pulse.nocache');
 Route::post('/pulse/login', [PulseController::class, 'authenticate'])->name('pulse.authenticate')->middleware('web');
+Route::get('/pulse/salir', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/pulse');
+})->name('pulse.logout')->middleware(['web', 'pulse.nocache']);
 Route::post('/logout', function (Request $request) {
     Auth::guard('web')->logout();
     $request->session()->invalidate();
@@ -38,11 +46,25 @@ Route::post('/logout', function (Request $request) {
     return redirect('/pulse');
 })->name('logout')->middleware('web');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'pulse.nocache'])->group(function () {
     Route::get('/api/pulse/{client_code}', [PulseController::class, 'metrics'])->name('api.pulse');
     Route::get('/pulse/{client_code}/sw.js', [PulseController::class, 'sw'])->name('pulse.sw');
     Route::get('/pulse/{client_code}/manifest.json', [PulseController::class, 'manifest'])->name('pulse.manifest');
-    Route::get('/pulse/{client_code}', [PulseController::class, 'dashboard'])->name('pulse.dashboard');
+    Route::get('/pulse/{client_code}', [PulseScreenController::class, 'entry'])->name('pulse.dashboard');
+    Route::get('/pulse/{client_code}/inicio', [PulseScreenController::class, 'home'])->name('pulse.home');
+    Route::get('/pulse/{client_code}/interna', [PulseScreenController::class, 'interna'])->name('pulse.interna');
+    Route::get('/pulse/{client_code}/externa', [PulseScreenController::class, 'externa'])->name('pulse.externa');
+    Route::get('/pulse/{client_code}/sector/lista', [PulseScreenController::class, 'sectorLista'])->name('pulse.sector.lista');
+    Route::get('/pulse/{client_code}/sector', [PulseScreenController::class, 'sector'])->name('pulse.sector');
+    Route::get('/pulse/{client_code}/equipo/{employee}', [PulseScreenController::class, 'empleado'])->name('pulse.empleado');
+    Route::get('/pulse/{client_code}/equipo', [PulseScreenController::class, 'equipo'])->name('pulse.equipo');
+    Route::get('/pulse/{client_code}/mejoras/{option}', [PulseScreenController::class, 'mejora'])->name('pulse.mejora');
+    Route::get('/pulse/{client_code}/mejoras', [PulseScreenController::class, 'mejoras'])->name('pulse.mejoras');
+    Route::get('/pulse/{client_code}/alertas', [PulseScreenController::class, 'alertas'])->name('pulse.alertas');
+    Route::post('/pulse/{client_code}/alertas/{alert}/leida', [PulseScreenController::class, 'readAlert'])->name('pulse.alertas.leida');
+    Route::post('/pulse/{client_code}/alertas/encuesta/{survey}/leida', [PulseScreenController::class, 'readSurveyAlert'])->name('pulse.alertas.encuesta');
+    Route::get('/pulse/{client_code}/notificaciones', [PulseScreenController::class, 'notificaciones'])->name('pulse.notificaciones');
+    Route::get('/pulse/{client_code}/soporte', [PulseScreenController::class, 'soporte'])->name('pulse.soporte');
 });
 
 Route::get('/survey', [SurveyController::class, 'show'])->name('survey');

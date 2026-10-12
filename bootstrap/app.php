@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin/login',
             'pulse/login',
         ]);
+        $middleware->alias([
+            'pulse.nocache' => \App\Http\Middleware\PreventPulsePageCache::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

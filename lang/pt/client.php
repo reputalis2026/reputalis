@@ -152,6 +152,12 @@ return [
         'restore_description' => 'Restaurar este cliente? Será totalmente reativado.',
         'delete_confirm' => 'Tem a certeza de que deseja eliminar este cliente? Esta ação não pode ser desfeita.',
         'active_tooltip' => 'Cliente ativo. Desative-o primeiro',
+        'change_distributor' => 'Mudar distribuidor',
+        'distributor' => 'Distribuidor',
+        'distributor_help' => 'Este cliente passará a ser visto pelo distribuidor escolhido. Na app aparecerá o telefone e o email de suporte dele.',
+        'distributor_changed' => 'Distribuidor atualizado',
+        'distributor_invalid' => 'Esse distribuidor não pode ser atribuído',
+        'distributor_none' => 'Sem distribuidor',
     ],
     'notifications' => [
         'created_title' => 'Cliente criado',

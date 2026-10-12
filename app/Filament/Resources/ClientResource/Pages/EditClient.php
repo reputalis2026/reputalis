@@ -160,8 +160,16 @@ class EditClient extends EditRecord
             $data['access_email'],
             $data['access_password'],
             $data['access_password_confirmation'],
-            $data['show_password']
+            $data['show_password'],
+            $data['distributor_user_id']
         );
+
+        if (auth()->user()?->isSuperAdmin()) {
+            $distributorId = trim((string) ($raw['distributor_user_id'] ?? ''));
+            if ($distributorId !== '' && isset(ClientResource::distributorChoices()[$distributorId])) {
+                $data['created_by'] = $distributorId;
+            }
+        }
 
         // Mantener fecha_inicio_alta (no editable; puede no venir en el estado del formulario)
         if (empty($data['fecha_inicio_alta']) && $this->record->fecha_inicio_alta) {
@@ -285,6 +293,17 @@ class EditClient extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('changeDistributor')
+                ->label(__('client.actions.change_distributor'))
+                ->icon('heroicon-o-arrows-right-left')
+                ->visible(fn () => auth()->user()?->isSuperAdmin() === true)
+                ->form(fn () => ClientResource::changeDistributorFormSchema())
+                ->fillForm(fn (): array => [
+                    'distributor_user_id' => $this->record->createdBy?->isDistributor() ? (string) $this->record->created_by : null,
+                ])
+                ->action(function (array $data): void {
+                    ClientResource::applyDistributorChange($this->record, (string) ($data['distributor_user_id'] ?? ''));
+                }),
             Actions\DeleteAction::make()
                 ->label(__('client.actions.delete_client'))
                 ->requiresConfirmation()

@@ -241,6 +241,26 @@ class DistributorResource extends Resource
                         $livewire instanceof Pages\CreateDistributor ||
                         $livewire instanceof Pages\EditDistributor
                     ),
+                Forms\Components\Section::make(__('panel.distributors.support_section'))
+                    ->icon('heroicon-o-phone')
+                    ->description(__('panel.distributors.support_help'))
+                    ->schema([
+                        Forms\Components\TextInput::make('support_phone')
+                            ->label(__('panel.distributors.support_phone'))
+                            ->tel()
+                            ->required()
+                            ->maxLength(30),
+                        Forms\Components\TextInput::make('support_email')
+                            ->label(__('panel.distributors.support_email'))
+                            ->email()
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->columns(2)
+                    ->visible(fn ($livewire) =>
+                        $livewire instanceof Pages\CreateDistributor ||
+                        $livewire instanceof Pages\EditDistributor
+                    ),
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('panel.distributors.active_label'))
                     ->default(false)
@@ -279,6 +299,8 @@ class DistributorResource extends Resource
                         TextEntry::make('sector')->label(__('client.form.sector'))->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('telefono_negocio')->label(__('client.form.business_phone'))->placeholder(__('common.placeholders.empty')),
                         TextEntry::make('telefono_cliente')->label(__('client.form.customer_phone'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('support_phone')->label(__('panel.distributors.support_phone'))->placeholder(__('common.placeholders.empty')),
+                        TextEntry::make('support_email')->label(__('panel.distributors.support_email'))->placeholder(__('common.placeholders.empty')),
                     ])
                     ->columns(2),
                 InfolistSection::make(__('client.sections.admin'))

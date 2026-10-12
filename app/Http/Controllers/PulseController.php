@@ -13,16 +13,22 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
-
 class PulseController extends Controller
 {
     /**
      * Login PWA "El Pulso del Día" (formulario).
      */
-    public function login(): Response
+    public function login(Request $request): Response|\Illuminate\View\View
     {
-        $response = response()->view('pulse-login');
+        $user = Auth::user();
+        if ($user && $user->isClientOwner() && $user->ownedClient && $user->ownedClient->is_active) {
+            return app(PulseScreenController::class)->home($request, $user->ownedClient->code, true);
+        }
+
+        $response = response()->view('pulse-login', [
+            'title' => 'El Pulso del Día — Iniciar sesión',
+            'pulseBoot' => 'login',
+        ]);
         $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
         $response->headers->set('Pragma', 'no-cache');
         $response->headers->set('Expires', '0');
@@ -80,35 +86,13 @@ class PulseController extends Controller
         RateLimiter::clear($rateKey);
         Auth::guard('web')->login($user, (bool) $request->boolean('remember'));
         $request->session()->regenerate();
-
-        $code = $user->ownedClient->code;
+        $request->session()->forget('pulse_splash_seen');
 
         if ($request->wantsJson()) {
-            return response()->json(['redirect' => url("/pulse/{$code}")]);
+            return response()->json(['redirect' => url('/pulse?entrada=1')]);
         }
 
-        return redirect()->intended('/pulse/' . $code)->setStatusCode(303);
-    }
-
-    /**
-     * Dashboard PWA por cliente (solo owner de ese cliente).
-     */
-    public function dashboard(string $clientCode): View|Response
-    {
-        $user = Auth::user();
-        if (! $user->isClientOwner() || ! $user->ownedClient || $user->ownedClient->code !== $clientCode) {
-            abort(403, 'No tiene acceso a este cliente.');
-        }
-
-        $client = $user->ownedClient;
-        if (! $client->is_active) {
-            abort(403);
-        }
-
-        return view('pulse', [
-            'client' => $client,
-            'client_code' => $client->code,
-        ]);
+        return redirect('/pulse?entrada=1')->setStatusCode(303);
     }
 
     /**
@@ -125,28 +109,9 @@ class PulseController extends Controller
             'scope' => '/',
             'display' => 'standalone',
             'orientation' => 'portrait',
-            'background_color' => '#f1f5f9',
-            'theme_color' => '#0f766e',
-            'icons' => [
-                [
-                    'src' => url('/img/pulse-icon-192.png'),
-                    'sizes' => '192x192',
-                    'type' => 'image/png',
-                    'purpose' => 'any',
-                ],
-                [
-                    'src' => url('/img/pulse-icon-512.png'),
-                    'sizes' => '512x512',
-                    'type' => 'image/png',
-                    'purpose' => 'any',
-                ],
-                [
-                    'src' => url('/img/pulse-icon-512.png'),
-                    'sizes' => '512x512',
-                    'type' => 'image/png',
-                    'purpose' => 'maskable',
-                ],
-            ],
+            'background_color' => '#e7f3ef',
+            'theme_color' => '#e7f3ef',
+            'icons' => $this->manifestIcons(),
         ];
 
         return response()->json($manifest)
@@ -165,10 +130,14 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', () => {});
+// pulse-sw 3. Sin fetch/respondWith: la navegación la pinta el navegador y no hay destello negro.
 SW;
 
         return response($js, 200, [
@@ -194,12 +163,9 @@ SW;
             'scope' => url("/pulse/{$client->code}"),
             'display' => 'standalone',
             'orientation' => 'portrait',
-            'background_color' => '#f8fafc',
-            'theme_color' => '#0f766e',
-            'icons' => [
-                ['src' => url('/favicon.ico'), 'sizes' => '192x192', 'type' => 'image/x-icon', 'purpose' => 'any'],
-                ['src' => url('/favicon.ico'), 'sizes' => '512x512', 'type' => 'image/x-icon', 'purpose' => 'any'],
-            ],
+            'background_color' => '#e7f3ef',
+            'theme_color' => '#e7f3ef',
+            'icons' => $this->manifestIcons(),
         ];
 
         return response()->json($manifest)
@@ -216,20 +182,13 @@ SW;
         $client = Client::where('code', $clientCode)->where('is_active', true)->firstOrFail();
 
         $code = $client->code;
-        $cacheName = 'pulse-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v1';
-        $pulseUrl = url("/pulse/{$code}");
-        $manifestUrl = url("/pulse/{$code}/manifest.json");
-        $apiUrl = url("/api/pulse/{$code}");
+        $cacheName = 'pulse-pwa-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $code) . '-v2';
 
         $js = <<<SW
 const CACHE_NAME = "{$cacheName}";
-const PULSE_URL = "{$pulseUrl}";
-const MANIFEST_URL = "{$manifestUrl}";
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((c) => c.addAll([PULSE_URL, MANIFEST_URL])).then(() => self.skipWaiting())
-  );
+  e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (e) => {
@@ -240,20 +199,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
-  if (new URL(e.request.url).pathname.indexOf('/api/') !== -1) return;
-  e.respondWith(
-    caches.match(e.request).then((cached) =>
-      cached || fetch(e.request).then((res) => {
-        const u = new URL(e.request.url);
-        if (u.origin === location.origin && (u.pathname.startsWith('/pulse/') || u.pathname.indexOf('/manifest') !== -1))
-          caches.open(CACHE_NAME).then((c) => c.put(e.request, res.clone()));
-        return res;
-      })
-    )
-  );
-});
+// pulse-sw 3. Sin fetch/respondWith: la navegación la pinta el navegador y no hay destello negro.
 SW;
 
         return response($js, 200, [
@@ -285,6 +231,43 @@ SW;
                 'satisfied_pct' => $accumulated['satisfied_pct'],
             ],
         ]);
+    }
+
+    /**
+     * El icono de la gráfica queda para la pantalla de inicio (maskable).
+     * El arranque de Android usa el icono "any": un cuadrado del mismo verde
+     * que el fondo, para que no se vea el icono en grande.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function manifestIcons(): array
+    {
+        return [
+            [
+                'src' => url('/img/pulse-splash-flat-192.png'),
+                'sizes' => '192x192',
+                'type' => 'image/png',
+                'purpose' => 'any',
+            ],
+            [
+                'src' => url('/img/pulse-splash-flat-512.png'),
+                'sizes' => '512x512',
+                'type' => 'image/png',
+                'purpose' => 'any',
+            ],
+            [
+                'src' => url('/img/pulse-icon-192.png'),
+                'sizes' => '192x192',
+                'type' => 'image/png',
+                'purpose' => 'maskable',
+            ],
+            [
+                'src' => url('/img/pulse-icon-512.png'),
+                'sizes' => '512x512',
+                'type' => 'image/png',
+                'purpose' => 'maskable',
+            ],
+        ];
     }
 
     private function authorizeClient(string $clientCode): void

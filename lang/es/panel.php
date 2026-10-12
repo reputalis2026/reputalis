@@ -105,6 +105,12 @@ return [
         'delete' => 'Eliminar distribuidor',
         'delete_confirm' => '¿Estás seguro de que deseas eliminar este distribuidor? Esta acción no se puede deshacer.',
         'active_tooltip' => 'Desactiva primero',
+        'support_section' => 'Soporte en la app',
+        'support_help' => 'Teléfono y correo que ven sus farmacias en la pantalla Soporte.',
+        'support_phone' => 'Teléfono de soporte',
+        'support_email' => 'Correo de soporte',
+        'support_nav' => 'Contacto de soporte',
+        'support_saved' => 'Contacto de soporte guardado',
         'notifications' => [
             'created_title' => 'Distribuidor creado',
             'created_body' => 'El distribuidor y el usuario administrador han sido creados.',

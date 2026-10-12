@@ -105,6 +105,12 @@ return [
         'delete' => 'Delete distributor',
         'delete_confirm' => 'Are you sure you want to delete this distributor? This action cannot be undone.',
         'active_tooltip' => 'Deactivate it first',
+        'support_section' => 'App support',
+        'support_help' => 'Phone and email their pharmacies see on the Support screen.',
+        'support_phone' => 'Support phone',
+        'support_email' => 'Support email',
+        'support_nav' => 'Support contact',
+        'support_saved' => 'Support contact saved',
         'notifications' => [
             'created_title' => 'Distributor created',
             'created_body' => 'The distributor and administrator user have been created.',

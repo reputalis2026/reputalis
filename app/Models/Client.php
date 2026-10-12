@@ -35,6 +35,8 @@ class Client extends Model
         'sector',
         'telefono_negocio',
         'telefono_cliente',
+        'support_phone',
+        'support_email',
         'owner_id',
         'created_by',
         'is_active',
@@ -78,6 +80,25 @@ class Client extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /**
+     * Teléfono y correo de Soporte de la app: los del distribuidor de esta farmacia.
+     *
+     * @return array{phone: ?string, email: ?string}
+     */
+    public function distributorSupportContact(): array
+    {
+        $this->loadMissing('createdBy.ownedClient');
+        $creator = $this->createdBy;
+        $distributor = ($creator && $creator->isDistributor()) ? $creator->ownedClient : null;
+        $phone = trim((string) ($distributor?->support_phone ?? ''));
+        $email = trim((string) ($distributor?->support_email ?? ''));
+
+        return [
+            'phone' => $phone !== '' ? $phone : null,
+            'email' => $email !== '' ? $email : null,
+        ];
     }
 
     /**
