@@ -98,10 +98,18 @@
             @endif
         </a>
 
-        <a class="card home-card" href="{{ $links['sector'] }}">
+        <a class="card home-card home-sector" href="{{ $links['sector'] }}">
             <h2>Comparativa sector <span class="chev">›</span></h2>
             <p class="sub">Competidores de tu código postal</p>
-            @include('pulse.partials.empty', ['message' => 'Sin ranking de tu código postal'])
+            <div class="sector-home">
+                <div class="sector-kpi">
+                    <span>Tu posición</span>
+                    <strong><b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['position']) }}</b> / {{ $sector['analyzed'] }}</strong>
+                </div>
+                <p class="sector-banner">
+                    Con {{ \App\Support\Pulse\PulseFormat::integer($sector['projection_stars']) }} reseñas de 5★ puedes alcanzar la <b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['projection_position'], true) }}</b> posición
+                </p>
+            </div>
         </a>
 
         <div class="home-actions">

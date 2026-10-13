@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\CsatSurvey;
+use App\Support\Pulse\FakePulseSector;
 use App\Support\Pulse\PulseMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -27,6 +28,7 @@ class PulseScreenController extends Controller
             'home' => $this->metrics->home($client, $this->readSurveys($request)),
             'externalError' => $this->metrics->externalError($client),
             'links' => $this->links($client),
+            'sector' => (new FakePulseSector)->forClient($client),
             'pulseBoot' => $launch ? 'launch' : 'app',
         ]));
     }
@@ -60,14 +62,18 @@ class PulseScreenController extends Controller
     {
         $client = $this->client($clientCode);
 
-        return view('pulse.sector', $this->frame($client, 'Comparativa sector'));
+        return view('pulse.sector', array_merge($this->frame($client, 'Comparativa sector'), [
+            'sector' => (new FakePulseSector)->forClient($client),
+        ]));
     }
 
     public function sectorLista(string $clientCode): View
     {
         $client = $this->client($clientCode);
 
-        return view('pulse.sector-lista', array_merge($this->frame($client, 'Comparativa sector', url('/pulse/'.$client->code.'/sector')), []));
+        return view('pulse.sector-lista', array_merge($this->frame($client, 'Comparativa sector', url('/pulse/'.$client->code.'/sector')), [
+            'sector' => (new FakePulseSector)->forClient($client),
+        ]));
     }
 
     public function equipo(string $clientCode): View
