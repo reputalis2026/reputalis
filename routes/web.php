@@ -64,6 +64,7 @@ Route::middleware(['auth', 'pulse.nocache'])->group(function () {
     Route::post('/pulse/{client_code}/alertas/{alert}/leida', [PulseScreenController::class, 'readAlert'])->name('pulse.alertas.leida');
     Route::post('/pulse/{client_code}/alertas/encuesta/{survey}/leida', [PulseScreenController::class, 'readSurveyAlert'])->name('pulse.alertas.encuesta');
     Route::get('/pulse/{client_code}/notificaciones', [PulseScreenController::class, 'notificaciones'])->name('pulse.notificaciones');
+    Route::post('/pulse/{client_code}/notificaciones/leidas', [PulseScreenController::class, 'readNotifications'])->name('pulse.notificaciones.leidas');
     Route::get('/pulse/{client_code}/soporte', [PulseScreenController::class, 'soporte'])->name('pulse.soporte');
 });
 

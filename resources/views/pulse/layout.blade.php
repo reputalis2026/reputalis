@@ -78,7 +78,7 @@
         </div>
     @endif
     <div class="pulse-app">
-        <div class="offline" role="status">Sin conexión. Se muestra la última copia guardada.</div>
+        <div class="offline" role="status">Sin conexión</div>
         @if(!empty($showChrome))
             <header class="topbar">
                 <a class="icon-btn" href="{{ $backUrl }}" aria-label="Atrás">

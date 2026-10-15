@@ -39,7 +39,7 @@ class InternalReputationMetrics
         $csatPeriod = $range->csatPeriod();
 
         if ($csatPeriod !== null) {
-            return CsatMetrics::getMetrics($clientId, $csatPeriod);
+            return CsatMetrics::getMetrics($clientId, $csatPeriod, fresh: true);
         }
 
         $baseQuery = CsatSurvey::query()
@@ -51,8 +51,9 @@ class InternalReputationMetrics
         $satisfiedCount = $total > 0 ? $this->countSatisfiedSurveys(clone $periodQuery) : 0;
         $satisfiedPct = $total > 0 ? round(($satisfiedCount / $total) * 100, 1) : null;
 
+        [$todayFrom, $todayTo] = CsatMetrics::dateRangeForPeriod(CsatMetrics::PERIOD_TODAY);
         $todayCount = (clone $baseQuery)
-            ->whereDate('created_at', Carbon::today())
+            ->whereBetween('created_at', [$todayFrom, $todayTo])
             ->count();
 
         return [

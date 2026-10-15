@@ -97,13 +97,22 @@ class InternalReputationDateRange
             return [$from, $to];
         }
 
-        return match ($this->rangeType) {
-            self::TYPE_LAST_MONTH => [Carbon::today()->subDays(30)->startOfDay(), Carbon::today()->endOfDay()],
-            self::TYPE_LAST_WEEK => [Carbon::today()->subDays(7)->startOfDay(), Carbon::today()->endOfDay()],
-            self::TYPE_LAST_YEAR => [Carbon::today()->subYear()->startOfDay(), Carbon::today()->endOfDay()],
-            self::TYPE_TODAY => [Carbon::today()->startOfDay(), Carbon::today()->endOfDay()],
-            default => [null, null],
+        $now = CsatMetrics::pharmacyNow();
+        $end = $now->copy()->endOfDay();
+        $tz = (string) config('app.timezone');
+        $start = match ($this->rangeType) {
+            self::TYPE_LAST_MONTH => $now->copy()->subDays(29)->startOfDay(),
+            self::TYPE_LAST_WEEK => $now->copy()->subDays(6)->startOfDay(),
+            self::TYPE_LAST_YEAR => $now->copy()->subYear()->startOfDay(),
+            self::TYPE_TODAY => $now->copy()->startOfDay(),
+            default => null,
         };
+
+        if ($start === null) {
+            return [null, null];
+        }
+
+        return [$start->timezone($tz), $end->timezone($tz)];
     }
 
     private function parseDate(?string $date): ?Carbon

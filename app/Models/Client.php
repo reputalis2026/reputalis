@@ -217,4 +217,20 @@ class Client extends Model
             ? 'https://search.google.com/local/writereview?placeid=' . rawurlencode($placeId)
             : null;
     }
+
+    /**
+     * Ficha del local en Google Maps. La lista directa de reseñas no la abre la app.
+     */
+    public function googleReviewsUrl(): ?string
+    {
+        $placeId = self::normalizeGooglePlaceId($this->google_place_id);
+        if ($placeId === null) {
+            return null;
+        }
+
+        $query = trim((string) ($this->namecommercial ?: 'farmacia'));
+
+        return 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($query)
+            .'&query_place_id='.rawurlencode($placeId);
+    }
 }

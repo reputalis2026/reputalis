@@ -437,7 +437,7 @@ final class PulseMetrics
             ->when($readSurveyIds !== [], fn ($query) => $query->whereNotIn('id', $readSurveyIds))
             ->count();
         $surveys = $this->internalAlertQuery($client)
-            ->with('improvementOption')
+            ->with(['improvementOption', 'employee'])
             ->orderByDesc('created_at')
             ->limit(40)
             ->get();
@@ -446,16 +446,22 @@ final class PulseMetrics
             if ($unreadOnly && ! $unread) {
                 continue;
             }
+            $when = $survey->created_at->timezone($this->timezone());
             $label = $survey->improvementOption?->labelForLocale('es');
+            $incidence = $label !== null && $label !== '' ? $label : 'Valoración de '.$survey->score.'★';
+            $employee = trim((string) ($survey->employee?->name ?? ''));
             $items[] = [
                 'kind' => 'internal',
                 'id' => (string) $survey->id,
                 'tone' => 'interna',
-                'title' => $label !== null && $label !== '' ? $label : 'Valoración de '.$survey->score.'★',
-                'date' => PulseFormat::dayMonth($survey->created_at->timezone($this->timezone())),
+                'title' => $incidence,
+                'date' => PulseFormat::dayMonth($when),
+                'time' => $when->format('H:i'),
+                'score' => (int) $survey->score,
+                'employee' => $employee !== '' ? $employee : '—',
                 'sort' => $survey->created_at->getTimestamp(),
                 'unread' => $unread,
-                'body' => 'Valoración interna de '.$survey->score.'★.',
+                'body' => null,
                 'link' => null,
                 'read_url' => url('/pulse/'.$client->code.'/alertas/encuesta/'.$survey->id.'/leida'),
             ];
@@ -918,9 +924,7 @@ final class PulseMetrics
             $body = 'El total de reseñas ha cambiado entre dos lecturas.';
         }
 
-        $link = filled($client->google_place_id)
-            ? 'https://search.google.com/local/reviews?placeid='.rawurlencode((string) $client->google_place_id)
-            : null;
+        $link = $client->googleReviewsUrl();
 
         return [
             'kind' => 'google',

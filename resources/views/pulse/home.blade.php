@@ -35,11 +35,10 @@
                     </div>
                 </div>
                 <div class="split home-internal-foot home-foot">
-                    <div class="today-note">
+                    <div class="today-note {{ $home['today']['empty'] ? 'is-empty' : '' }}">
                         @if($home['today']['empty'])
                             <span class="muted">Hoy</span>
-                            <b>0</b>
-                            <span class="muted">Sin encuestas</span>
+                            <span class="today-empty">Sin encuestas</span>
                         @else
                             <span class="muted">Hoy</span>
                             <b>{{ \App\Support\Pulse\PulseFormat::decimal($home['today']['average'], 1) }}</b>
@@ -55,8 +54,10 @@
         </a>
 
         <a class="card home-card home-external" href="{{ $links['externa'] }}">
-            <h2>Reputación externa <span class="chev">›</span></h2>
-            <p class="sub">Google Maps</p>
+            <h2>
+                <span class="home-external-heading">Reputación externa <span class="sub">Google Maps</span></span>
+                <span class="chev">›</span>
+            </h2>
             @if($home['external'] === null)
                 @include('pulse.partials.empty', ['message' => 'Sin datos de Google', 'retry' => $externalError !== null])
             @else

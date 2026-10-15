@@ -25,6 +25,15 @@ Copia el bloque plantilla al **inicio** del archivo (debajo de esta sección), m
 
 ---
 
+### 2026-10-14 — Pendiente en El Pulso (no hecho)
+
+- **Qué se cambió:** Nada en esta entrada. Queda apuntado para otro día.
+- **Por qué:** Se acordó no hacerlo ahora y seguir con otras preguntas.
+- **Qué falta:**
+  1. En Equipo, explicar que hacen falta 10 encuestas para entrar en el ranking. Quien no llega ya queda fuera, pero la pantalla no lo dice.
+  2. Si falla la lectura de Google y no hay captura, mostrar la hora de la última lectura válida cuando exista, y el botón Reintentar.
+- **Riesgos o pendientes:** No tocar aún el ranking de sector (sigue en cifras de demostración), los skeletons, la accesibilidad ni una zona horaria por farmacia.
+
 ### 2026-10-02 — Landing pública mínima
 
 - **Qué se cambió:** `reputalis.org` (`/`) deja la welcome de Laravel y muestra el logo Reputalis y un botón «Descargar El Pulso del Día» hacia `/pulse`.

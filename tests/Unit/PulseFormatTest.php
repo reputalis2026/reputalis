@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Client;
 use App\Support\Pulse\PulseFormat;
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
@@ -24,5 +25,17 @@ class PulseFormatTest extends TestCase
 
         $this->assertSame('7 sep 2026', PulseFormat::dayMonth($date));
         $this->assertSame('Sep', PulseFormat::monthShort($date));
+    }
+
+    public function test_google_reviews_url_opens_the_maps_place(): void
+    {
+        $client = new Client;
+        $client->namecommercial = 'Casa Balbino';
+        $client->google_place_id = 'ChIJL8BF9yXeDQ0RLVeYuJxsjpo';
+
+        $url = $client->googleReviewsUrl();
+
+        $this->assertStringContainsString('https://www.google.com/maps/search/?api=1&query=Casa%20Balbino', $url);
+        $this->assertStringContainsString('query_place_id=ChIJL8BF9yXeDQ0RLVeYuJxsjpo', $url);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\CsatSurvey;
 use App\Support\Pulse\FakePulseSector;
 use App\Support\Pulse\PulseMetrics;
+use App\Support\Pulse\PulseNotifications;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -24,8 +25,11 @@ class PulseScreenController extends Controller
     {
         $client = $this->client($clientCode);
 
+        $home = $this->metrics->home($client, $this->readSurveys($request));
+        $home['notifications'] = (new PulseNotifications)->forClient($client, $this->readNotificationIds($request))['unread'];
+
         return view('pulse.home', array_merge($this->frame($client, 'Inicio', null, false), [
-            'home' => $this->metrics->home($client, $this->readSurveys($request)),
+            'home' => $home,
             'externalError' => $this->metrics->externalError($client),
             'links' => $this->links($client),
             'sector' => (new FakePulseSector)->forClient($client),
@@ -159,11 +163,38 @@ class PulseScreenController extends Controller
         return response()->noContent();
     }
 
-    public function notificaciones(string $clientCode): View
+    public function notificaciones(Request $request, string $clientCode): View
     {
         $client = $this->client($clientCode);
+        $filter = $request->query('filtro') === 'sin_leer' ? 'sin_leer' : 'todas';
 
-        return view('pulse.notificaciones', $this->frame($client, 'Notificaciones'));
+        return view('pulse.notificaciones', array_merge($this->frame($client, 'Notificaciones'), [
+            'filter' => $filter,
+            'notes' => (new PulseNotifications)->forClient($client, $this->readNotificationIds($request), $filter === 'sin_leer'),
+            'readUrl' => url('/pulse/'.$client->code.'/notificaciones/leidas'),
+        ]));
+    }
+
+    public function readNotifications(Request $request, string $clientCode): Response
+    {
+        $this->client($clientCode);
+        $incoming = $request->input('ids', []);
+        if (! is_array($incoming)) {
+            $incoming = [];
+        }
+
+        $incoming = array_values(array_filter(
+            $incoming,
+            fn ($id): bool => is_string($id) && preg_match('/^[a-z0-9-]{1,80}$/', $id) === 1
+        ));
+        $ids = array_values(array_unique(array_merge($this->readNotificationIds($request), $incoming)));
+        if (count($ids) > 200) {
+            $ids = array_slice($ids, -200);
+        }
+        $request->session()->put('pulse_read_notifications', $ids);
+        $request->session()->save();
+
+        return response()->noContent();
     }
 
     public function soporte(string $clientCode): View
@@ -247,6 +278,17 @@ class PulseScreenController extends Controller
     {
         return array_values(array_filter(
             (array) $request->session()->get('pulse_read_surveys', []),
+            fn ($id): bool => is_string($id) && $id !== ''
+        ));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function readNotificationIds(Request $request): array
+    {
+        return array_values(array_filter(
+            (array) $request->session()->get('pulse_read_notifications', []),
             fn ($id): bool => is_string($id) && $id !== ''
         ));
     }
