@@ -39,6 +39,7 @@
                         @if($home['today']['empty'])
                             <span class="muted">Hoy</span>
                             <span class="today-empty">Sin encuestas</span>
+                            <span class="muted" aria-hidden="true">&nbsp;</span>
                         @else
                             <span class="muted">Hoy</span>
                             <b>{{ \App\Support\Pulse\PulseFormat::decimal($home['today']['average'], 1) }}</b>
@@ -46,7 +47,6 @@
                         @endif
                     </div>
                     <div>
-                        <p class="muted">Distribución</p>
                         @include('pulse.partials.distribution', ['bars' => $home['internal']['distribution'], 'tracked' => true, 'hideScale' => true])
                     </div>
                 </div>
@@ -92,7 +92,6 @@
                         <span class="muted">{{ \App\Support\Pulse\PulseFormat::integer((int) ($home['external']['reviews_today'] ?? 0)) }} reseñas</span>
                     </div>
                     <div>
-                        <p class="muted">Distribución</p>
                         @include('pulse.partials.distribution', ['bars' => $home['external']['distribution'], 'tracked' => true, 'showStars' => true])
                     </div>
                 </div>
@@ -107,9 +106,9 @@
                     <span>Tu posición</span>
                     <strong><b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['position']) }}</b> / {{ $sector['analyzed'] }}</strong>
                 </div>
-                <p class="sector-banner">
-                    Con {{ \App\Support\Pulse\PulseFormat::integer($sector['projection_stars']) }} reseñas de 5★ puedes alcanzar la <b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['projection_position'], true) }}</b> posición
-                </p>
+                <div class="sector-banner">
+                    <p>Con {{ \App\Support\Pulse\PulseFormat::integer($sector['projection_stars']) }} reseñas de 5★ puedes alcanzar la <b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['projection_position'], true) }}</b> posición</p>
+                </div>
             </div>
         </a>
 
