@@ -234,7 +234,7 @@ class PulseScreenController extends Controller
             'heading' => $heading,
             'backUrl' => $back ?? url('/pulse/'.$client->code.'/inicio'),
             'homeUrl' => url('/pulse/'.$client->code.'/inicio'),
-            'title' => $heading.' — El Pulso del Día',
+            'title' => $heading,
         ];
     }
 

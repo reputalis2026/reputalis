@@ -39,9 +39,12 @@ final class PulseMetrics
     {
         $internal = $this->internalSummary($client->id, 'acumulado');
         $today = $this->internalSummary($client->id, 'hoy');
+        $internal['distribution'] = $today['distribution'];
         $external = $this->externalSummary($client, 'acumulado');
         if (is_array($external)) {
-            $external['reviews_today'] = $this->reviewsAddedToday($client);
+            $delta = $this->periodReviewDelta($client, 'hoy');
+            $external['reviews_today'] = $delta['reviews'];
+            $external['distribution'] = $this->distribution($delta['stars']);
         }
         $counts = $this->counts($client, $readSurveyIds);
 
@@ -564,11 +567,6 @@ final class PulseMetrics
         }
 
         return $counts;
-    }
-
-    private function reviewsAddedToday(Client $client): int
-    {
-        return $this->periodReviewDelta($client, 'hoy')['reviews'];
     }
 
     /**

@@ -50,9 +50,38 @@
                 @endif
             </div>
         </section>
-        <form class="logout" method="POST" action="{{ url('/logout') }}" onsubmit="try{localStorage.removeItem('pulse_auth')}catch(e){}">
+        <form class="logout" id="pulse-logout" method="POST" action="{{ url('/logout') }}" onsubmit="try{localStorage.removeItem('pulse_auth')}catch(e){}">
             @csrf
-            <button type="submit" class="btn btn-ghost">Cerrar sesión</button>
+            <button type="button" class="btn btn-ghost" id="pulse-logout-open">Cerrar sesión</button>
         </form>
+        <dialog class="confirm" id="pulse-logout-dialog">
+            <p>Si cierras sesión tendrás que volver a entrar con tu usuario y contraseña.</p>
+            <div class="confirm-actions">
+                <button type="button" class="btn btn-ghost" id="pulse-logout-cancel">Cancelar</button>
+                <button type="submit" class="btn" form="pulse-logout">Cerrar sesión</button>
+            </div>
+        </dialog>
     </main>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var open = document.getElementById('pulse-logout-open');
+    var dialog = document.getElementById('pulse-logout-dialog');
+    var cancel = document.getElementById('pulse-logout-cancel');
+    if (!open || !dialog || !cancel) return;
+    open.addEventListener('click', function () {
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+            cancel.focus();
+            return;
+        }
+        if (window.confirm('Si cierras sesión tendrás que volver a entrar con tu usuario y contraseña.')) {
+            document.getElementById('pulse-logout').requestSubmit();
+        }
+    });
+    cancel.addEventListener('click', function () { dialog.close(); });
+})();
+</script>
+@endpush

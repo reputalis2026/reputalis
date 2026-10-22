@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#e7f3ef" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#e7f3ef" media="(prefers-color-scheme: dark)">
     <meta name="color-scheme" content="light">
-    <title>{{ $title ?? 'El Pulso del Día' }}</title>
+    <title>{{ $title ?? 'Reputalis' }}</title>
     <style>
         html, body { background: #e7f3ef; color-scheme: light; }
         html:not(.pulse-ready) body { visibility: hidden; }

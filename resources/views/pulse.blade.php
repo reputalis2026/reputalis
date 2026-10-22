@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0f766e">
-    <title>El Pulso del Día — {{ $clientName }}</title>
+    <title>{{ $clientName }}</title>
     @include('pulse-pwa-head')
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -22,7 +22,6 @@
     <div class="mx-auto max-w-md min-h-screen flex flex-col px-4 py-6" id="app">
         <header class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-lg font-semibold text-slate-800">El Pulso del Día</h1>
                 <p class="text-sm text-slate-500">{{ $clientName }}</p>
             </div>
             <form method="POST" action="{{ url('/logout') }}" class="inline">

@@ -4,7 +4,6 @@
     <main class="login-screen">
         <div id="pulse-install-help" class="install-help hidden" hidden></div>
         <img class="wordmark" src="{{ asset('img/pulse-wordmark.png') }}" alt="Reputalis">
-        <p class="login-lead">El Pulso del Día</p>
         <form class="login-card" method="POST" action="{{ url('/pulse/login') }}">
             @csrf
             @if(isset($errors) && $errors->any())
@@ -14,10 +13,6 @@
             <input type="text" name="email" id="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="Usuario o email">
             <label for="password">Contraseña</label>
             <input type="password" name="password" id="password" required autocomplete="current-password" placeholder="Contraseña">
-            <label class="remember">
-                <input type="checkbox" name="remember" value="1">
-                Recordarme
-            </label>
             <button type="submit" class="btn btn-block">Entrar</button>
         </form>
     </main>

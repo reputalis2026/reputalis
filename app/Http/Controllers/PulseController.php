@@ -26,7 +26,7 @@ class PulseController extends Controller
         }
 
         $response = response()->view('pulse-login', [
-            'title' => 'El Pulso del Día — Iniciar sesión',
+            'title' => 'Iniciar sesión',
             'pulseBoot' => 'login',
         ]);
         $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -71,7 +71,7 @@ class PulseController extends Controller
         if (! $user->isClientOwner() || ! $user->ownedClient) {
             RateLimiter::hit($rateKey, $decaySeconds);
             throw ValidationException::withMessages([
-                'email' => ['Solo los propietarios de cliente pueden acceder a El Pulso del Día.'],
+                'email' => ['Solo los propietarios de cliente pueden acceder.'],
             ]);
         }
 
@@ -84,7 +84,7 @@ class PulseController extends Controller
         }
 
         RateLimiter::clear($rateKey);
-        Auth::guard('web')->login($user, (bool) $request->boolean('remember'));
+        Auth::guard('web')->login($user, true);
         $request->session()->regenerate();
         $request->session()->forget('pulse_splash_seen');
 
@@ -102,8 +102,8 @@ class PulseController extends Controller
     {
         $manifest = [
             'id' => '/pulse',
-            'name' => 'El Pulso del Día',
-            'short_name' => 'Pulso',
+            'name' => 'Reputalis',
+            'short_name' => 'Reputalis',
             'description' => 'Dashboard diario de tu farmacia',
             'start_url' => '/pulse',
             'scope' => '/',
@@ -156,8 +156,8 @@ SW;
         $client = Client::where('code', $clientCode)->where('is_active', true)->firstOrFail();
 
         $manifest = [
-            'name' => 'El Pulso del Día - ' . $client->namecommercial,
-            'short_name' => 'Pulso ' . $client->code,
+            'name' => $client->namecommercial,
+            'short_name' => mb_substr($client->namecommercial, 0, 12),
             'description' => 'Dashboard diario - ' . $client->namecommercial,
             'start_url' => url("/pulse/{$client->code}"),
             'scope' => url("/pulse/{$client->code}"),

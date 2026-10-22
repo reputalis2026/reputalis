@@ -26,7 +26,7 @@
             </section>
             <section class="card chart-card">
                 <h3>Distribución de valoraciones</h3>
-                @include('pulse.partials.distribution', ['bars' => $summary['distribution'], 'showCounts' => true, 'plot' => true])
+                @include('pulse.partials.distribution', ['bars' => $summary['distribution'], 'showCounts' => true, 'plot' => true, 'showStars' => true])
             </section>
             <section class="card goal-card">
                 <div class="goal-head">

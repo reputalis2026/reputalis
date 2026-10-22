@@ -16,7 +16,7 @@ class PulseAppInstallTest extends TestCase
         $this->assertSame('/pulse', $manifest['start_url']);
         $this->assertSame('/', $manifest['scope']);
         $this->assertSame('standalone', $manifest['display']);
-        $this->assertSame('El Pulso del Día', $manifest['name']);
+        $this->assertSame('Reputalis', $manifest['name']);
         $this->assertNotEmpty($manifest['icons']);
     }
 
@@ -36,7 +36,7 @@ class PulseAppInstallTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('/pulse/manifest.webmanifest', false)
-            ->assertSee('Descargar El Pulso del Día', false)
+            ->assertSee('>Descargar<', false)
             ->assertSee('beforeinstallprompt', false);
 
         $this->get('/pulse')

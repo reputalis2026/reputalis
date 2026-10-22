@@ -54,7 +54,7 @@
 <body>
     <main>
         <img src="{{ asset('img/logoReputalis.png') }}" alt="Reputalis" width="280" height="44">
-        <button type="button" id="install-pulse">Descargar El Pulso del Día</button>
+        <button type="button" id="install-pulse">Descargar</button>
         <p id="install-help" hidden></p>
     </main>
     <script>
@@ -91,7 +91,7 @@
             promptEvent.prompt();
             promptEvent.userChoice.then(function (choice) {
                 if (choice.outcome === 'accepted') {
-                    showHelp('Listo. El icono de El Pulso del Día queda en la pantalla de inicio. Ábrelo para iniciar sesión.');
+                    showHelp('Listo. El icono queda en la pantalla de inicio. Ábrelo para iniciar sesión.');
                 }
             });
         }

@@ -14,7 +14,7 @@
             </a>
             <a href="{{ $links['notificaciones'] }}">
                 @if($home['notifications'] > 0)<span class="badge badge-teal">{{ $home['notifications'] }}</span>@endif
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+                <svg class="is-bell" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
                 Notificaciones
             </a>
         </nav>
@@ -37,17 +37,17 @@
                 <div class="split home-internal-foot home-foot">
                     <div class="today-note {{ $home['today']['empty'] ? 'is-empty' : '' }}">
                         @if($home['today']['empty'])
-                            <span class="muted">Hoy</span>
+                            <span class="muted today-label">Hoy</span>
                             <span class="today-empty">Sin encuestas</span>
                             <span class="muted" aria-hidden="true">&nbsp;</span>
                         @else
-                            <span class="muted">Hoy</span>
+                            <span class="muted today-label">Hoy</span>
                             <b>{{ \App\Support\Pulse\PulseFormat::decimal($home['today']['average'], 1) }}</b>
                             <span class="muted">{{ \App\Support\Pulse\PulseFormat::integer($home['today']['total']) }} encuestas</span>
                         @endif
                     </div>
                     <div>
-                        @include('pulse.partials.distribution', ['bars' => $home['internal']['distribution'], 'tracked' => true, 'hideScale' => true])
+                        @include('pulse.partials.distribution', ['bars' => $home['internal']['distribution'], 'tracked' => true])
                     </div>
                 </div>
             @endif
@@ -87,7 +87,7 @@
                 </div>
                 <div class="split home-external-foot home-foot">
                     <div class="today-note">
-                        <span class="muted">Hoy</span>
+                        <span class="muted today-label">Hoy</span>
                         <b>{{ $home['today']['empty'] ? '0' : \App\Support\Pulse\PulseFormat::decimal($home['today']['average'], 1) }}</b>
                         <span class="muted">{{ \App\Support\Pulse\PulseFormat::integer((int) ($home['external']['reviews_today'] ?? 0)) }} reseñas</span>
                     </div>
@@ -104,7 +104,7 @@
             <div class="sector-home">
                 <div class="sector-kpi">
                     <span>Tu posición</span>
-                    <strong><b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['position']) }}</b> / {{ $sector['analyzed'] }}</strong>
+                    <strong><b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['position']) }}</b><span class="of"> / {{ $sector['analyzed'] }}</span></strong>
                 </div>
                 <div class="sector-banner">
                     <p>Con {{ \App\Support\Pulse\PulseFormat::integer($sector['projection_stars']) }} reseñas de 5★ puedes alcanzar la <b>{{ \App\Support\Pulse\PulseFormat::ordinal($sector['projection_position'], true) }}</b> posición</p>
